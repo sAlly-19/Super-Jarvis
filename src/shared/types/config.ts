@@ -60,7 +60,7 @@ export interface JasperConfig {
   licenseDeviceSecret?: string
   licenseLeaseToken?: string
   licenseLeaseExpiresAt?: string
-  licensePublicJwk?: string
+  licenseLastTrustedAt?: string
 }
 
 export interface UpdateConfigPayload {
@@ -123,7 +123,7 @@ export interface UpdateConfigPayload {
   licenseDeviceSecret?: string
   licenseLeaseToken?: string
   licenseLeaseExpiresAt?: string
-  licensePublicJwk?: string
+  licenseLastTrustedAt?: string
 }
 
 export interface ConfigSummary {
@@ -184,32 +184,3 @@ export interface ConfigSummary {
   licenseMachineId?: string
   hwid: string
 }
-
-export interface LicenseValidationResult {
-  valid: boolean
-  status?: 'ACTIVATED' | 'ACTIVE' | 'DISABLED' | 'REVOKED'
-  error?: string
-  message: string
-  client?: {
-    name: string
-    email: string
-  }
-  machineId?: string
-  activatedAt?: string
-  lastSeenAt?: string
-}
-
-export interface LicenseInfo {
-  isLicensed: boolean
-  status: 'active' | 'disabled' | 'revoked' | 'unlicensed'
-  keyMasked?: string
-  clientName?: string
-  clientEmail?: string
-  machineId?: string
-  currentHwid: string
-  activatedAt?: string
-  lastSeenAt?: string
-  error?: string
-}
-
-

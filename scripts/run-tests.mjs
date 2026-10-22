@@ -132,10 +132,31 @@ fs.writeFileSync(updaterMockPath, updaterMockShim, 'utf-8')
 // Bundle tests with esbuild resolving real TypeScript classes and @shared aliases
 console.log('[run-tests] Empacotando testes com as implementações REAIS do sistema...')
 
-const testFiles = [
-  { in: 'security-hardening.test.ts', out: 'security-hardening.test.mjs' },
-  { in: 'python-backend.test.ts', out: 'python-backend.test.mjs' }
-]
+function findTestFiles(dir, baseDir = dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true })
+  let files = []
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      files.push(...findTestFiles(fullPath, baseDir))
+    } else if (entry.isFile() && entry.name.endsWith('.test.ts')) {
+      const rel = path.relative(baseDir, fullPath).replace(/\\/g, '/')
+      files.push(rel)
+    }
+  }
+  return files.sort()
+}
+
+const filterArg = process.argv.slice(2).find((arg) => !arg.startsWith('-'))
+const allDiscovered = findTestFiles(path.join(rootDir, 'test'))
+const selectedFiles = filterArg
+  ? allDiscovered.filter((f) => f.includes(filterArg))
+  : allDiscovered
+
+const testFiles = selectedFiles.map((rel) => ({
+  in: rel,
+  out: rel.replace(/\.test\.ts$/, '.test.mjs').replace(/\//g, '_')
+}))
 
 for (const tf of testFiles) {
   esbuild.buildSync({

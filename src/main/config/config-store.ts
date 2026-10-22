@@ -223,7 +223,7 @@ class ConfigStore {
         if (data.licenseDeviceSecret !== undefined) this.config.licenseDeviceSecret = decryptSecret(data.licenseDeviceSecret)
         if (data.licenseLeaseToken !== undefined) this.config.licenseLeaseToken = decryptSecret(data.licenseLeaseToken)
         if (data.licenseLeaseExpiresAt !== undefined) this.config.licenseLeaseExpiresAt = data.licenseLeaseExpiresAt
-        if (data.licensePublicJwk !== undefined) this.config.licensePublicJwk = data.licensePublicJwk
+        if (data.licenseLastTrustedAt !== undefined) this.config.licenseLastTrustedAt = data.licenseLastTrustedAt
 
         console.log('[ConfigStore] Loaded settings from userData/jasper-config.json')
       }
@@ -321,7 +321,7 @@ class ConfigStore {
     if (payload.licenseDeviceSecret !== undefined) this.config.licenseDeviceSecret = payload.licenseDeviceSecret.trim()
     if (payload.licenseLeaseToken !== undefined) this.config.licenseLeaseToken = payload.licenseLeaseToken.trim()
     if (payload.licenseLeaseExpiresAt !== undefined) this.config.licenseLeaseExpiresAt = payload.licenseLeaseExpiresAt
-    if (payload.licensePublicJwk !== undefined) this.config.licensePublicJwk = payload.licensePublicJwk
+    if (payload.licenseLastTrustedAt !== undefined) this.config.licenseLastTrustedAt = payload.licenseLastTrustedAt
 
     try {
       this.savePersistedConfig()

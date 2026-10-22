@@ -33,6 +33,7 @@ function decodeJsonSegment(segment: string): Record<string, any> {
 }
 
 export class LicenseManager {
+  private inMemoryPublicJwk = ""
   private revocationListeners: Array<(result: LicenseValidationResult) => void> = []
   private apiBaseUrl = (
     typeof app !== 'undefined' && app.isPackaged
@@ -144,7 +145,6 @@ export class LicenseManager {
       licenseDeviceSecret: response.deviceSecret || cfg.licenseDeviceSecret || '',
       licenseLeaseToken: response.lease.token,
       licenseLeaseExpiresAt: response.lease.expiresAt,
-      licensePublicJwk: publicJwk
     })
     return {
       valid: true,
@@ -173,6 +173,7 @@ export class LicenseManager {
         machineHash: this.machineHash(),
         deviceSecret: cfg.licenseKey === cleanKey ? cfg.licenseDeviceSecret : undefined
       })
+      this.inMemoryPublicJwk = publicJwk;
       return this.storeActiveLease(cleanKey, installationId, publicJwk, response)
     } catch (error: any) {
       const code = error?.name || 'NETWORK_ERROR'
@@ -191,7 +192,7 @@ export class LicenseManager {
 
   private async heartbeat(): Promise<LicenseValidationResult> {
     const cfg = configStore.getConfig()
-    if (!cfg.licenseDeviceId || !cfg.licenseDeviceSecret || !cfg.licenseInstallationId || !cfg.licenseKey || !cfg.licensePublicJwk) {
+    if (!cfg.licenseDeviceId || !cfg.licenseDeviceSecret || !cfg.licenseInstallationId || !cfg.licenseKey) {
       return this.activateLicense(cfg.licenseKey || '')
     }
     try {
@@ -200,7 +201,7 @@ export class LicenseManager {
         deviceSecret: cfg.licenseDeviceSecret,
         nonce: crypto.randomUUID()
       })
-      return this.storeActiveLease(cfg.licenseKey, cfg.licenseInstallationId, cfg.licensePublicJwk, {
+      return this.storeActiveLease(cfg.licenseKey, cfg.licenseInstallationId, this.inMemoryPublicJwk, {
         status: 'active',
         deviceId: cfg.licenseDeviceId,
         lease: response.lease
@@ -219,7 +220,7 @@ export class LicenseManager {
   private async offlineLeaseResult(): Promise<LicenseValidationResult | null> {
     const cfg = configStore.getConfig()
     if (!cfg.licenseLeaseToken || !cfg.licenseInstallationId) return null
-    const jwkToUse = cfg.licensePublicJwk || JSON.stringify(PINNED_PRODUCTION_PUBLIC_JWK)
+    const jwkToUse = this.inMemoryPublicJwk || JSON.stringify(PINNED_PRODUCTION_PUBLIC_JWK)
     if (!await this.verifyLease(cfg.licenseLeaseToken, jwkToUse, cfg.licenseInstallationId)) return null
     return {
       valid: true,
