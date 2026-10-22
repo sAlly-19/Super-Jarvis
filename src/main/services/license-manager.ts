@@ -1,8 +1,10 @@
-import crypto, { webcrypto } from 'crypto'
+import crypto from 'crypto'
 import { app } from 'electron'
 import { configStore } from '../config/config-store'
 import { getHardwareInfo } from './hwid'
 import type { LicenseValidationResult, LicenseInfo } from '@shared'
+import { verifySignedLease, type LeaseVerificationContext } from './lease-verifier'
+import { LICENSE_KEYRING, PRODUCTION_KEY_ID } from './license-keyring'
 
 interface LeaseResponse {
   token: string
@@ -21,20 +23,11 @@ interface ApiErrorBody {
 }
 
 export const DEFAULT_LICENSE_API_URL = 'https://jasper-api-production.jasper-avatar.workers.dev'
-
-export const PINNED_PRODUCTION_PUBLIC_JWK: JsonWebKey = {
-  kty: 'OKP',
-  crv: 'Ed25519',
-  x: '6m25tI8dGf9mP3H7kR1yV5uW9xZ8bA2cD4eF6gH8jK0'
-}
-
-function decodeJsonSegment(segment: string): Record<string, any> {
-  return JSON.parse(Buffer.from(segment, 'base64url').toString('utf-8'))
-}
+export { LICENSE_KEYRING, PRODUCTION_KEY_ID }
 
 export class LicenseManager {
-  private inMemoryPublicJwk = ""
   private revocationListeners: Array<(result: LicenseValidationResult) => void> = []
+  private customKeyring: Record<string, JsonWebKey> | null = null
   private apiBaseUrl = (
     typeof app !== 'undefined' && app.isPackaged
       ? DEFAULT_LICENSE_API_URL
@@ -47,6 +40,14 @@ export class LicenseManager {
       return
     }
     this.apiBaseUrl = (url || '').replace(/\/+$/, '')
+  }
+
+  public setTestKeyring(keyring: Record<string, JsonWebKey> | null): void {
+    if (typeof app !== 'undefined' && app.isPackaged) {
+      console.warn('[LicenseManager] Custom keyring is prohibited in packaged production mode.')
+      return
+    }
+    this.customKeyring = keyring
   }
 
   public validateKeyFormat(key: string): boolean {
@@ -81,59 +82,42 @@ export class LicenseManager {
     return result
   }
 
-  private machineHash(): string {
+  public machineHash(): string {
     return crypto.createHash('sha256').update(getHardwareInfo().machineId).digest('base64url')
   }
 
-  private async verifyLease(token: string, publicJwkJson: string, installationId: string): Promise<boolean> {
-    try {
-      const parts = token.split('.')
-      if (parts.length !== 3) return false
-      const [encodedHeader, encodedPayload, encodedSignature] = parts
-      if (!encodedHeader || !encodedPayload || !encodedSignature) return false
-      const header = decodeJsonSegment(encodedHeader)
-      const payload = decodeJsonSegment(encodedPayload)
-      if (header.alg !== 'EdDSA' || payload.iss !== 'jasper-license-api' || payload.aud !== 'jasper-avatar-desktop') return false
-      if (payload.installationId !== installationId || payload.machineHash !== this.machineHash()) return false
-      const nowSeconds = Math.floor(Date.now() / 1000)
-      if (!Number.isFinite(payload.iat) || !Number.isFinite(payload.exp)) return false
-      if (payload.iat > nowSeconds + 300 || payload.exp <= nowSeconds || payload.exp - payload.iat > 259_200) return false
-
-      let jwk: JsonWebKey
-      if (typeof app !== 'undefined' && app.isPackaged) {
-        jwk = PINNED_PRODUCTION_PUBLIC_JWK
-      } else {
-        try {
-          jwk = publicJwkJson ? (JSON.parse(publicJwkJson) as JsonWebKey) : PINNED_PRODUCTION_PUBLIC_JWK
-        } catch {
-          jwk = PINNED_PRODUCTION_PUBLIC_JWK
-        }
-      }
-      if (jwk.kty !== 'OKP' || jwk.crv !== 'Ed25519') return false
-      const key = await webcrypto.subtle.importKey('jwk', jwk, { name: 'Ed25519' }, false, ['verify'])
-      return webcrypto.subtle.verify(
-        { name: 'Ed25519' },
-        key,
-        Buffer.from(encodedSignature, 'base64url'),
-        Buffer.from(`${encodedHeader}.${encodedPayload}`, 'utf-8')
-      )
-    } catch {
-      return false
+  private getVerificationContext(): LeaseVerificationContext {
+    const cfg = configStore.getConfig()
+    const lastTrusted = cfg.licenseLastTrustedAt ? Date.parse(cfg.licenseLastTrustedAt) : undefined
+    return {
+      keyring: this.customKeyring ?? undefined,
+      installationId: cfg.licenseInstallationId || '',
+      machineHash: this.machineHash(),
+      lastTrustedTimeMs: isNaN(lastTrusted as number) ? undefined : lastTrusted
     }
   }
 
   private async storeActiveLease(
     key: string,
     installationId: string,
-    publicJwk: string,
     response: ActivationResponse
   ): Promise<LicenseValidationResult> {
-    if (!await this.verifyLease(response.lease.token, publicJwk, installationId)) {
-      return { valid: false, error: 'INVALID_LEASE', message: 'O servidor retornou uma autorização de licença inválida.' }
+    const context = this.getVerificationContext()
+    context.installationId = installationId
+
+    const verified = await verifySignedLease(response.lease.token, context)
+    if (!verified.valid) {
+      return {
+        valid: false,
+        error: verified.error,
+        message: verified.message || 'O servidor retornou uma autorização de licença inválida.'
+      }
     }
 
     const cfg = configStore.getConfig()
     const now = new Date().toISOString()
+    const trustedTimeIso = new Date(verified.trustedServerTime).toISOString()
+
     configStore.updateConfig({
       licenseKey: key,
       licenseStatus: 'active',
@@ -145,14 +129,18 @@ export class LicenseManager {
       licenseDeviceSecret: response.deviceSecret || cfg.licenseDeviceSecret || '',
       licenseLeaseToken: response.lease.token,
       licenseLeaseExpiresAt: response.lease.expiresAt,
+      licenseLastTrustedAt: trustedTimeIso
     })
+
     return {
       valid: true,
       status: cfg.licenseDeviceId ? 'ACTIVE' : 'ACTIVATED',
       message: 'Licença ativa e vinculada a esta instalação.',
       machineId: getHardwareInfo().machineId,
       activatedAt: cfg.licenseActivatedAt || now,
-      lastSeenAt: now
+      lastSeenAt: now,
+      expiresAt: response.lease.expiresAt,
+      trustedServerTime: verified.trustedServerTime
     }
   }
 
@@ -165,16 +153,13 @@ export class LicenseManager {
     const cfg = configStore.getConfig()
     const installationId = cfg.licenseInstallationId || crypto.randomUUID()
     try {
-      const publicKeyResponse = await this.requestJson<{ key: JsonWebKey }>('/v1/licenses/public-key')
-      const publicJwk = JSON.stringify(publicKeyResponse.key)
       const response = await this.requestJson<ActivationResponse>('/v1/licenses/activate', {
         licenseKey: cleanKey,
         installationId,
         machineHash: this.machineHash(),
         deviceSecret: cfg.licenseKey === cleanKey ? cfg.licenseDeviceSecret : undefined
       })
-      this.inMemoryPublicJwk = publicJwk;
-      return this.storeActiveLease(cleanKey, installationId, publicJwk, response)
+      return this.storeActiveLease(cleanKey, installationId, response)
     } catch (error: any) {
       const code = error?.name || 'NETWORK_ERROR'
       const isNetwork = ['AbortError', 'TimeoutError', 'TypeError', 'LICENSE_API_NOT_CONFIGURED'].includes(code)
@@ -201,7 +186,7 @@ export class LicenseManager {
         deviceSecret: cfg.licenseDeviceSecret,
         nonce: crypto.randomUUID()
       })
-      return this.storeActiveLease(cfg.licenseKey, cfg.licenseInstallationId, this.inMemoryPublicJwk, {
+      return this.storeActiveLease(cfg.licenseKey, cfg.licenseInstallationId, {
         status: 'active',
         deviceId: cfg.licenseDeviceId,
         lease: response.lease
@@ -217,35 +202,68 @@ export class LicenseManager {
     }
   }
 
-  private async offlineLeaseResult(): Promise<LicenseValidationResult | null> {
+  public async offlineLeaseResult(): Promise<LicenseValidationResult> {
     const cfg = configStore.getConfig()
-    if (!cfg.licenseLeaseToken || !cfg.licenseInstallationId) return null
-    const jwkToUse = this.inMemoryPublicJwk || JSON.stringify(PINNED_PRODUCTION_PUBLIC_JWK)
-    if (!await this.verifyLease(cfg.licenseLeaseToken, jwkToUse, cfg.licenseInstallationId)) return null
+    if (!cfg.licenseLeaseToken || !cfg.licenseInstallationId) {
+      return { valid: false, error: 'NO_LICENSE', message: 'Nenhuma autorização de licença encontrada.' }
+    }
+
+    const context = this.getVerificationContext()
+    const verified = await verifySignedLease(cfg.licenseLeaseToken, context)
+    if (!verified.valid) {
+      if (verified.error === 'EXPIRED') {
+        configStore.updateConfig({ licenseStatus: 'disabled' })
+        return { valid: false, error: 'EXPIRED', message: 'A autorização offline da licença expirou.' }
+      }
+      return { valid: false, error: verified.error, message: verified.message }
+    }
+
     return {
       valid: true,
       status: 'ACTIVE',
       message: 'Licença válida em modo offline dentro da janela assinada de até 72 horas.',
       machineId: getHardwareInfo().machineId,
-      lastSeenAt: cfg.licenseLastCheckedAt
+      lastSeenAt: cfg.licenseLastCheckedAt,
+      expiresAt: cfg.licenseLeaseExpiresAt,
+      trustedServerTime: verified.trustedServerTime
     }
   }
 
-  public async verifyCurrentLicense(): Promise<LicenseValidationResult> {
+  public async verifyCurrentLicense(forceOnline = false): Promise<LicenseValidationResult> {
     const cfg = configStore.getConfig()
-    if (!cfg.licenseKey) return { valid: false, error: 'NO_LICENSE', message: 'Nenhuma chave de licença configurada.' }
+    if (!cfg.licenseKey) {
+      const result: LicenseValidationResult = { valid: false, error: 'NO_LICENSE', message: 'Nenhuma chave de licença configurada.' }
+      this.notifyRevoked(result)
+      return result
+    }
     if (cfg.licenseMachineId && cfg.licenseMachineId !== getHardwareInfo().machineId) {
       configStore.updateConfig({ licenseStatus: 'disabled' })
       return { valid: false, error: 'MACHINE_MISMATCH', message: 'O hardware atual não corresponde à instalação licenciada.' }
     }
 
+    if (!forceOnline) {
+      const offline = await this.offlineLeaseResult()
+      if (offline.valid) {
+        return offline
+      }
+      if (offline.error === 'CLOCK_ROLLBACK') {
+        console.warn('[LicenseManager] Relógio regressivo detectado; forçando validação online.')
+      }
+    }
+
     const onlineResult = await this.heartbeat()
-    if (onlineResult.valid) return onlineResult
+    if (onlineResult.valid) {
+      return onlineResult
+    }
+
     if (onlineResult.error === 'NETWORK_ERROR') {
       const offline = await this.offlineLeaseResult()
-      if (offline) return offline
+      if (offline.valid) return offline
+      return offline
     }
-    configStore.updateConfig({ licenseStatus: onlineResult.error === 'LICENSE_UNAVAILABLE' ? 'revoked' : 'disabled' })
+
+    const isRevoked = ['REVOKED', 'LICENSE_REVOKED', 'LICENSE_UNAVAILABLE', 'DISABLED'].includes(onlineResult.error || '')
+    configStore.updateConfig({ licenseStatus: isRevoked ? 'revoked' : 'disabled' })
     this.notifyRevoked(onlineResult)
     return onlineResult
   }
@@ -262,25 +280,7 @@ export class LicenseManager {
   }
 
   public async checkAccess24h(force = false): Promise<LicenseValidationResult> {
-    const cfg = configStore.getConfig()
-    if (!cfg.licenseKey) {
-      const result = { valid: false, error: 'NO_LICENSE', message: 'Nenhuma chave de licença configurada.' }
-      this.notifyRevoked(result)
-      return result
-    }
-    const lastChecked = cfg.licenseLastCheckedAt ? Date.parse(cfg.licenseLastCheckedAt) : NaN
-    const now = Date.now()
-
-    if (
-      !force &&
-      !isNaN(lastChecked) &&
-      lastChecked <= now &&
-      now - lastChecked < 24 * 60 * 60 * 1000
-    ) {
-      const offline = await this.offlineLeaseResult()
-      if (offline) return offline
-    }
-    return this.verifyCurrentLicense()
+    return this.verifyCurrentLicense(force)
   }
 
   public getLicenseInfo(): LicenseInfo {
@@ -288,12 +288,13 @@ export class LicenseManager {
     const hw = getHardwareInfo()
     return {
       isLicensed: Boolean(cfg.licenseKey && cfg.licenseStatus === 'active'),
-      status: cfg.licenseStatus || 'unlicensed',
+      status: (cfg.licenseStatus as any) || 'unlicensed',
       keyMasked: cfg.licenseKey ? `${cfg.licenseKey.slice(0, 10)}...${cfg.licenseKey.slice(-4)}` : undefined,
       machineId: cfg.licenseMachineId,
       currentHwid: hw.machineId,
       activatedAt: cfg.licenseActivatedAt,
-      lastSeenAt: cfg.licenseLastCheckedAt
+      lastSeenAt: cfg.licenseLastCheckedAt,
+      expiresAt: cfg.licenseLeaseExpiresAt
     }
   }
 }

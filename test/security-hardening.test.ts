@@ -234,7 +234,7 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
 
       const signLease = async (installationId: string, machineHash: string): Promise<{ token: string; expiresAt: string }> => {
         const now = Math.floor(Date.now() / 1000)
-        const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', typ: 'JWT' })).toString('base64url')
+        const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', typ: 'JWT', kid: 'test-sec-2026' })).toString('base64url')
         const payload = Buffer.from(JSON.stringify({
           iss: 'jasper-license-api',
           aud: 'jasper-avatar-desktop',
@@ -292,6 +292,7 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
       const address = server.address() as { port: number }
       const manager = new LicenseManager()
       manager.setCustomBaseUrl(`http://127.0.0.1:${address.port}`)
+      manager.setTestKeyring({ 'test-sec-2026': publicJwk })
       configStore.updateConfig({
         licenseKey: '',
         licenseStatus: 'unlicensed',
