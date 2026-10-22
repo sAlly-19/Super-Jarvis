@@ -63,7 +63,7 @@ Use incremental byte buffers and reject an invalid length before allocating the 
 
 Add `test:python` as `python -m unittest discover -s jasper-backend/tests -v` in `package.json`.
 
-- [ ] **Step 5: Verify GREEN and commit**
+- [x] **Step 5: Verify GREEN and commit**
 
 Run: `npm.cmd test`, `npm.cmd run test:python`, then `npm.cmd run typecheck`.
 Expected: PASS.
@@ -89,28 +89,28 @@ git commit -m "feat: add framed sidecar protocol"
 - Produces message handlers for `hello`, `config`, `chat`, `audio_input`, `interrupt`, `memory_snapshot`, `shutdown`.
 - Emits `hello_ack`, `status`, `user_transcript`, `response`, `audio_output`, `tool_execution`, `tool_result`, `memory_upsert`, `memory_clear`, `turn_complete`, `interrupted`, `error`.
 
-- [ ] **Step 1: Replace network tests with failing stdio runtime tests**
+- [x] **Step 1: Replace network tests with failing stdio runtime tests**
 
 Assert source contains no `FastAPI`, `uvicorn`, `WebSocket`, `/health`, `/config` or port `8765`; handshake echoes correlation ID and protocol `1`; shutdown exits cleanly; malformed frame exits nonzero.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`, then `npm.cmd run test:python`.
 Expected: FAIL while the HTTP server remains.
 
-- [ ] **Step 3: Extract agent runtime and implement stdio loop**
+- [x] **Step 3: Extract agent runtime and implement stdio loop**
 
 Move session/model/STT/TTS orchestration into `runtime.py`. In `main.py`, connect `sys.stdin.buffer` and `sys.stdout.buffer` to the decoder/encoder; route all logging to `stderr`; serialize writes through one async lock.
 
-- [ ] **Step 4: Preserve total-control tools with stability limits**
+- [x] **Step 4: Preserve total-control tools with stability limits**
 
 Remove `_is_destructive_command` and semantic command denial. Keep schema checks, output cap, process timeout and typed errors. PowerShell executes with `-NoProfile -NonInteractive`; cancellation terminates the process tree.
 
-- [ ] **Step 5: Remove network dependencies**
+- [x] **Step 5: Remove network dependencies**
 
 Delete `fastapi`, `uvicorn` and `websockets` from direct requirements. Retain only dependencies used by runtime, model, audio, screen and OS tools.
 
-- [ ] **Step 6: Verify GREEN and commit**
+- [x] **Step 6: Verify GREEN and commit**
 
 Run: `npm.cmd test`, then `npm.cmd run test:python`.
 Expected: PASS and no listener on `127.0.0.1:8765` during tests.
@@ -135,24 +135,24 @@ git commit -m "refactor: move backend to private stdio runtime"
 - Consumes: injected `isExecutionAllowed(): boolean` callback supplied by the composition root, avoiding a circular import with `LicenseGate` while preventing restart after lock.
 - Produces: `verifyBackendIntegrity(root: string, manifest: BackendManifest): Promise<void>`.
 
-- [ ] **Step 1: Write failing manager tests**
+- [x] **Step 1: Write failing manager tests**
 
 Inject `spawn`, clock, paths and manifest. Assert packaged absolute path, required development executable, minimal environment, hash failure before spawn, handshake failure, timeout cleanup, late response isolation, stop rejection and exact three-restart backoff.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because the current manager discovers Python and probes HTTP.
 
-- [ ] **Step 3: Implement integrity and launch resolution**
+- [x] **Step 3: Implement integrity and launch resolution**
 
 Manifest types contain `protocolVersion`, `backendVersion` and sorted `{ path, sha256 }[]`. Production verifies every declared file, rejects missing/extra executable mismatch and launches `jasper-backend.exe`. Development uses only explicit `JASPER_PYTHON_EXECUTABLE` with the repository entrypoint.
 
-- [ ] **Step 4: Implement request lifecycle and recovery**
+- [x] **Step 4: Implement request lifecycle and recovery**
 
 Maintain one decoder and `Map<string, PendingRequest>`. Complete handshake before state `ready`; reject every pending request on process exit; restart only while injected `isExecutionAllowed()` returns true and the three-attempt budget remains.
 
-- [ ] **Step 5: Verify GREEN and commit**
+- [x] **Step 5: Verify GREEN and commit**
 
 Run: `npm.cmd run typecheck`, `npm.cmd test`, then `npm.cmd run test:python`.
 Expected: PASS.
@@ -171,17 +171,17 @@ git commit -m "feat: supervise verified private sidecar"
 **Interfaces:**
 - Produces: private backend manager consumed by Phase 3.
 
-- [ ] **Step 1: Run full protocol verification**
+- [x] **Step 1: Run full protocol verification**
 
 Run: `npm.cmd run typecheck`, `npm.cmd test`, `npm.cmd run test:python`, then `npm.cmd run scan:secrets`.
 Expected: all commands exit `0` and test logs contain no Uvicorn/FastAPI/WebSocket listener.
 
-- [ ] **Step 2: Prove removal and cleanliness**
+- [x] **Step 2: Prove removal and cleanliness**
 
 Run: `git grep -n -E "FastAPI|uvicorn|ws://127\\.0\\.0\\.1:8765|new WebSocket" -- src jasper-backend test`
 Expected: no runtime matches and exit code `1`. Then run `git diff --check`.
 
-- [ ] **Step 3: Update runbook and commit**
+- [x] **Step 3: Update runbook and commit**
 
 ```powershell
 git add docs/superpowers/plans/2026-10-22-02-private-sidecar-protocol.md docs/superpowers/plans/2026-10-22-jarvis-commercial-remediation-runbook.md

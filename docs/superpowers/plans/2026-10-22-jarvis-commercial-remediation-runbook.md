@@ -52,11 +52,11 @@ Não iniciar uma fase enquanto os testes e o commit final da anterior não estiv
 
 Atualize esta seção ao terminar cada sessão:
 
-- **Fase atual:** Fase 1 concluída; Fase 2 pronta para execução.
-- **Última tarefa concluída:** Fase 1 concluída.
-- **Último commit verificado:** `20002d9`.
-- **Falhas conhecidas:** nenhuma na Fase 1; build do renderer sob Node 26 aborta por memória; repetir com Node 24.
-- **Próxima ação:** executar a Tarefa 1 da Fase 2 (`2026-10-22-02-private-sidecar-protocol.md`) usando `superpowers:executing-plans` e `superpowers:test-driven-development`.
+- **Fase atual:** Fase 2 concluída; Fase 3 pronta para execução.
+- **Última tarefa concluída:** Fase 2 concluída (Private Sidecar Protocol, framed stdio runtime, integrity verification, supervision & recovery).
+- **Último commit verificado:** `f4aa395`.
+- **Falhas conhecidas:** nenhuma nas Fases 1 e 2 (63 TS tests pass, 14 Python tests pass, 122 files clean in scan:secrets).
+- **Próxima ação:** executar a Tarefa 1 da Fase 3 (`2026-10-22-03-renderer-ipc-memory-cleanup.md`) usando `superpowers:executing-plans` e `superpowers:test-driven-development`.
 
 ## Verificação global final
 
