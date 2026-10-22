@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com data: blob: ws://localhost:* ws://127.0.0.1:*; object-src 'none'; base-uri 'none'; frame-src 'none'; form-action 'none';" />
+    <title>Jasper AI - Voice Assistant</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <!-- Frameless Window Titlebar -->
+      <header id="titlebar">
+        <div class="drag-region">
+          <div class="brand">
+            <span class="arc-core"></span>
+            <span class="brand-name">JASPER</span>
+            <span class="brand-tag">AI HUD v2.0</span>
+          </div>
+        </div>
+        <div class="window-controls no-drag">
+          <button id="btn-fullscreen" class="win-btn" title="Tela Cheia (F12)">
+            <svg id="icon-fs-enter" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+            <svg id="icon-fs-exit" class="hidden" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+            </svg>
+          </button>
+          <button id="btn-pip" class="win-btn" title="Modo Mini-HUD Flutuante (PIP)">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+              <rect x="12" y="9" width="8" height="6" fill="currentColor"></rect>
+            </svg>
+          </button>
+          <button id="btn-minimize" class="win-btn" title="Minimizar">
+            <svg viewBox="0 0 10 10" width="10" height="10"><rect y="4" width="10" height="1.5" fill="currentColor"/></svg>
+          </button>
+          <button id="btn-maximize" class="win-btn" title="Maximizar">
+            <svg viewBox="0 0 10 10" width="10" height="10"><rect x="1" y="1" width="8" height="8" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+          </button>
+          <button id="btn-close" class="win-btn win-close" title="Fechar">
+            <svg viewBox="0 0 10 10" width="10" height="10"><path d="M1 1 L9 9 M9 1 L1 9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 3D Three.js Viewport -->
+      <main id="canvas-container"></main>
+
+      <!-- HUD Top Bar -->
+      <div id="hud-top" class="hud-layer">
+        <div id="status-badge" class="status-badge connecting">
+          <span class="status-dot"></span>
+          <span id="status-text" class="status-text">Iniciando Jasper...</span>
+        </div>
+        <div class="top-actions">
+          <button id="btn-settings" class="hud-icon-btn" title="Configurações & Expressões">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Transcript Box -->
+      <div id="transcript-container" class="hud-layer">
+        <div id="transcript-box" class="transcript-box hidden">
+          <span class="transcript-speaker">JASPER:</span>
+          <p id="transcript-text" class="transcript-text"></p>
+        </div>
+      </div>
+
+      <!-- HUD Bottom Console -->
+      <div id="hud-bottom" class="hud-layer">
+        <!-- Audio Visualizer Wave -->
+        <div class="visualizer-container">
+          <canvas id="visualizer-canvas" width="110" height="18"></canvas>
+        </div>
+
+        <!-- Main Interaction Controls -->
+        <div class="controls-main">
+          <!-- Mic Button -->
+          <div class="mic-wrapper">
+            <button id="btn-mic" class="btn-mic" title="Iniciar/Pausar Microfone">
+              <div class="mic-glow"></div>
+              <svg id="icon-mic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Toggle Text Input Button -->
+          <button id="btn-toggle-chat" class="btn-chat-toggle" title="Digitar mensagem (Abrir caixa de texto)">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
+
+          <!-- Slide-out Text Drawer (Sliding to the right) -->
+          <div id="chat-input-drawer" class="chat-drawer closed">
+            <input type="text" id="input-chat-text" placeholder="Digite para o Jasper..." autocomplete="off" />
+            <button id="btn-send-text" class="btn-send" title="Enviar mensagem">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Modal Full-Screen Dashboard -->
+      <div id="settings-modal" class="modal-backdrop hidden">
+        <div class="dashboard-shell">
+          <!-- COLUNA ESQUERDA (SIDEBAR DE NAVEGAÇÃO) -->
+          <aside class="dashboard-sidebar">
+            <!-- 1. Topo (Brand Header) -->
+            <div class="sidebar-brand-header">
+              <div class="eclipse-ring" aria-hidden="true"></div>
+              <div class="sidebar-brand-info">
+                <span class="sidebar-brand-title">GEMINI</span>
+                <span class="sidebar-brand-subtitle">ASSISTENTE IA</span>
+                <span class="sidebar-brand-line"></span>
+                <span class="sidebar-brand-micro">INTELIGÊNCIA SEM LIMITES</span>
+              </div>
+              <button id="btn-close-settings" type="button" class="sidebar-hex-btn modal-close" title="Voltar ao HUD / Fechar">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 20.66 7 20.66 17 12 22 3.34 17 3.34 7 12 2"></polygon>
+                </svg>
+              </button>
+            </div>
+
+            <!-- 2. Meio (Lista de Navegação Vertical) -->
+            <nav class="sidebar-nav-list" aria-label="Menu do Painel de Controle">
+              <button type="button" class="settings-tab-btn sidebar-nav-item active" data-tab="tab-identity">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 10.5L12 3l9 7.5"></path>
+                    <path d="M5 9.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"></path>
+                    <path d="M9.5 20v-6h5v6"></path>
+                  </svg>
+                </span>
+                <span class="sidebar-item-text">
+                  <span class="sidebar-item-title">Painel de Controle</span>
+                  <span class="sidebar-item-sub">Personalização e sistema</span>
+                </span>
+              </button>
+
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-ai">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                    <line x1="8" y1="22" x2="16" y2="22"></line>
+                  </svg>
+                </span>
+                <span class="sidebar-item-text">
+                  <span class="sidebar-item-title">IA &amp; Voz</span>
+                  <span class="sidebar-item-sub">Modelo, voz e linguagem</span>
+                </span>
+              </button>
+
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-tools">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                </span>
+                <span class="sidebar-item-text">
+                  <span class="sidebar-item-title">Ferramentas</span>
+                  <span class="sidebar-item-sub">Integrações e recursos</span>
+                </span>
+              </button>
+
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-memory">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
+                    <path d="M20 12c0 1.66-3.58 3-8 3s-8-1.34-8-3"></path>
+                    <path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"></path>
+                  </svg>
+                </span>
+                <span class="sidebar-item-text">
+                  <span class="sidebar-item-title">Memória</span>
+                  <span class="sidebar-item-sub">Contexto e preferências</span>
+                </span>
+              </button>
+
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-autonomy">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="5" r="2.2"></circle>
+                    <circle cx="6" cy="18" r="2.2"></circle>
+                    <circle cx="18" cy="18" r="2.2"></circle>
+                    <line x1="10.8" y1="7" x2="7.2" y2="16"></line>
+                    <line x1="13.2" y1="7" x2="16.8" y2="16"></line>
+                    <line x1="8.2" y1="18" x2="15.8" y2="18"></line>
+                  </svg>
+                </span>
+                <span class="sidebar-item-text">
+                  <span class="sidebar-item-title">Autonomia</span>
+                  <span class="sidebar-item-sub">Ações e automações</span>
+                </span>
+              </button>
+
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-license">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="11" width="16" height="10" rx="2" ry="2"></rect>
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+                    <circle cx="12" cy="16" r="1" fill="currentColor"></circle>
+                  </svg>
+                </span>
+                <span class="sidebar-item-text">
+                  <span class="sidebar-item-title">Licença</span>
+                  <span class="sidebar-item-sub">Plano e assinatura</span>
+                </span>
+              </button>
+            </nav>
+
+            <!-- 3. Rodapé da Sidebar (Status Card) -->
+            <div id="sidebar-live-card" class="sidebar-status-card" title="Interagir com o Assistente">
+              <div class="sidebar-status-main">
+                <span class="glow-dot-white"></span>
+                <div class="sidebar-status-copy">
+                  <span class="sidebar-status-headline">Conectado ao <strong>Gemini Live</strong></span>
+                  <span class="sidebar-status-caption">IA pronta para interagir</span>
+                </div>
+              </div>
+              <div class="sidebar-status-actions">
+                <svg class="sidebar-wave-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <line x1="4" y1="10" x2="4" y2="14"></line>
+                  <line x1="8" y1="7" x2="8" y2="17"></line>
+                  <line x1="12" y1="4" x2="12" y2="20"></line>
+                  <line x1="16" y1="7" x2="16" y2="17"></line>
+                  <line x1="20" y1="10" x2="20" y2="14"></line>
+                </svg>
+                <span class="sidebar-status-sep"></span>
+                <svg class="sidebar-chevron-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </div>
+          </aside>
+
+          <!-- COLUNA DIREITA (PAINEL PRINCIPAL) -->
+          <div class="modal-card dashboard-main">
+            <!-- 1. Cabeçalho Superior (Top Bar) -->
+            <div class="modal-header dashboard-topbar">
+              <div class="modal-title-wrap">
+                <div class="modal-arc-ring">
+                  <span class="modal-arc-dot"></span>
+                </div>
+                <div>
+                  <h3>PAINEL DE CONTROLE // SISTEMA</h3>
+                  <span class="modal-subtitle">Personalização, inteligência artificial e recursos.</span>
+                </div>
+              </div>
+
+              <div class="topbar-widgets">
+                <!-- Widget 1 (Status) -->
+                <div class="topbar-widget widget-status">
+                  <span class="glow-dot-white"></span>
+                  <div class="widget-copy">
+                    <strong class="widget-status-title">Sistema Online</strong>
+                    <span class="widget-status-sub">Tudo operacional</span>
+                  </div>
+                </div>
+
+                <!-- Widget 2 (Relógio) -->
+                <div class="topbar-widget widget-clock">
+                  <div class="widget-copy">
+                    <strong id="dashboard-clock-time" class="widget-clock-time">14:27</strong>
+                    <span id="dashboard-clock-date" class="widget-clock-date">Seg, 26 de Mai</span>
+                  </div>
+                  <div class="widget-dot-matrix" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Barra de Abas Secundária (Horizontal) -->
+            <nav class="settings-tabs-nav">
+              <button type="button" class="settings-tab-btn top-tab-btn active" data-tab="tab-identity">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M20 20a8 8 0 1 0-16 0"></path>
+                </svg>
+                <span>IDENTIDADE &amp; VISUAL</span>
+              </button>
+              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-ai">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                  <line x1="8" y1="22" x2="16" y2="22"></line>
+                </svg>
+                <span>IA &amp; Voz</span>
+              </button>
+              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-tools">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>Ferramentas</span>
+              </button>
+              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-memory">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
+                  <path d="M20 12c0 1.66-3.58 3-8 3s-8-1.34-8-3"></path>
+                  <path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"></path>
+                </svg>
+                <span>Memória</span>
+              </button>
+              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-autonomy">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="5" r="2.2"></circle>
+                  <circle cx="6" cy="18" r="2.2"></circle>
+                  <circle cx="18" cy="18" r="2.2"></circle>
+                  <line x1="10.8" y1="7" x2="7.2" y2="16"></line>
+                  <line x1="13.2" y1="7" x2="16.8" y2="16"></line>
+                  <line x1="8.2" y1="18" x2="15.8" y2="18"></line>
+                </svg>
+                <span>Autonomia</span>
+              </button>
+              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-license">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="11" width="16" height="10" rx="2" ry="2"></rect>
+                  <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+                  <circle cx="12" cy="16" r="1" fill="currentColor"></circle>
+                </svg>
+                <span>Licença</span>
+              </button>
+            </nav>
+
+            <!-- Linha de instrução abaixo das abas -->
+            <div class="tab-instruction-line">
+              <svg class="diamond-star-icon" viewBox="0 0 16 16" width="11" height="11" fill="currentColor" aria-hidden="true">
+                <path d="M8 1L9.7 6.3L15 8L9.7 9.7L8 15L6.3 9.7L1 8L6.3 6.3L8 1Z"></path>
+              </svg>
+              <span>Customize a aparência, comportamento visual e identidade do seu assistente de IA.</span>
+            </div>
+
+            <!-- Modal Body with Scrollable Tab Panes -->
+            <div class="modal-body">
+              <!-- TAB 1: IDENTIDADE & VISUAL -->
+              <div id="tab-identity" class="settings-tab-pane active">
+                <!-- Card 1 — Nome do Agente Assistente -->
+                <div class="settings-card settings-row-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                        <circle cx="7" cy="7" r="1.4" fill="currentColor"/>
+                      </svg>
+                    </span>
+                    <div class="card-text-col">
+                      <h4>Nome do Agente Assistente</h4>
+                      <p>Altera a identidade em toda a interface, na ativação por voz e no prompt de IA.</p>
+                    </div>
+                  </div>
+                  <div class="form-group row-control-right row-control-input">
+                    <div class="input-with-badge">
+                      <input type="text" id="input-agent-name" value="Jasper" placeholder="Jasper" />
+                      <span id="agent-name-preview" class="name-preview-badge">ID: JASPER</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card 2 — Expressão Facial do Avatar -->
+                <div class="settings-card settings-row-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="5" ry="5"/>
+                        <path d="M8.5 14c1 1.6 2.2 2.2 3.5 2.2s2.5-.6 3.5-2.2"/>
+                        <circle cx="9" cy="9.5" r="1" fill="currentColor"/>
+                        <circle cx="15" cy="9.5" r="1" fill="currentColor"/>
+                      </svg>
+                    </span>
+                    <div class="card-text-col">
+                      <h4>Expressão Facial do Avatar</h4>
+                      <p>Altera o humor e as microexpressões faciais em tempo real.</p>
+                    </div>
+                  </div>
+                  <div class="emotion-bar settings-emotion-bar">
+                    <button class="emotion-btn active" data-mood="neutral" type="button">Neutro</button>
+                    <button class="emotion-btn" data-mood="friendly" type="button">Amigável</button>
+                    <button class="emotion-btn" data-mood="thoughtful" type="button">Pensativo</button>
+                    <button class="emotion-btn" data-mood="focused" type="button">Focado</button>
+                    <button class="emotion-btn" data-mood="surprised" type="button">Surpreso</button>
+                  </div>
+                </div>
+
+                <!-- Card 3 — Efeito Holográfico Bloom & Glow -->
+                <div class="settings-card settings-row-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3Z"/>
+                        <path d="M5 3v4M3 5h4M6 17v3M4.5 18.5h3"/>
+                      </svg>
+                    </span>
+                    <div class="card-text-col">
+                      <h4>Efeito Holográfico Bloom &amp; Glow</h4>
+                      <p>Aplica pós-processamento Three.js UnrealBloomPass para um brilho sci-fi neon nos olhos e bordas do avatar.</p>
+                    </div>
+                  </div>
+                  <label class="row-control-right toggle-status-control" for="check-bloom">
+                    <div class="hud-toggle">
+                      <input type="checkbox" id="check-bloom" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </div>
+                    <div class="toggle-side-labels">
+                      <span class="toggle-side-state state-when-on">Ativado</span>
+                      <span class="toggle-side-state state-when-off">Desativado</span>
+                      <span class="toggle-side-desc">Brilho e efeitos visuais aprimorados.</span>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Card 4 — Plano de Fundo Neural Animado -->
+                <div class="settings-card settings-row-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                      </svg>
+                    </span>
+                    <div class="card-text-col">
+                      <h4>Plano de Fundo Neural Animado</h4>
+                      <p>Partículas e sinapses holográficas 3D fluindo em várias direções com conexões dinâmicas.</p>
+                    </div>
+                  </div>
+                  <label class="row-control-right toggle-status-control" for="check-neural-bg">
+                    <div class="hud-toggle">
+                      <input type="checkbox" id="check-neural-bg" />
+                      <span class="hud-toggle-slider"></span>
+                    </div>
+                    <div class="toggle-side-labels">
+                      <span class="toggle-side-state state-when-on">Ativado</span>
+                      <span class="toggle-side-state state-when-off">Desativado</span>
+                      <span class="toggle-side-desc">Plano de fundo estático.</span>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Card 5 — Rastreamento Ocular (Olhar Segue o Mouse) -->
+                <div class="settings-card settings-row-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+                        <circle cx="12" cy="12" r="3.5"/>
+                        <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                      </svg>
+                    </span>
+                    <div class="card-text-col">
+                      <h4>Rastreamento Ocular (Olhar Segue o Mouse)</h4>
+                      <p>Permite aos olhos do avatar acompanhar organicamente o ponteiro do mouse pela tela.</p>
+                    </div>
+                  </div>
+                  <label class="row-control-right toggle-status-control" for="check-eye-tracking">
+                    <div class="hud-toggle">
+                      <input type="checkbox" id="check-eye-tracking" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </div>
+                    <div class="toggle-side-labels">
+                      <span class="toggle-side-state state-when-on">Ativado</span>
+                      <span class="toggle-side-state state-when-off">Desativado</span>
+                      <span class="toggle-side-desc">Olhar segue o movimento do mouse.</span>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Card 6 — Modo Tela Cheia (F12) -->
+                <div class="settings-card settings-row-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                      </svg>
+                    </span>
+                    <div class="card-text-col">
+                      <h4>Modo Tela Cheia (F12)</h4>
+                      <p>Expande a interface holográfica para ocupar 100% do monitor.</p>
+                    </div>
+                  </div>
+                  <div class="row-control-right fullscreen-row-control">
+                    <button type="button" id="btn-settings-fullscreen" class="btn-fullscreen-card">Ativar Tela Cheia</button>
+                    <div class="fullscreen-shortcut-note">
+                      <span class="info-circle-badge" aria-hidden="true">i</span>
+                      <span>Pressione <strong>F12</strong> a qualquer momento para entrar.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB 2: IA & VOZ -->
+              <div id="tab-ai" class="settings-tab-pane">
+                <!-- Gemini API Key Card -->
+                <div class="settings-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-2.5-2.5"/></svg>
+                    </span>
+                    <div>
+                      <h4>GOOGLE_API_KEY (Gemini Multimodal Live)</h4>
+                      <p>Necessária para comunicação bidirecional de áudio e inteligência artificial.</p>
+                    </div>
+                  </div>
+
+                  <!-- Active Key Masked Display -->
+                  <div class="active-key-info-badge" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px;">
+                    <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">CHAVE EM USO ATUAL:</span>
+                    <code id="gemini-key-masked-display" style="font-family: monospace; font-size: 11px; color: #ffffff; background: rgba(0,0,0,0.6); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);">NENHUMA CHAVE CONFIGURADA</code>
+                  </div>
+
+                  <div class="input-password-wrap" style="display: flex; gap: 6px;">
+                    <input type="password" id="input-api-key" placeholder="Digite uma nova chave para alterar..." style="flex: 1;" />
+                    <button id="btn-toggle-key" type="button" class="btn-toggle">Mostrar</button>
+                    <button id="btn-remove-key" type="button" class="btn-toggle" style="background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.22); color: #d4d4d8;" title="Remover chave configurada">Remover</button>
+                  </div>
+                  <div class="api-key-hint">
+                    <small>Obtenha sua chave gratuita no <a href="https://aistudio.google.com/" target="_blank">Google AI Studio &nearr;</a></small>
+                  </div>
+                </div>
+
+                <!-- TensorFlow.js Speech Commands Engine Card (100% Free & Local) -->
+                <div class="settings-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                    </span>
+                    <div>
+                      <h4>Ativação por Voz (Nome do Agente)</h4>
+                      <p>Detecção neural personalizada com TensorFlow.js. Ativa exclusivamente ao ouvir o nome do assistente.</p>
+                    </div>
+                  </div>
+
+                  <label class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <span class="hud-switch-title">Ativar Escuta por Voz</span>
+                      <span class="hud-switch-desc">Abre o microfone automaticamente ao ouvir o nome definido.</span>
+                    </div>
+                    <div class="hud-toggle">
+                      <input type="checkbox" id="check-wake-word" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </div>
+                  </label>
+
+                  <!-- Status Box -->
+                  <div id="wake-word-status-box" class="wake-word-status-box" style="margin-top: 12px; padding: 10px 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; font-size: 0.82rem; color: var(--text-dim); display: flex; align-items: center; gap: 10px;">
+                    <span id="wake-status-icon" style="display: inline-flex; align-items: center; justify-content: center; color: #ffffff;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+                    <div>
+                      <strong id="wake-status-title" style="color: #ffffff; display: block; margin-bottom: 2px;">Calibração TensorFlow para: <span class="lbl-agent-target-name">Jasper</span></strong>
+                      <span id="wake-status-desc">Grave 3 amostras dizendo o nome do assistente, 2 de silêncio e 3 de outras palavras comuns (ex: "olá", "teste", "ok") para treinar a rede neural sem falsos positivos.</span>
+                    </div>
+                  </div>
+
+                  <!-- Voice Calibration Box (Transfer Learning) -->
+                  <div class="voice-trainer-box" style="margin-top: 14px; padding: 12px 14px; background: rgba(12, 12, 14, 0.85); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                      <span style="font-size: 0.8rem; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Treinamento Neural TensorFlow (Voz Local - 3 Classes)
+                      </span>
+                      <span id="badge-model-state" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); color: #d4d4d8; border: 1px solid rgba(255, 255, 255, 0.25);">
+                        Não Calibrado
+                      </span>
+                    </div>
+
+                    <!-- Step Counters (3 Classes) -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                      <div style="flex: 1; min-width: 120px; padding: 6px 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; font-size: 0.75rem;">
+                        Nome (<span class="lbl-agent-target-name" style="color: #ffffff; font-weight: bold;">Jasper</span>):
+                        <strong id="count-name-samples" style="color: #fff; font-size: 0.85rem; margin-left: 4px;">0</strong>/3
+                      </div>
+                      <div style="flex: 1; min-width: 120px; padding: 6px 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; font-size: 0.75rem;">
+                        Ruído / Silêncio:
+                        <strong id="count-noise-samples" style="color: #fff; font-size: 0.85rem; margin-left: 4px;">0</strong>/2
+                      </div>
+                      <div style="flex: 1; min-width: 120px; padding: 6px 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; font-size: 0.75rem;">
+                        Outras Palavras:
+                        <strong id="count-other-samples" style="color: #fff; font-size: 0.85rem; margin-left: 4px;">0</strong>/3
+                      </div>
+                    </div>
+
+                    <!-- Trainer Buttons -->
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                      <button type="button" id="btn-sample-name" class="btn-trainer" style="flex: 1; min-width: 130px; padding: 8px 10px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; color: #ffffff; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                        Gravar "<span class="lbl-agent-target-name">Jasper</span>"
+                      </button>
+                      <button type="button" id="btn-sample-noise" class="btn-trainer" style="flex: 1; min-width: 120px; padding: 8px 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 6px; color: #e4e4e7; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                        Gravar Silêncio
+                      </button>
+                      <button type="button" id="btn-sample-other" class="btn-trainer" style="flex: 1; min-width: 140px; padding: 8px 10px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 6px; color: #ffffff; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        Gravar Outras Palavras
+                      </button>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                      <button type="button" id="btn-train-custom-model" class="btn-trainer" disabled style="flex: 2; padding: 8px 14px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 6px; color: #ffffff; font-size: 0.82rem; font-weight: 600; cursor: not-allowed; opacity: 0.5; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Treinar Modelo Neural (1s)
+                      </button>
+                      <button type="button" id="btn-reset-custom-model" class="btn-trainer" style="flex: 1; padding: 8px 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 6px; color: #a1a1aa; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Resetar
+                      </button>
+                    </div>
+
+                    <div id="trainer-feedback-msg" style="margin-top: 8px; font-size: 0.76rem; color: var(--text-dim); min-height: 18px;">
+                      Clique em "Gravar" e pronuncie a amostra quando o sinal tocar.
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Voice & Model Card -->
+                <div class="settings-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                    </span>
+                    <div>
+                      <h4>Voz e Modelo de Síntese</h4>
+                      <p>Personalize o tom vocal e o motor de linguagem nativo.</p>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="select-voice">Voz Neural (Edge-TTS):</label>
+                      <select id="select-voice">
+                        <option value="pt-BR-AntonioNeural" selected>Antonio Neural (Masculina, Grave e Natural)</option>
+                        <option value="pt-BR-FranciscaNeural">Francisca Neural (Feminina, Suave e Elegante)</option>
+                        <option value="pt-BR-ThalitaNeural">Thalita Neural (Feminina, Expressiva e Dinâmica)</option>
+                      </select>
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="select-model">Modelo Híbrido (LiteLLM):</label>
+                      <select id="select-model">
+                        <option value="gemini/gemini-2.5-flash" selected>Gemini 2.5 Flash (Rápido, Visão &amp; Tools)</option>
+                        <option value="groq/llama-3.3-70b-versatile">Groq Llama 3.3 70B (Ultra-Rápido / Free Tier)</option>
+                        <option value="ollama/qwen2.5:3b">Ollama Qwen 2.5 3B (100% Local / Offline)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB 3: FERRAMENTAS -->
+              <div id="tab-tools" class="settings-tab-pane">
+                <div class="settings-card confirmation-policy-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">!</span>
+                    <div>
+                      <h4>Confirmações de ações</h4>
+                      <p>Escolha quanta autonomia o Jasper terá ao controlar o computador.</p>
+                    </div>
+                  </div>
+                  <div class="confirmation-mode-control" role="radiogroup" aria-label="Modo de confirmação">
+                    <label><input type="radio" name="confirmation-mode" value="strict" checked /><span>Estrito</span></label>
+                    <label><input type="radio" name="confirmation-mode" value="common" /><span>Ações comuns</span></label>
+                    <label class="danger"><input type="radio" name="confirmation-mode" value="all" /><span>Todas as ações</span></label>
+                  </div>
+                  <p class="confirmation-mode-help" id="confirmation-mode-help">Solicita confirmação antes de qualquer ação com efeito no computador.</p>
+                  <div class="mandatory-actions-note">
+                    <strong>Sempre exigem confirmação:</strong>
+                    capturas de tela e OCR, credenciais, pagamentos, instalação e atualização de programas,
+                    exclusão permanente, processos críticos, licenças e dispositivos de segurança física.
+                  </div>
+                </div>
+
+                <div class="settings-card update-settings-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">&#8635;</span>
+                    <div>
+                      <h4>Atualizações</h4>
+                      <p>Verifique e instale novas versões do Jasper.</p>
+                    </div>
+                  </div>
+                  <label class="toggle-row">
+                    <span>
+                      <strong>Verificar diariamente</strong>
+                      <small>Apenas verifica. O download e a instalação exigem sua ação.</small>
+                    </span>
+                    <input id="check-updates-daily" type="checkbox" checked />
+                  </label>
+                  <div class="update-actions">
+                    <button id="btn-check-updates" class="btn-secondary" type="button">Verificar agora</button>
+                    <button id="btn-download-update" class="btn-secondary hidden" type="button">Baixar</button>
+                    <button id="btn-install-update" class="btn-primary hidden" type="button">Instalar e reiniciar</button>
+                  </div>
+                  <p id="update-status" class="confirmation-mode-help" aria-live="polite">Nenhuma verificação realizada.</p>
+                </div>
+
+                <!-- System Tools Card -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-system-tools">Ações de Sistema &amp; Aplicativos</label>
+                        <button type="button" class="btn-module-info" data-module="system-tools" title="Como funciona este módulo?">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-system-tools">Permite ao agente abrir utilitários locais (Bloco de Notas, Calculadora), fazer cálculos e organizar pastas.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-system-tools">
+                      <input type="checkbox" id="check-system-tools" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Media & Web Tools Card -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-media-tools">Mídia &amp; Pesquisas na Web</label>
+                        <button type="button" class="btn-module-info" data-module="media-tools" title="Como funciona este módulo?">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-media-tools">Permite ao agente reproduzir músicas no Spotify, buscar vídeos no YouTube e realizar pesquisas no Google.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-media-tools">
+                      <input type="checkbox" id="check-media-tools" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB 4: BANCO DE MEMÓRIA -->
+              <div id="tab-memory" class="settings-tab-pane">
+                <div class="settings-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg>
+                    </span>
+                    <div class="memory-header-info">
+                      <h4>Banco de Memória de Longo Prazo</h4>
+                      <p>Fatos e preferências memorizados automaticamente durante suas conversas.</p>
+                    </div>
+                    <span id="memory-count-badge" class="memory-badge">0 fatos</span>
+                  </div>
+                  <div class="memory-terminal">
+                    <div id="memory-facts-list" class="memory-facts-list">
+                      <span class="memory-empty">Nenhum fato memorizado ainda. Converse com o agente para ele aprender sobre você.</span>
+                    </div>
+                  </div>
+                  <div class="memory-footer-actions">
+                    <span class="memory-tip">Dica: Diga "Lembre-se que eu gosto de rock" para criar memórias.</span>
+                    <button type="button" id="btn-clear-memory" class="btn-danger-sm">Limpar Memória</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB 5: AUTONOMIA & SERVIÇOS EM SEGUNDO PLANO -->
+              <div id="tab-autonomy" class="settings-tab-pane">
+                <div class="settings-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </span>
+                    <div>
+                      <h4>Serviços Autônomos em Segundo Plano</h4>
+                      <p>Ative ou desative individualmente as capacidades proativas e monitores contínuos do Jasper. Clique no botão <strong>"!"</strong> para ver detalhes completos.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 1. Screen Awareness -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-screen-awareness">1. Visão de Tela (Screen Awareness)</label>
+                        <button type="button" class="btn-module-info" data-module="screen-awareness" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-screen-awareness">Permite ao Jasper capturar e analisar visualmente a tela do monitor sob demanda.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-screen-awareness">
+                      <input type="checkbox" id="check-screen-awareness" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 2. Active Window Tracker -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-window-tracker">2. Rastreador de Janela em Foco</label>
+                        <button type="button" class="btn-module-info" data-module="window-tracker" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-window-tracker">Identifica o aplicativo ativo no Windows (VS Code, Chrome, Terminal) para alternar o contexto de raciocínio.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-window-tracker">
+                      <input type="checkbox" id="check-window-tracker" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 3. Clipboard Watcher -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-clipboard-watcher">3. Monitor de Clipboard (Ctrl+C)</label>
+                        <button type="button" class="btn-module-info" data-module="clipboard-watcher" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-clipboard-watcher">Analisa automaticamente textos copiados e sugere auxílio para erros, stack traces e links.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-clipboard-watcher">
+                      <input type="checkbox" id="check-clipboard-watcher" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 4. Cron Engine -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-cron-engine">4. Motor de Agendamentos &amp; Despertador</label>
+                        <button type="button" class="btn-module-info" data-module="cron-engine" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-cron-engine">Permite agendar lembretes persistentes com notificações por voz e avisos visuais no HUD.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-cron-engine">
+                      <input type="checkbox" id="check-cron-engine" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 5. Daily Briefing -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-daily-briefing">5. Briefing Matinal &amp; Noturno Proativo</label>
+                        <button type="button" class="btn-module-info" data-module="daily-briefing" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-daily-briefing">Gera relatórios diários de status com saudações contextuais pelo horário do dia.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-daily-briefing">
+                      <input type="checkbox" id="check-daily-briefing" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 6. System Health -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-system-health">6. Monitor de Saúde do Sistema &amp; Hardware</label>
+                        <button type="button" class="btn-module-info" data-module="system-health" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-system-health">Monitora CPU, RAM e disco com alertas automáticos se a memória atingir níveis críticos (&gt;90%).</label>
+                    </div>
+                    <label class="hud-toggle" for="check-system-health">
+                      <input type="checkbox" id="check-system-health" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 7. Semantic Memory -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-semantic-memory">7. Memória Semântica Vetorial (RAG Local)</label>
+                        <button type="button" class="btn-module-info" data-module="semantic-memory" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-semantic-memory">Busca por similaridade de significado em fatos e conversas anteriores, superando buscas exatas.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-semantic-memory">
+                      <input type="checkbox" id="check-semantic-memory" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 8. Knowledge Graph -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-knowledge-graph">8. Grafo de Conhecimento do Usuário</label>
+                        <button type="button" class="btn-module-info" data-module="knowledge-graph" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-knowledge-graph">Mapeia conexões e relações entre projetos, ferramentas e conceitos do seu dia a dia.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-knowledge-graph">
+                      <input type="checkbox" id="check-knowledge-graph" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 10. Headless Browser -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-headless-browser">10. Navegador Headless Invisível</label>
+                        <button type="button" class="btn-module-info" data-module="headless-browser" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-headless-browser">Navega silenciosamente pela web usando Chromium offscreen nativo para ler artigos, documentações e capturar telas sem abrir janelas.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-headless-browser">
+                      <input type="checkbox" id="check-headless-browser" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 11. Git Watcher -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-git-watcher">11. Git Watcher &amp; Commits Semânticos</label>
+                        <button type="button" class="btn-module-info" data-module="git-watcher" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-git-watcher">Monitora repositórios locais via Git nativo, detecta arquivos pendentes e sugere mensagens padronizadas (feat, fix, docs).</label>
+                    </div>
+                    <label class="hud-toggle" for="check-git-watcher">
+                      <input type="checkbox" id="check-git-watcher" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="module-config-panel" id="panel-config-git-watcher">
+                    <div class="config-field-group">
+                      <label for="input-git-repo-path" class="config-field-label">Pasta do Repositório Git Local:</label>
+                      <div class="input-with-action">
+                        <input type="text" id="input-git-repo-path" placeholder="Caminho do repositório ou deixe em branco para pasta atual" />
+                        <button type="button" id="btn-browse-git-repo" class="btn-subaction" title="Procurar Pasta">
+                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                          Procurar
+                        </button>
+                      </div>
+                      <small class="config-field-hint">O assistente verificará este repositório periodicamente para sugerir commits inteligentes.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 12. Folder Organizer -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-folder-organizer">12. Organizador de Downloads &amp; Desktop</label>
+                        <button type="button" class="btn-module-info" data-module="folder-organizer" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-folder-organizer">Detecta arquivos duplicados por hash MD5, instaladores velhos (&gt;30 dias) e organiza pastas por categorias com suporte a simulação segura.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-folder-organizer">
+                      <input type="checkbox" id="check-folder-organizer" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="module-config-panel" id="panel-config-folder-organizer">
+                    <div class="config-field-group">
+                      <label for="select-folder-target" class="config-field-label">Diretório Padrão de Organização:</label>
+                      <select id="select-folder-target">
+                        <option value="downloads">Pasta de Downloads (Padrão do Windows)</option>
+                        <option value="desktop">Área de Trabalho (Desktop)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 13. Subagent Orchestrator -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-subagents">13. Orquestrador de Subagentes Paralelos</label>
+                        <button type="button" class="btn-module-info" data-module="subagents" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-subagents">Permite ao Jasper instanciar subagentes em background (pesquisa, testes, código) consolidando o resultado sem travar a voz.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-subagents">
+                      <input type="checkbox" id="check-subagents" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 14. Reflexion Guard -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-reflexion-loop">14. Loop de Auto-Reflexão &amp; Bloqueio de Risco</label>
+                        <button type="button" class="btn-module-info" data-module="reflexion-loop" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-reflexion-loop">Audita comandos antes da execução e bloqueia preventivamente ações perigosas no sistema, solicitando confirmação explícita.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-reflexion-loop">
+                      <input type="checkbox" id="check-reflexion-loop" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 15. Calendar & Email -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-calendar-email">15. Agenda &amp; Resumo de E-mails</label>
+                        <button type="button" class="btn-module-info" data-module="calendar-email" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-calendar-email">Gerencia compromissos locais em padrão iCal (.ics), avisa 10 minutos antes de reuniões e resume mensagens urgentes.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-calendar-email">
+                      <input type="checkbox" id="check-calendar-email" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="module-config-panel" id="panel-config-calendar-email">
+                    <div class="config-field-group">
+                      <div class="config-row-2col">
+                        <div class="form-group flex-1">
+                          <label for="input-email-host" class="config-field-label">Servidor IMAP:</label>
+                          <input type="text" id="input-email-host" placeholder="imap.gmail.com" />
+                        </div>
+                        <div class="form-group" style="width: 100px;">
+                          <label for="input-email-port" class="config-field-label">Porta:</label>
+                          <input type="number" id="input-email-port" placeholder="993" />
+                        </div>
+                      </div>
+                      <div class="config-row-2col">
+                        <div class="form-group flex-1">
+                          <label for="input-email-user" class="config-field-label">E-mail / Usuário:</label>
+                          <input type="text" id="input-email-user" placeholder="seu-email@gmail.com" />
+                        </div>
+                        <div class="form-group flex-1">
+                          <label for="input-email-password" class="config-field-label">Senha de App:</label>
+                          <div class="input-password-wrap">
+                            <input type="password" id="input-email-password" placeholder="Senha do app" />
+                            <button type="button" id="btn-toggle-email-pw" class="btn-toggle">Mostrar</button>
+                          </div>
+                        </div>
+                      </div>
+                      <small class="config-field-hint">Deixe em branco para usar o modo de demonstração simulado local sem conectar a um servidor real.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 16. Webhooks (n8n / Zapier / Make) -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-webhooks">16. Gatilhos de Webhook (n8n, Zapier, Make)</label>
+                        <button type="button" class="btn-module-info" data-module="webhooks" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-webhooks">Dispara chamadas HTTP para pipelines locais do n8n ou plataformas em nuvem para automação de tarefas e notificações.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-webhooks">
+                      <input type="checkbox" id="check-webhooks" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="module-config-panel" id="panel-config-webhooks">
+                    <div class="config-field-group">
+                      <label for="input-webhook-url" class="config-field-label">URL do Endpoint Webhook Padrão:</label>
+                      <div class="input-with-action">
+                        <input type="text" id="input-webhook-url" placeholder="http://localhost:5678/webhook/jasper" />
+                        <button type="button" id="btn-test-webhook" class="btn-subaction">
+                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                          Testar
+                        </button>
+                      </div>
+                      <div id="webhook-test-feedback" class="config-test-feedback"></div>
+                      <small class="config-field-hint">Suporta n8n, Zapier, Make, Slack ou qualquer serviço HTTP POST seguro.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 17. Smart Home (Home Assistant) -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-smart-home">17. Controle de Casa Inteligente (Home Assistant)</label>
+                        <button type="button" class="btn-module-info" data-module="smart-home" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-smart-home">Comanda iluminação, tomadas e climatização por voz através da API REST e WebSocket do Home Assistant.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-smart-home">
+                      <input type="checkbox" id="check-smart-home" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div class="module-config-panel" id="panel-config-smart-home">
+                    <div class="config-field-group">
+                      <label for="input-hass-url" class="config-field-label">URL do Servidor Home Assistant:</label>
+                      <input type="text" id="input-hass-url" placeholder="http://homeassistant.local:8123 (ou IP da sua rede)" />
+                      
+                      <label for="input-hass-token" class="config-field-label" style="margin-top: 8px;">Token de Acesso de Longa Duração (Bearer):</label>
+                      <div class="input-password-wrap">
+                        <input type="password" id="input-hass-token" placeholder="Cole o token gerado no perfil do Home Assistant" />
+                        <button type="button" id="btn-toggle-hass-token" class="btn-toggle">Mostrar</button>
+                      </div>
+                      <div class="config-action-row" style="margin-top: 10px;">
+                        <button type="button" id="btn-test-hass" class="btn-subaction">
+                          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 8v6M8 8H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4m8-8h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4"/></svg>
+                          Testar Conexão
+                        </button>
+                        <div id="hass-test-feedback" class="config-test-feedback"></div>
+                      </div>
+                      <small class="config-field-hint">Deixe o token em branco para usar o modo de simulação local sem alterar dispositivos reais.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 18. Process Manager -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-process-manager">18. Gerenciador de Processos &amp; Programas</label>
+                        <button type="button" class="btn-module-info" data-module="process-manager" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-process-manager">Pesquisa programas no StartApps, Registro e Everything CLI, inicializa apps e encerra tarefas com taskkill seguro.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-process-manager">
+                      <input type="checkbox" id="check-process-manager" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 19. Windows UI Automation -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-ui-automation">19. Automação de Interface Windows (UIA)</label>
+                        <button type="button" class="btn-module-info" data-module="ui-automation" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-ui-automation">Controla janelas do Windows via UI Automation: inspeciona elementos interativos, clica em botões e digita textos.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-ui-automation">
+                      <input type="checkbox" id="check-ui-automation" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 20. Media Controller -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-media-controller">20. Controle de Mídia &amp; Volume do Sistema</label>
+                        <button type="button" class="btn-module-info" data-module="media-controller" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-media-controller">Controla o volume global do Windows em percentual, silencia áudio (mute) e aciona teclas de reprodução (play, pause, faixas).</label>
+                    </div>
+                    <label class="hud-toggle" for="check-media-controller">
+                      <input type="checkbox" id="check-media-controller" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 21. Report Generator -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-report-generator">21. Geração de Relatórios Executivos (PDF, Excel, Word)</label>
+                        <button type="button" class="btn-module-info" data-module="report-generator" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-report-generator">Gera PDFs corporativos vetoriais com printToPDF(), planilhas Excel (.xlsx) e documentos Word (.docx) na pasta do usuário.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-report-generator">
+                      <input type="checkbox" id="check-report-generator" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 22. File Summarizer -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-file-summarizer">22. Leitor &amp; Resumidor de Arquivos Locais</label>
+                        <button type="button" class="btn-module-info" data-module="file-summarizer" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-file-summarizer">Lê e sintetiza arquivos PDF, Word (.docx), planilhas e códigos locais com redação e mascaramento de segredos/tokens.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-file-summarizer">
+                      <input type="checkbox" id="check-file-summarizer" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 23. QR Code Generator -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-qr-service">23. Gerador &amp; Leitor de QR Code</label>
+                        <button type="button" class="btn-module-info" data-module="qr-service" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-qr-service">Gera QR Codes em alta resolução em PNG e DataURL para links, senhas de Wi-Fi e cobranças instantâneas PIX.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-qr-service">
+                      <input type="checkbox" id="check-qr-service" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 24. Local OCR Service -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-ocr-service">24. OCR Local de Prints &amp; Imagens (Tesseract.js)</label>
+                        <button type="button" class="btn-module-info" data-module="ocr-service" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-ocr-service">Reconhecimento óptico de caracteres 100% local e offline (eng+por) em prints de tela e imagens com higienização de senhas.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-ocr-service">
+                      <input type="checkbox" id="check-ocr-service" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 25. Presentation Mode -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-presentation-mode">25. Modo Apresentação / Silencioso Inteligente</label>
+                        <button type="button" class="btn-module-info" data-module="presentation-mode" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-presentation-mode">Identifica conferências (Meet, Teams, Zoom, Webex) e apresentações de slides, silenciando alertas sonoros automaticamente.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-presentation-mode">
+                      <input type="checkbox" id="check-presentation-mode" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 26. Focus Mode -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-focus-mode">26. Modo Foco &amp; Bloqueador de Distrações</label>
+                        <button type="button" class="btn-module-info" data-module="focus-mode" title="Saiba como este módulo funciona">!</button>
+                      </div>
+                      <label class="hud-switch-desc" for="check-focus-mode">Sessões Pomodoro com cronômetro regressivo e alertas proativos contra jogos (Steam, Riot) e mensageiros distrativos.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-focus-mode">
+                      <input type="checkbox" id="check-focus-mode" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB 6: LICENÇA VITALÍCIA & NODE-LOCKING -->
+              <div id="tab-license" class="settings-tab-pane">
+                <div class="settings-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    </span>
+                    <div>
+                      <h4>Status da Licença Vitalícia</h4>
+                      <p>Autenticação criptográfica de máquina (Node-Locking) e registro de proprietário.</p>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                      <label class="form-label" style="margin: 0;">STATUS DO SISTEMA:</label>
+                      <span id="tab-license-badge-status" class="license-status-badge unlicensed">VERIFICANDO</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                      <div>
+                        <small style="color: var(--text-muted); display: block; font-size: 10px;">PROPRIETÁRIO / CLIENTE:</small>
+                        <span id="tab-license-client-name" style="color: #fff; font-weight: 600; font-size: 12px;">Não Registrado</span>
+                      </div>
+                      <div>
+                        <small style="color: var(--text-muted); display: block; font-size: 10px;">DATA DE ATIVAÇÃO:</small>
+                        <span id="tab-license-activated-at" style="color: #fff; font-weight: 600; font-size: 12px;">-</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 14px;">
+                    <label class="form-label">HARDWARE IDENTIFIER (HWID VINCULADO):</label>
+                    <div class="license-hwid-box" style="margin-top: 4px;">
+                      <div class="hwid-value-row">
+                        <code class="hwid-code" id="tab-license-hwid">HWID-CALCULANDO...</code>
+                        <button type="button" id="tab-btn-copy-hwid" class="btn-secondary-sm" style="font-size: 10px; padding: 4px 10px;">
+                          Copiar ID
+                        </button>
+                      </div>
+                    </div>
+                    <small class="form-hint" style="margin-top: 6px;">
+                      A chave de licença é criptograficamente vinculada a esta placa-mãe e CPU.
+                    </small>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 14px;">
+                    <label class="form-label" for="tab-license-key">CHAVE DE ATIVAÇÃO JASPER:</label>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                      <input type="text" id="tab-license-key" class="license-input" placeholder="JASPER-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XX" style="flex: 1;" />
+                      <button type="button" id="tab-btn-activate-key" class="btn-primary" style="white-space: nowrap; padding: 0 16px;">
+                        Ativar Chave
+                      </button>
+                    </div>
+                    <div id="tab-license-feedback" class="license-feedback" style="display: none; margin-top: 10px;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fixed Modal Footer -->
+            <div class="modal-footer">
+              <div class="modal-status" id="settings-status"></div>
+              <div class="modal-actions">
+                <button type="button" id="btn-cancel-settings" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-save-settings" class="btn-primary">Salvar &amp; Conectar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module Detailed Explanation Modal -->
+      <div id="modal-module-detail" class="module-detail-backdrop hidden">
+        <div class="module-detail-card">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <div class="modal-title-wrap">
+              <div class="module-detail-icon" id="module-detail-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div>
+                <h3 id="module-detail-title">Nome do Módulo</h3>
+                <span class="modal-subtitle" id="module-detail-subtitle">Serviço de Autonomia do Jasper AI</span>
+              </div>
+            </div>
+            <button id="btn-close-module-detail" class="modal-close" title="Fechar">&times;</button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="module-detail-body">
+            <!-- Section 1: Overview -->
+            <div class="detail-section">
+              <h5 class="detail-section-title">
+                <span class="section-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                </span>
+                O Que Este Módulo Faz
+              </h5>
+              <p id="module-detail-overview" class="detail-text"></p>
+            </div>
+
+            <!-- Section 2: How It Works -->
+            <div class="detail-section">
+              <h5 class="detail-section-title">
+                <span class="section-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </span>
+                Como Funciona nos Bastidores
+              </h5>
+              <p id="module-detail-how" class="detail-text"></p>
+            </div>
+
+            <!-- Section 3: Voice Command Examples -->
+            <div class="detail-section">
+              <h5 class="detail-section-title">
+                <span class="section-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </span>
+                Exemplos Práticos de Comandos de Voz
+              </h5>
+              <ul id="module-detail-examples" class="detail-examples-list"></ul>
+            </div>
+
+            <!-- Section 4: External Requirements -->
+            <div class="detail-section">
+              <h5 class="detail-section-title">
+                <span class="section-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 8v6M8 8H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4m8-8h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4"/></svg>
+                </span>
+                Softwares &amp; Requisitos Externos
+              </h5>
+              <p id="module-detail-requirements" class="detail-text"></p>
+            </div>
+
+            <!-- Section 5: Badges -->
+            <div class="detail-badge-footer">
+              <span class="detail-badge-pill"><span class="dot-live"></span> 100% Gratuito &amp; Local</span>
+              <span class="detail-badge-pill" id="module-detail-badge">Disparo sob demanda • Sem gravação em disco</span>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="modal-footer">
+            <div></div>
+            <button type="button" id="btn-ack-module-detail" class="btn-primary" style="padding: 8px 24px; font-size: 11px;">Entendido</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mandatory License & Gemini Activation Modal -->
+      <div id="modal-license-activation" class="modal-backdrop hidden" style="z-index: 99999; display: none;">
+        <div class="modal-card license-activation-dialog">
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <div class="modal-title-wrap">
+              <span class="modal-arc-dot"></span>
+              <div>
+                <h3 id="license-modal-title">AUTENTICAÇÃO DE SEGURANÇA // ATIVAÇÃO</h3>
+                <span id="license-modal-subtitle" class="modal-subtitle">Jasper AI Desktop - Licenciamento Vitalício &amp; Node-Locking</span>
+              </div>
+            </div>
+            <button id="btn-close-license-modal" class="modal-close" title="Fechar" style="display: none;">&times;</button>
+          </div>
+
+          <!-- STEP 1: Ativação da Licença Jasper -->
+          <div id="step-license-activation" class="wizard-step">
+            <!-- Modal Body -->
+            <div class="modal-body" style="padding: 20px 24px;">
+              <div style="margin-bottom: 16px;">
+                <p style="font-size: 12px; color: #d4d4d8; line-height: 1.5; margin: 0 0 12px 0;">
+                  Bem-vindo ao <strong>Jasper AI</strong>. Para desbloquear a estação de trabalho, o assistente neural 3D e a autonomia do sistema, insira sua chave de licença vitalícia fornecida na aquisição.
+                </p>
+              </div>
+
+              <!-- Hardware ID Box -->
+              <div class="license-hwid-box" style="margin-bottom: 18px;">
+                <span class="hwid-label">HARDWARE IDENTIFIER (HWID DESTE DISPOSITIVO)</span>
+                <div class="hwid-value-row">
+                  <code class="hwid-code" id="license-hwid-display">IDENTIFICANDO HARDWARE...</code>
+                  <button type="button" id="btn-copy-hwid" class="btn-secondary-sm" style="font-size: 10px; padding: 5px 12px;">
+                    Copiar HWID
+                  </button>
+                </div>
+              </div>
+
+              <!-- License Key Input -->
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="license-input-label" for="input-license-key">INFORME SUA CHAVE DE ATIVAÇÃO JASPER:</label>
+                <input
+                  type="text"
+                  id="input-license-key"
+                  class="license-input"
+                  placeholder="JASPER-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XX"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <small class="form-hint" style="margin-top: 6px;">
+                  A chave é exclusiva e vinculada a este computador com validação contínua a cada 24 horas.
+                </small>
+              </div>
+
+              <!-- Feedback Message -->
+              <div id="license-feedback-message" class="license-feedback" style="display: none; margin-bottom: 10px;"></div>
+            </div>
+
+            <!-- Modal Footer Step 1 -->
+            <div class="modal-footer">
+              <div style="font-size: 11px; color: var(--text-muted);">
+                Proteção Criptográfica Node-Locking 2026
+              </div>
+              <div class="modal-actions">
+                <button type="button" id="btn-activate-license" class="btn-primary" style="padding: 10px 24px;">
+                  ATIVAR LICENÇA
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: Onboarding Chave do Google Gemini AI -->
+          <div id="step-gemini-onboarding" class="wizard-step" style="display: none;">
+            <div class="modal-body" style="padding: 20px 24px;">
+              <div style="margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 8px #ffffff;"></span>
+                  <span style="font-size: 12px; font-weight: 700; color: #ffffff; letter-spacing: 0.05em;">LICENÇA VALIDADA COM SUCESSO</span>
+                </div>
+                <p style="font-size: 12px; color: #d4d4d8; line-height: 1.5; margin: 0 0 10px 0;">
+                  Para que o Jasper possa raciocinar, conversar em tempo real por voz e interagir com seu computador, informe sua <strong>chave pessoal da API do Google Gemini</strong>.
+                </p>
+                <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 10px 12px; font-size: 11px; color: #e4e4e7; line-height: 1.4;">
+                  💡 <strong>100% Gratuito:</strong> Você pode gerar sua chave gratuitamente no Google AI Studio em menos de 1 minuto sem cartão de crédito.
+                </div>
+              </div>
+
+              <div style="margin-bottom: 14px;">
+                <button type="button" id="btn-open-google-ai-studio" class="btn-secondary" style="width: 100%; justify-content: center; padding: 8px 12px; font-size: 11px;">
+                  Abrir Google AI Studio para Obter Chave Gratuita ↗
+                </button>
+              </div>
+
+              <!-- Gemini API Key Input -->
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="license-input-label" for="input-onboarding-gemini-key">SUA GOOGLE_API_KEY DO GEMINI:</label>
+                <div class="input-password-wrap">
+                  <input
+                    type="password"
+                    id="input-onboarding-gemini-key"
+                    class="license-input"
+                    placeholder="AIzaSy..."
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                  <button id="btn-toggle-onboarding-key" type="button" class="btn-toggle">Mostrar</button>
+                </div>
+                <small class="form-hint" style="margin-top: 6px;">
+                  Sua chave é criptografada localmente via safeStorage do Windows e nunca é compartilhada.
+                </small>
+              </div>
+
+              <!-- Gemini Feedback Message -->
+              <div id="gemini-onboarding-feedback" class="license-feedback" style="display: none; margin-bottom: 10px;"></div>
+            </div>
+
+            <!-- Modal Footer Step 2 -->
+            <div class="modal-footer">
+              <div style="font-size: 11px; color: var(--text-muted);">
+                Google Gemini Multimodal Live API
+              </div>
+              <div class="modal-actions">
+                <button type="button" id="btn-save-onboarding-gemini" class="btn-primary" style="padding: 10px 24px;">
+                  SALVAR E INICIAR JASPER
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating HUD Notification Toast Container -->
+      <div id="hud-toast-container" class="hud-toast-container"></div>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

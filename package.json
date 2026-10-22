@@ -1,0 +1,67 @@
+{
+  "name": "jasper-avatar",
+  "version": "1.0.2",
+  "description": "Jasper - Interactive 3D Voice Assistant with Three.js and Gemini Live",
+  "author": "Jasper Team",
+  "main": "./out/main/index.js",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11"
+  },
+  "scripts": {
+    "predev": "node scripts/setup-speech-assets.mjs",
+    "prebuild": "node scripts/setup-speech-assets.mjs",
+    "predist:win": "node scripts/setup-speech-assets.mjs",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "dist": "electron-builder",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "preview": "electron-vite preview",
+    "start": "electron .",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "node scripts/run-tests.mjs",
+    "test:wake": "node scripts/setup-speech-assets.mjs && node scripts/test-wake-lifecycle.mjs",
+    "verify": "npm run typecheck && npm test && npm run build",
+    "package:dir": "electron-builder --dir --win --x64",
+    "smoke:packaged": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-packaged.ps1",
+    "audit:runtime": "npm audit --omit=dev --audit-level=high",
+    "scan:secrets": "node scripts/scan-secrets.mjs",
+    "sbom:runtime": "npm sbom --omit=dev --sbom-format cyclonedx --sbom-type application",
+    "capture:showcase": "node scripts/capture-showcase.cjs",
+    "setup:assets": "node scripts/setup-assets.mjs",
+    "postinstall": "node scripts/setup-assets.mjs"
+  },
+  "dependencies": {
+    "docx": "^9.7.1",
+    "dotenv": "^16.4.7",
+    "electron-updater": "^6.8.9",
+    "exceljs": "^4.4.0",
+    "jsqr": "^1.4.0",
+    "mammoth": "^1.12.3",
+    "pdf-parse": "^2.4.5",
+    "qrcode": "^1.5.4",
+    "systeminformation": "^5.33.13",
+    "tesseract.js": "^7.0.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@tensorflow-models/speech-commands": "^0.5.4",
+    "@tensorflow/tfjs": "^3.21.0",
+    "@types/node": "^24.9.0",
+    "@types/pdf-parse": "^1.1.5",
+    "@types/qrcode": "^1.5.6",
+    "@types/three": "^0.170.0",
+    "@types/ws": "^8.5.13",
+    "electron": "44.4.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "three": "^0.170.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.4.3"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
+  }
+}

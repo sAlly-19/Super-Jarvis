@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+websockets
+litellm
+edge-tts
+psutil
+pyautogui
+mss
+pillow
+pycaw
+comtypes
+python-dotenv
+SpeechRecognition
+

@@ -1,0 +1,86 @@
+/* PIP Mode Button */
+#btn-pip.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ==========================================================================
+   MINI-HUD / COMPACT WIDGET MODE (Always-On-Top Floating Mode)
+   ========================================================================== */
+#app.mini-hud {
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#app.mini-hud #titlebar {
+  height: 32px;
+}
+
+#app.mini-hud .brand-tag {
+  display: none;
+}
+
+#app.mini-hud .brand-name {
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+#app.mini-hud #btn-maximize {
+  display: none;
+}
+
+#app.mini-hud #canvas-container {
+  top: 32px;
+}
+
+#app.mini-hud #hud-top {
+  top: 38px;
+  left: 10px;
+  right: 10px;
+}
+
+#app.mini-hud .status-badge {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+#app.mini-hud #transcript-container {
+  bottom: 85px;
+  left: 10px;
+  right: 10px;
+}
+
+#app.mini-hud .transcript-box {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+#app.mini-hud #hud-bottom {
+  bottom: 12px;
+  gap: 8px;
+}
+
+#app.mini-hud .visualizer-container {
+  display: none; /* Hide visualizer in mini-HUD to conserve space */
+}
+
+#app.mini-hud .btn-mic {
+  width: 52px;
+  height: 52px;
+}
+
+#app.mini-hud .btn-mic svg {
+  width: 22px;
+  height: 22px;
+}
+
+#app.mini-hud .btn-chat-toggle {
+  width: 36px;
+  height: 36px;
+}
+
+#app.mini-hud .chat-drawer.open {
+  width: 220px;
+}

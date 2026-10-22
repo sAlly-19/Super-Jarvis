@@ -1,0 +1,22 @@
+:root {
+  --bg-primary: #030303;
+  --bg-translucent: rgba(12, 12, 14, 0.85);
+  --bg-card-row: rgba(18, 18, 20, 0.65);
+  --cyan-neon: #ffffff;
+  --cyan-glow: rgba(255, 255, 255, 0.35);
+  --accent-cyan: #ffffff;
+  --blue-neon: #d4d4d8;
+  --amber-neon: #d4d4d8;
+  --green-neon: #ffffff;
+  --red-neon: #a1a1aa;
+  --text-main: #ffffff;
+  --text-secondary: #8e8e93;
+  --text-muted: #8e8e93;
+  --text-dim: #71717a;
+  --font-display: 'Orbitron', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: 'Inter', 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --hud-border: 1px solid rgba(255, 255, 255, 0.14);
+  --white-glow: 0 0 15px rgba(255, 255, 255, 0.25), inset 0 0 8px rgba(255, 255, 255, 0.1);
+}
