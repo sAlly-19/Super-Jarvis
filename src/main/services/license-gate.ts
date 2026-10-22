@@ -181,3 +181,5 @@ export class LicenseGate {
 }
 
 export const licenseGate = new LicenseGate(licenseManager, pythonBackend)
+pythonBackend.setExecutionAllowed(() => licenseGate.getSnapshot().state === 'unlocked')
+

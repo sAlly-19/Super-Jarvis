@@ -26,6 +26,10 @@ function validateEnvelope(env: any): asserts env is BackendEnvelope {
     throw new FrameError(`ID inválido ou excede limite de ${MAX_ID_LENGTH} caracteres.`)
   }
 
+  if (env.replyTo !== undefined && (typeof env.replyTo !== 'string' || env.replyTo.length > MAX_ID_LENGTH)) {
+    throw new FrameError(`replyTo inválido ou excede limite de ${MAX_ID_LENGTH} caracteres.`)
+  }
+
   if (typeof env.type !== 'string' || env.type.length > MAX_TYPE_LENGTH) {
     throw new FrameError(`Tipo de mensagem inválido ou excede limite de ${MAX_TYPE_LENGTH} caracteres.`)
   }

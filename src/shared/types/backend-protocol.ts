@@ -21,11 +21,12 @@ export type BackendMessageType =
   | 'interrupted'
   | 'error'
 
-export interface BackendEnvelope {
+export interface BackendEnvelope<TPayload = unknown> {
   version: 1
   id: string
+  replyTo?: string
   type: BackendMessageType
-  payload: unknown
+  payload: TPayload
 }
 
 export const MAX_FRAME_BODY_LENGTH = 16 * 1024 * 1024 // 16 MiB

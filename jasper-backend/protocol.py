@@ -24,6 +24,10 @@ def validate_envelope(env: Any) -> None:
     if not isinstance(msg_id, str) or len(msg_id) > MAX_ID_LENGTH:
         raise FrameError(f"ID inválido ou excede limite de {MAX_ID_LENGTH} caracteres.")
 
+    reply_to = env.get("replyTo")
+    if reply_to is not None and (not isinstance(reply_to, str) or len(reply_to) > MAX_ID_LENGTH):
+        raise FrameError(f"replyTo inválido ou excede limite de {MAX_ID_LENGTH} caracteres.")
+
     msg_type = env.get("type")
     if not isinstance(msg_type, str) or len(msg_type) > MAX_TYPE_LENGTH:
         raise FrameError(f"Tipo de mensagem inválido ou excede limite de {MAX_TYPE_LENGTH} caracteres.")
