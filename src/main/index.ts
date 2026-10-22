@@ -5,9 +5,8 @@ import { IPC_CHANNELS } from '@shared'
 import { configStore } from './config/config-store'
 import { createMainWindow, safeSend } from './windows/main-window'
 import { registerIpcHandlers } from './ipc/register-ipc'
-import { licenseManager } from './services/license-manager'
 import { updateManager } from './services/update-manager'
-import { pythonBackend } from './services/python-backend'
+import { licenseGate } from './services/license-gate'
 
 let licenseCheckTimer: NodeJS.Timeout | null = null
 
@@ -40,39 +39,34 @@ app.whenReady().then(() => {
   registerAppProtocol()
   configStore.initialize()
 
-  // Listener para bloqueio imediato se a licença for revogada ou suspensa
-  licenseManager.onRevoked((result) => {
-    console.warn('[Main] Licença revogada ou suspensa. Bloqueando acesso do usuário:', result.message)
+  // Notificar o renderer em qualquer transição de estado da licença
+  licenseGate.onStateChanged((snapshot) => {
     safeSend(IPC_CHANNELS.LICENSE_REVOKED, {
-      status: result.error || 'disabled',
-      message: result.message || 'Sua licença foi desativada ou revogada pelo administrador.'
+      status: snapshot.state,
+      message: snapshot.message
     })
   })
 
+  // 1. Registra IPC mínimo inicial
   registerIpcHandlers()
+
+  // 2. Cria janela principal (inicia bloqueada se não houver licença)
   createMainWindow()
   updateManager.initialize()
 
-  // Auto-Start do microsserviço Python FastAPI (127.0.0.1:8765) de forma oculta
-  pythonBackend.start().then((ready) => {
-    if (ready) {
+  // 3. Inicializa máquina de estados LicenseGate (só inicia backend se estiver 'unlocked')
+  licenseGate.initialize().then((snapshot) => {
+    if (snapshot.state === 'unlocked') {
       safeSend(IPC_CHANNELS.GEMINI_STATUS, 'connected', `${configStore.getConfig().agentName || 'Jasper'} Online`)
     }
   }).catch((err) => {
-    console.warn('[Main] Falha ao iniciar back-end Python automaticamente:', err)
+    console.warn('[Main] Falha na inicialização do LicenseGate:', err)
   })
 
-  // Verificação inicial do lease no boot da aplicação.
-  setTimeout(() => {
-    licenseManager.checkAccess24h().catch((err) => {
-      console.warn('[Main] Erro na verificação inicial de licença:', err.message)
-    })
-  }, 3000)
-
-  // Verificação periódica online; o lease assinado limita o modo offline a 72 horas.
+  // 4. Verificação periódica a cada 60 minutos (heartbeat / renovação antecipada do lease)
   licenseCheckTimer = setInterval(() => {
-    licenseManager.checkAccess24h().catch((err) => {
-      console.warn('[Main] Erro no check periódico de licença:', err.message)
+    licenseGate.refresh().catch((err) => {
+      console.warn('[Main] Erro na verificação periódica de licença:', err)
     })
   }, 60 * 60 * 1000)
 
@@ -84,7 +78,7 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
-  pythonBackend.stop()
+  void licenseGate.shutdown().catch(() => {})
 })
 
 app.on('window-all-closed', () => {
@@ -92,7 +86,7 @@ app.on('window-all-closed', () => {
     clearInterval(licenseCheckTimer)
     licenseCheckTimer = null
   }
-  pythonBackend.stop()
+  void licenseGate.shutdown().catch(() => {})
   updateManager.dispose()
   if (process.platform !== 'darwin') {
     app.quit()

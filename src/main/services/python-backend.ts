@@ -29,6 +29,9 @@ export class PythonBackendManager {
   }
 
   public resolvePythonExecutable(backendDir: string): string {
+    if (process.env.JASPER_PYTHON_EXECUTABLE && existsSync(process.env.JASPER_PYTHON_EXECUTABLE)) {
+      return process.env.JASPER_PYTHON_EXECUTABLE
+    }
     const venvPythonWin = join(backendDir, 'venv', 'Scripts', 'python.exe')
     if (existsSync(venvPythonWin)) {
       return venvPythonWin
@@ -71,8 +74,7 @@ export class PythonBackendManager {
     const backendDir = this.getBackendDir()
     const mainScript = join(backendDir, 'main.py')
     if (!existsSync(mainScript)) {
-      console.error(`[PythonBackend] Arquivo main.py não encontrado em: ${mainScript}`)
-      return false
+      throw new Error(`Arquivo main.py não encontrado em: ${mainScript}`)
     }
 
     const pythonExe = this.resolvePythonExecutable(backendDir)
@@ -126,13 +128,14 @@ export class PythonBackendManager {
       })
 
       const ready = await this.waitForReady(25000)
-      if (ready) {
-        await this.syncConfig(cfg)
+      if (!ready) {
+        throw new Error('Timeout aguardando inicialização do backend Python na porta 8765.')
       }
-      return ready
+      await this.syncConfig(cfg)
+      return true
     } catch (err) {
-      console.error('[PythonBackend] Exceção ao criar subprocesso Python:', err)
-      return false
+      await this.stop('start_failed')
+      throw err
     }
   }
 
@@ -172,12 +175,12 @@ export class PythonBackendManager {
     }
   }
 
-  public stop(): void {
+  public async stop(reason?: string): Promise<void> {
     this.isShuttingDown = true
     if (!this.process) return
 
     const pid = this.process.pid
-    console.log(`[PythonBackend] Encerrando processo Python (PID: ${pid})...`)
+    console.log(`[PythonBackend] Encerrando processo Python (PID: ${pid}, motivo: ${reason || 'normal'})...`)
 
     try {
       if (process.platform === 'win32' && pid) {
@@ -199,4 +202,3 @@ export class PythonBackendManager {
 }
 
 export const pythonBackend = new PythonBackendManager()
-
