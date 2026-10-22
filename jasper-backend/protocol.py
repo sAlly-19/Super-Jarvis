@@ -59,33 +59,36 @@ class FrameDecoder:
             return []
 
         self.buffer.extend(chunk)
-        envelopes: List[Dict[str, Any]] = []
+        frames: List[Dict[str, Any]] = []
 
         while len(self.buffer) >= 4:
             declared_len = struct.unpack(">I", self.buffer[:4])[0]
 
             if declared_len == 0:
-                raise FrameError("Comprimento inválido do frame: 0 bytes anunciados.")
+                raise FrameError("Frame declarado com tamanho 0 inválido.")
 
             if declared_len > MAX_FRAME_BODY_LENGTH:
-                raise FrameError(f"Comprimento anunciado ({declared_len} bytes) excede limite máximo de {MAX_FRAME_BODY_LENGTH} bytes.")
+                raise FrameError(f"Comprimento do frame ({declared_len}) excede o limite de {MAX_FRAME_BODY_LENGTH} bytes.")
 
-            if len(self.buffer) < 4 + declared_len:
-                # Frame incompleto, aguardar próximos bytes
+            total_frame_len = 4 + declared_len
+            if len(self.buffer) < total_frame_len:
+                # Frame parcial, aguardar mais chunks
                 break
 
-            body_bytes = bytes(self.buffer[4:4 + declared_len])
-            del self.buffer[:4 + declared_len]
+            body_bytes = self.buffer[4:total_frame_len]
+            # Consome o frame do buffer
+            del self.buffer[:total_frame_len]
 
             try:
-                parsed = json.loads(body_bytes.decode("utf-8"))
-            except Exception as e:
-                raise FrameError(f"JSON inválido no corpo do frame: {e}") from e
+                body_str = body_bytes.decode("utf-8")
+                envelope = json.loads(body_str)
+            except Exception as err:
+                raise FrameError(f"Falha ao decodificar payload JSON do frame: {err}")
 
-            validate_envelope(parsed)
-            envelopes.append(parsed)
+            validate_envelope(envelope)
+            frames.append(envelope)
 
-        return envelopes
+        return frames
 
-    def reset(self) -> None:
-        self.buffer.clear()
+    def push(self, chunk: bytes) -> List[Dict[str, Any]]:
+        return self.feed(chunk)

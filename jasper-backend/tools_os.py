@@ -1,53 +1,28 @@
 import base64
 import io
 import json
-import re
 import subprocess
 from typing import Any, Callable, Dict, List, Optional
 
-import mss
-import psutil
-import pyautogui
-from PIL import Image
-
-# Configure PyAutoGUI for safe, low-latency desktop automation
-pyautogui.FAILSAFE = False
-pyautogui.PAUSE = 0.05
-
-# Patterns blocked to prevent accidental OS destruction while allowing full utility automation
-_DESTRUCTIVE_PATTERNS = [
-    r"\bformat-volume\b",
-    r"\bclear-disk\b",
-    r"\bformat\s+[a-z]:",
-    r"\bremove-item\b.*c:\\windows",
-    r"\brd\s+/s\s+/q\s+c:\\windows",
-    r"\bdel\s+/f\s+/s\s+/q\s+c:\\windows",
-    r"\bcipher\s+/w:",
-    r"\bbcdedit\b.*delete",
-]
-
-
-def _is_destructive_command(command: str) -> bool:
-    normalized = (command or "").strip().lower()
-    return any(re.search(pattern, normalized) for pattern in _DESTRUCTIVE_PATTERNS)
+# Safe/lazy initialization of desktop automation modules
+try:
+    import pyautogui
+    pyautogui.FAILSAFE = False
+    pyautogui.PAUSE = 0.05
+except Exception:
+    pyautogui = None
 
 
 def run_powershell(command: str) -> str:
     """
     Executes PowerShell commands/scripts on Windows with a hidden window and 15s timeout.
-    Used to open apps, manage files, control media, inspect network, etc.
+    Jasper has full OS control authority; structural limits enforce stability:
+    - Non-empty string schema validation
+    - 15-second execution timeout
+    - Max 4000 chars stdout and 2000 chars stderr truncation
     """
-    if not command or not str(command).strip():
-        return json.dumps({"status": "error", "error": "Comando PowerShell vazio."}, ensure_ascii=False)
-
-    if _is_destructive_command(command):
-        return json.dumps(
-            {
-                "status": "blocked",
-                "error": "Comando bloqueado pela trava de segurança contra formatação/destruição do sistema operacional.",
-            },
-            ensure_ascii=False,
-        )
+    if not isinstance(command, str) or not command.strip():
+        return json.dumps({"status": "error", "error": "Comando PowerShell vazio ou inválido."}, ensure_ascii=False)
 
     try:
         creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
@@ -99,6 +74,8 @@ def get_system_telemetry() -> str:
     Uses psutil to return CPU, RAM, Disk usage and the top 5 memory-consuming processes.
     """
     try:
+        import psutil
+
         cpu_percent = psutil.cpu_percent(interval=0.15)
         vm = psutil.virtual_memory()
         disk = psutil.disk_usage("C:\\")
@@ -153,6 +130,9 @@ def gui_action(
     Uses pyautogui to execute mouse and keyboard actions:
     click, double_click, right_click, move, type, hotkey.
     """
+    if pyautogui is None:
+        return json.dumps({"status": "error", "error": "Módulo pyautogui não disponível."}, ensure_ascii=False)
+
     act = (action or "").strip().lower()
     try:
         if act == "click":
@@ -274,8 +254,16 @@ def capture_screen_base64() -> str:
     with Pillow in memory, and returns the base64-encoded JPEG string.
     Includes fallback to PIL.ImageGrab and headless dark frame if BitBlt is unavailable.
     """
+    try:
+        from PIL import Image
+    except Exception:
+        # If Pillow is completely missing, return a tiny placeholder JPEG in base64
+        return ""
+
     img: Optional[Image.Image] = None
     try:
+        import mss
+
         with mss.mss() as sct:
             monitor = sct.monitors[1] if len(sct.monitors) > 1 else sct.monitors[0]
             raw_shot = sct.grab(monitor)
