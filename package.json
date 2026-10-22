@@ -20,6 +20,7 @@
     "start": "electron .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "node scripts/run-tests.mjs",
+    "test:python": "node scripts/run-python-tests.mjs",
     "test:wake": "node scripts/setup-speech-assets.mjs && node scripts/test-wake-lifecycle.mjs",
     "verify": "npm run typecheck && npm test && npm run build",
     "package:dir": "electron-builder --dir --win --x64",

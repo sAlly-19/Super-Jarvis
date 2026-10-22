@@ -37,3 +37,4 @@ export function resolveKeyForId(
 
   return LICENSE_KEYRING[kid] || null
 }
+

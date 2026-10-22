@@ -183,3 +183,4 @@ describe('LicenseGate State Machine & Backend Lifecycle', () => {
     assert.equal(gate.getSnapshot().state, 'revoked')
   })
 })
+

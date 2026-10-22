@@ -329,3 +329,4 @@ describe('Compiled Ed25519 keyring and strict lease verifier', () => {
     assert.equal(result.error, 'CLOCK_ROLLBACK')
   })
 })
+

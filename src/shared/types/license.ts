@@ -51,3 +51,4 @@ export interface LicenseInfo {
   expiresAt?: string
   error?: string
 }
+
