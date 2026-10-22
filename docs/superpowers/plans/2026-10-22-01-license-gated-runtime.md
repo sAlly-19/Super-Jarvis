@@ -42,25 +42,25 @@
 - Produces: `LicenseState`, `LicenseGateSnapshot`, `LeaseClaims`, `LicenseValidationResult`, `LicenseInfo` from `@shared`.
 - Produces: automatic discovery of every `test/**/*.test.ts` file by `scripts/run-tests.mjs`.
 
-- [ ] **Step 1: Write the failing contract tests**
+- [x] **Step 1: Write the failing contract tests**
 
 Add tests named `exports_the_six_license_states` and `test_runner_discovers_new_test_files`; assert the exact state union and that `license-manager.test.ts` is included without a hard-coded entry.
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because the shared license module and automatic discovery do not exist.
 
-- [ ] **Step 3: Implement the shared types and discovery**
+- [x] **Step 3: Implement the shared types and discovery**
 
 Define `LicenseState = 'locked' | 'validating' | 'unlocked' | 'expired' | 'revoked' | 'backend_error'`; define `LeaseClaims` with `iss`, `aud`, `installationId`, `machineHash`, `iat`, `exp`; define `LicenseGateSnapshot` with `state`, `message`, `expiresAt?`. Move license result/info declarations out of `config.ts`, remove `licensePublicJwk`, and add `licenseLastTrustedAt?: string`. Discover tests deterministically by sorted filename.
 
-- [ ] **Step 4: Run tests and typecheck**
+- [x] **Step 4: Run tests and typecheck**
 
 Run: `npm.cmd test`, then `npm.cmd run typecheck`.
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add scripts/run-tests.mjs src/shared/index.ts src/shared/types/config.ts src/shared/types/license.ts test/license-manager.test.ts
@@ -82,29 +82,29 @@ git commit -m "test: define license runtime contracts"
 - Produces: `LICENSE_KEYRING: Readonly<Record<string, JsonWebKey>>` with `prod-2026-01` mapped to the production Ed25519 public coordinate `P_BiXYVYZ7nJ7Awagp-Q-qQBGEJ5w_4wJEr5qZ1JVCs`.
 - Produces: `LicenseManager.verifyCurrentLicense(forceOnline?: boolean): Promise<LicenseValidationResult>` with `expiresAt?` and `trustedServerTime?`.
 
-- [ ] **Step 1: Add failing lease tests**
+- [x] **Step 1: Add failing lease tests**
 
 Use an ephemeral Ed25519 test key injected through `LeaseVerificationContext.keyring`. Cover valid claims, `exp-iat > 259200`, expired lease, future `iat > now+300`, missing/unknown `kid`, wrong installation, wrong machine, bad signature, malformed token and clock rollback.
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because `verifySignedLease` does not exist.
 
-- [ ] **Step 3: Implement verifier and production keyring**
+- [x] **Step 3: Implement verifier and production keyring**
 
 Parse all three JWT segments defensively, require `alg='EdDSA'`, select only `LICENSE_KEYRING[header.kid]`, and return typed claims only after signature and invariant validation. Use signed `iat * 1000` as trusted server time, monotonically persist it as `licenseLastTrustedAt`, store lease secrets with the existing `safeStorage` path, and remove `/v1/licenses/public-key` plus every read/write of `licensePublicJwk`.
 
-- [ ] **Step 4: Implement online/offline classification**
+- [x] **Step 4: Implement online/offline classification**
 
 Map server revocation/suspension to `REVOKED`, elapsed `exp` to `EXPIRED`, absence to `NO_LICENSE`, and network failure before `exp` to valid offline access. Online success records a trusted server time from the authenticated response contract; rollback blocks offline access.
 
-- [ ] **Step 5: Run tests and typecheck**
+- [x] **Step 5: Run tests and typecheck**
 
 Run: `npm.cmd test`, then `npm.cmd run typecheck`.
 Expected: PASS with all lease cases covered.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add src/main/services/license-keyring.ts src/main/services/lease-verifier.ts src/main/services/license-manager.ts src/main/config/config-store.ts test/license-manager.test.ts
@@ -127,33 +127,33 @@ git commit -m "feat: verify signed commercial leases"
 - Produces: `LicenseGate.refresh(forceOnline?: boolean): Promise<LicenseGateSnapshot>`.
 - Produces: `LicenseGate.requireUnlocked(): void`, `getSnapshot()`, `markBackendError(message)`, `shutdown()` and `onStateChanged(listener)`.
 
-- [ ] **Step 1: Add failing state-transition tests**
+- [x] **Step 1: Add failing state-transition tests**
 
 Assert: boot without lease never calls backend start; valid boot calls it once; concurrent initialize calls share one promise; expiry/revocation calls stop and transitions correctly; failed start becomes `backend_error`; successful activation becomes `unlocked`.
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because `LicenseGate` does not exist.
 
-- [ ] **Step 3: Implement the state machine**
+- [x] **Step 3: Implement the state machine**
 
 Inject `LicenseAuthority` and `BackendLifecycle` interfaces in the constructor for deterministic tests. Serialize transitions with one in-flight promise. `requireUnlocked()` throws a typed `LICENSE_REQUIRED` error for every non-unlocked state. Adapt the existing backend manager to the same `Promise<void>` lifecycle contract; failure to become ready throws.
 
-- [ ] **Step 4: Rewire application startup**
+- [x] **Step 4: Rewire application startup**
 
 Register minimal IPC, create the window, then call `licenseGate.initialize()`. Remove unconditional `pythonBackend.start()`. Periodic checks call `licenseGate.refresh()`; `before-quit` and `window-all-closed` call `shutdown()`.
 
-- [ ] **Step 5: Gate IPC by category**
+- [x] **Step 5: Gate IPC by category**
 
 Keep `LICENSE_*` and `WINDOW_*` available. Require `unlocked` for chat, audio, configuration secrets, memory and update mutation. Activation goes through `licenseGate.activate()` and emits one state snapshot event.
 
-- [ ] **Step 6: Run verification**
+- [x] **Step 6: Run verification**
 
 Run: `npm.cmd run typecheck`, then `npm.cmd test`.
 Expected: PASS; tests prove zero backend starts without a valid lease.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add src/main/services/license-gate.ts src/main/services/python-backend.ts src/main/index.ts src/main/ipc/register-ipc.ts test/license-gate.test.ts
@@ -169,17 +169,17 @@ git commit -m "feat: gate runtime behind valid license"
 **Interfaces:**
 - Produces: verified `licenseGate` consumed by Phases 2 and 3.
 
-- [ ] **Step 1: Run the full phase gate under Node 24**
+- [x] **Step 1: Run the full phase gate under Node 24**
 
 Run: `npm.cmd run typecheck`, `npm.cmd test`, then `npm.cmd run scan:secrets`.
 Expected: all commands exit `0`; no test starts a backend for `locked`, `expired` or `revoked`.
 
-- [ ] **Step 2: Inspect the diff and update tracking**
+- [x] **Step 2: Inspect the diff and update tracking**
 
 Run: `git diff --check`, then `git status --short`.
 Expected: no whitespace errors; only intended files remain modified. Mark completed checkboxes and set the runbook's next action to Phase 2.
 
-- [ ] **Step 3: Commit tracking updates**
+- [x] **Step 3: Commit tracking updates**
 
 ```powershell
 git add docs/superpowers/plans/2026-10-22-01-license-gated-runtime.md docs/superpowers/plans/2026-10-22-jarvis-commercial-remediation-runbook.md

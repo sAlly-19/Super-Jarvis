@@ -11,7 +11,7 @@ Este arquivo é o ponto de retomada para qualquer agente que continuar a correç
 
 ## Ordem de execução
 
-- [ ] Fase 1 — `2026-10-22-01-license-gated-runtime.md`
+- [x] Fase 1 — `2026-10-22-01-license-gated-runtime.md`
 - [ ] Fase 2 — `2026-10-22-02-private-sidecar-protocol.md`
 - [ ] Fase 3 — `2026-10-22-03-renderer-ipc-memory-cleanup.md`
 - [ ] Fase 4 — `2026-10-22-04-commercial-packaging-release.md`
@@ -52,11 +52,11 @@ Não iniciar uma fase enquanto os testes e o commit final da anterior não estiv
 
 Atualize esta seção ao terminar cada sessão:
 
-- **Fase atual:** planejamento concluído; execução ainda não iniciada.
-- **Última tarefa concluída:** nenhuma.
-- **Último commit verificado:** `dd74f90`.
-- **Falhas conhecidas:** build do renderer sob Node 26 aborta por memória; repetir com Node 24.
-- **Próxima ação:** executar a Tarefa 1 da Fase 1 usando `superpowers:executing-plans` e `superpowers:test-driven-development`.
+- **Fase atual:** Fase 1 concluída; Fase 2 pronta para execução.
+- **Última tarefa concluída:** Fase 1 concluída.
+- **Último commit verificado:** `20002d9`.
+- **Falhas conhecidas:** nenhuma na Fase 1; build do renderer sob Node 26 aborta por memória; repetir com Node 24.
+- **Próxima ação:** executar a Tarefa 1 da Fase 2 (`2026-10-22-02-private-sidecar-protocol.md`) usando `superpowers:executing-plans` e `superpowers:test-driven-development`.
 
 ## Verificação global final
 
