@@ -14,7 +14,7 @@ import { WakeTrainerUI } from './ui/wake-trainer-ui'
 import { SettingsModal } from './ui/settings-modal'
 import { NeuralBackground } from './scene/neural-background'
 import { showHudToast } from './ui/toast'
-import { initModuleInfoModal } from './ui/module-info-modal'
+import { ControlConsentModal } from './ui/control-consent-modal'
 import { licenseModal } from './ui/license-modal'
 import type { LicenseGateSnapshot, AgentStatusPayload } from '@shared'
 
@@ -39,6 +39,7 @@ let currentLicenseState: string = 'locked'
 // Forward declarations
 let wakeTrainerUI: WakeTrainerUI
 let wakeWordManager: WakeWordManager
+let controlConsentModal: ControlConsentModal
 
 export function syncDashboardConnectionIndicators(connected: boolean, subtitle?: string): void {
   const widgetTitle = document.querySelector('.widget-status-title')
@@ -310,12 +311,19 @@ export function applyLicenseSnapshot(snapshot: LicenseGateSnapshot): void {
 
   if (snapshot.state === 'unlocked') {
     licenseModal.hide()
-    void mountAgentRuntime()
+    void window.electronAPI.isConsentAccepted().then((accepted) => {
+      if (!accepted) {
+        controlConsentModal?.show()
+        return
+      }
+      void mountAgentRuntime()
+    })
   } else {
     if (activeRuntimeDisposer) {
       activeRuntimeDisposer()
       activeRuntimeDisposer = null
     }
+    controlConsentModal?.hide()
     licenseModal.show(true)
     updateStatusBadge('error', snapshot.message || 'Licença Bloqueada')
   }
@@ -398,6 +406,14 @@ async function init(): Promise<void> {
   animate()
 
   // Chat drawer and UI
+  controlConsentModal = new ControlConsentModal({
+    onConsentAccepted: () => {
+      if (currentLicenseState === 'unlocked') {
+        void mountAgentRuntime()
+      }
+    }
+  })
+
   initChatDrawer({
     getIsConnected: () => isConnected,
     getAgentName: () => getCurrentAgentName(),
@@ -416,7 +432,6 @@ async function init(): Promise<void> {
     wakeTrainerUI
   })
 
-  initModuleInfoModal()
   licenseModal.init()
 
   // Window Controls

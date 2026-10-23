@@ -302,7 +302,6 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
         licenseDeviceSecret: '',
         licenseLeaseToken: '',
         licenseLeaseExpiresAt: '',
-        licensePublicJwk: ''
       })
 
       try {

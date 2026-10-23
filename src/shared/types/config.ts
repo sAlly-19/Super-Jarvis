@@ -1,5 +1,3 @@
-export type ConfirmationMode = 'strict' | 'common' | 'all'
-
 export interface JasperConfig {
   apiKey: string
   voiceName: string
@@ -37,7 +35,6 @@ export interface JasperConfig {
   enableOcrService: boolean
   enablePresentationMode: boolean
   enableFocusMode: boolean
-  confirmationMode: ConfirmationMode
   checkUpdatesDaily: boolean
   // Module specific configurations
   hassUrl?: string
@@ -61,6 +58,9 @@ export interface JasperConfig {
   licenseLeaseToken?: string
   licenseLeaseExpiresAt?: string
   licenseLastTrustedAt?: string
+  // Commercial Operational Consent
+  controlConsentAcceptedAt?: string
+  controlConsentInstallationId?: string
 }
 
 export interface UpdateConfigPayload {
@@ -100,7 +100,6 @@ export interface UpdateConfigPayload {
   enableOcrService?: boolean
   enablePresentationMode?: boolean
   enableFocusMode?: boolean
-  confirmationMode?: ConfirmationMode
   checkUpdatesDaily?: boolean
   // Module specific configurations
   hassUrl?: string
@@ -124,6 +123,9 @@ export interface UpdateConfigPayload {
   licenseLeaseToken?: string
   licenseLeaseExpiresAt?: string
   licenseLastTrustedAt?: string
+  // Commercial Operational Consent
+  controlConsentAcceptedAt?: string
+  controlConsentInstallationId?: string
 }
 
 export interface ConfigSummary {
@@ -164,7 +166,6 @@ export interface ConfigSummary {
   enableOcrService: boolean
   enablePresentationMode: boolean
   enableFocusMode: boolean
-  confirmationMode: ConfirmationMode
   checkUpdatesDaily: boolean
   // Module specific configurations
   hassUrl?: string
@@ -183,4 +184,7 @@ export interface ConfigSummary {
   licenseStatus: 'active' | 'disabled' | 'revoked' | 'unlicensed'
   licenseMachineId?: string
   hwid: string
+  // Commercial Operational Consent
+  controlConsentAccepted?: boolean
+  controlConsentAcceptedAt?: string
 }

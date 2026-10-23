@@ -64,11 +64,9 @@ export const IPC_CHANNELS = {
   // Dialog
   DIALOG_SELECT_DIRECTORY: 'dialog:select-directory',
 
-  // Autonomy compatibility
-  AUTONOMY_NOTIFICATION: 'autonomy:notification',
-  AUTONOMY_SMART_HOME_TEST_CONNECTION: 'autonomy:smart-home-test-connection',
-  AUTONOMY_REFLEXION_CONFIRMATION: 'autonomy:reflexion-confirmation',
-  AUTONOMY_WEBHOOK_TEST: 'autonomy:webhook-test'
+  // Commercial Operational Consent
+  CONSENT_GET_STATUS: 'consent:get-status',
+  CONSENT_ACCEPT: 'consent:accept'
 } as const
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS]

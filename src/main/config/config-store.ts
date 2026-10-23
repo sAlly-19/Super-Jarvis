@@ -75,7 +75,7 @@ function atomicWriteFileSync(filePath: string, data: string): void {
   }
 }
 
-class ConfigStore {
+export class ConfigStore {
   private config: JasperConfig = {
     apiKey: process.env.GOOGLE_API_KEY || '',
     voiceName: process.env.GEMINI_VOICE || 'Charon',
@@ -113,7 +113,6 @@ class ConfigStore {
     enableOcrService: true,
     enablePresentationMode: true,
     enableFocusMode: true,
-    confirmationMode: 'strict',
     checkUpdatesDaily: true,
     // Module specific configurations
     hassUrl: process.env.HASS_URL || 'http://homeassistant.local:8123',
@@ -198,7 +197,6 @@ class ConfigStore {
         if (data.enableOcrService !== undefined) this.config.enableOcrService = data.enableOcrService
         if (data.enablePresentationMode !== undefined) this.config.enablePresentationMode = data.enablePresentationMode
         if (data.enableFocusMode !== undefined) this.config.enableFocusMode = data.enableFocusMode
-        if (['strict', 'common', 'all'].includes(data.confirmationMode)) this.config.confirmationMode = data.confirmationMode
         if (typeof data.checkUpdatesDaily === 'boolean') this.config.checkUpdatesDaily = data.checkUpdatesDaily
 
         // Module-specific configs
@@ -224,6 +222,8 @@ class ConfigStore {
         if (data.licenseLeaseToken !== undefined) this.config.licenseLeaseToken = decryptSecret(data.licenseLeaseToken)
         if (data.licenseLeaseExpiresAt !== undefined) this.config.licenseLeaseExpiresAt = data.licenseLeaseExpiresAt
         if (data.licenseLastTrustedAt !== undefined) this.config.licenseLastTrustedAt = data.licenseLastTrustedAt
+        if (data.controlConsentAcceptedAt !== undefined) this.config.controlConsentAcceptedAt = data.controlConsentAcceptedAt
+        if (data.controlConsentInstallationId !== undefined) this.config.controlConsentInstallationId = data.controlConsentInstallationId
 
         console.log('[ConfigStore] Loaded settings from userData/jasper-config.json')
       }
@@ -296,7 +296,6 @@ class ConfigStore {
     if (payload.enableOcrService !== undefined) this.config.enableOcrService = payload.enableOcrService
     if (payload.enablePresentationMode !== undefined) this.config.enablePresentationMode = payload.enablePresentationMode
     if (payload.enableFocusMode !== undefined) this.config.enableFocusMode = payload.enableFocusMode
-    if (payload.confirmationMode !== undefined) this.config.confirmationMode = payload.confirmationMode
     if (payload.checkUpdatesDaily !== undefined) this.config.checkUpdatesDaily = payload.checkUpdatesDaily
 
     // Module-specific configs
@@ -322,6 +321,8 @@ class ConfigStore {
     if (payload.licenseLeaseToken !== undefined) this.config.licenseLeaseToken = payload.licenseLeaseToken.trim()
     if (payload.licenseLeaseExpiresAt !== undefined) this.config.licenseLeaseExpiresAt = payload.licenseLeaseExpiresAt
     if (payload.licenseLastTrustedAt !== undefined) this.config.licenseLastTrustedAt = payload.licenseLastTrustedAt
+    if (payload.controlConsentAcceptedAt !== undefined) this.config.controlConsentAcceptedAt = payload.controlConsentAcceptedAt
+    if (payload.controlConsentInstallationId !== undefined) this.config.controlConsentInstallationId = payload.controlConsentInstallationId
 
     try {
       this.savePersistedConfig()
@@ -373,7 +374,8 @@ class ConfigStore {
       enableOcrService: this.config.enableOcrService,
       enablePresentationMode: this.config.enablePresentationMode,
       enableFocusMode: this.config.enableFocusMode,
-      confirmationMode: this.config.confirmationMode,
+      controlConsentAccepted: Boolean(this.config.controlConsentAcceptedAt && this.config.controlConsentInstallationId === hw.machineId),
+      controlConsentAcceptedAt: this.config.controlConsentAcceptedAt,
       checkUpdatesDaily: this.config.checkUpdatesDaily,
       // Module-specific configs
       hassUrl: this.config.hassUrl || 'http://homeassistant.local:8123',

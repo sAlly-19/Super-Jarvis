@@ -229,6 +229,15 @@ const electronAPI = {
     }
   },
 
+  // Commercial Control Consent
+  isConsentAccepted: async (): Promise<boolean> => {
+    const res = await ipcRenderer.invoke(IPC_CHANNELS.CONSENT_GET_STATUS)
+    return Boolean(res?.accepted)
+  },
+  acceptControlConsent: async (): Promise<{ success: boolean }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONSENT_ACCEPT)
+  },
+
   // Dialog
   selectDirectory: (): Promise<string | null> => {
     return ipcRenderer.invoke(IPC_CHANNELS.DIALOG_SELECT_DIRECTORY)

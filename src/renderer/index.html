@@ -674,17 +674,6 @@
                       <p>Escolha quanta autonomia o Jasper terá ao controlar o computador.</p>
                     </div>
                   </div>
-                  <div class="confirmation-mode-control" role="radiogroup" aria-label="Modo de confirmação">
-                    <label><input type="radio" name="confirmation-mode" value="strict" checked /><span>Estrito</span></label>
-                    <label><input type="radio" name="confirmation-mode" value="common" /><span>Ações comuns</span></label>
-                    <label class="danger"><input type="radio" name="confirmation-mode" value="all" /><span>Todas as ações</span></label>
-                  </div>
-                  <p class="confirmation-mode-help" id="confirmation-mode-help">Solicita confirmação antes de qualquer ação com efeito no computador.</p>
-                  <div class="mandatory-actions-note">
-                    <strong>Sempre exigem confirmação:</strong>
-                    capturas de tela e OCR, credenciais, pagamentos, instalação e atualização de programas,
-                    exclusão permanente, processos críticos, licenças e dispositivos de segurança física.
-                  </div>
                 </div>
 
                 <div class="settings-card update-settings-card">
@@ -707,7 +696,7 @@
                     <button id="btn-download-update" class="btn-secondary hidden" type="button">Baixar</button>
                     <button id="btn-install-update" class="btn-primary hidden" type="button">Instalar e reiniciar</button>
                   </div>
-                  <p id="update-status" class="confirmation-mode-help" aria-live="polite">Nenhuma verificação realizada.</p>
+                  <p id="update-status" class="settings-help" aria-live="polite">Nenhuma verificação realizada.</p>
                 </div>
 
                 <!-- System Tools Card -->
@@ -716,7 +705,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-system-tools">Ações de Sistema &amp; Aplicativos</label>
-                        <button type="button" class="btn-module-info" data-module="system-tools" title="Como funciona este módulo?">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-system-tools">Permite ao agente abrir utilitários locais (Bloco de Notas, Calculadora), fazer cálculos e organizar pastas.</label>
                     </div>
@@ -733,7 +721,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-media-tools">Mídia &amp; Pesquisas na Web</label>
-                        <button type="button" class="btn-module-info" data-module="media-tools" title="Como funciona este módulo?">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-media-tools">Permite ao agente reproduzir músicas no Spotify, buscar vídeos no YouTube e realizar pesquisas no Google.</label>
                     </div>
@@ -790,7 +777,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-screen-awareness">1. Visão de Tela (Screen Awareness)</label>
-                        <button type="button" class="btn-module-info" data-module="screen-awareness" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-screen-awareness">Permite ao Jasper capturar e analisar visualmente a tela do monitor sob demanda.</label>
                     </div>
@@ -807,7 +793,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-window-tracker">2. Rastreador de Janela em Foco</label>
-                        <button type="button" class="btn-module-info" data-module="window-tracker" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-window-tracker">Identifica o aplicativo ativo no Windows (VS Code, Chrome, Terminal) para alternar o contexto de raciocínio.</label>
                     </div>
@@ -824,7 +809,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-clipboard-watcher">3. Monitor de Clipboard (Ctrl+C)</label>
-                        <button type="button" class="btn-module-info" data-module="clipboard-watcher" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-clipboard-watcher">Analisa automaticamente textos copiados e sugere auxílio para erros, stack traces e links.</label>
                     </div>
@@ -841,7 +825,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-cron-engine">4. Motor de Agendamentos &amp; Despertador</label>
-                        <button type="button" class="btn-module-info" data-module="cron-engine" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-cron-engine">Permite agendar lembretes persistentes com notificações por voz e avisos visuais no HUD.</label>
                     </div>
@@ -858,7 +841,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-daily-briefing">5. Briefing Matinal &amp; Noturno Proativo</label>
-                        <button type="button" class="btn-module-info" data-module="daily-briefing" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-daily-briefing">Gera relatórios diários de status com saudações contextuais pelo horário do dia.</label>
                     </div>
@@ -875,7 +857,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-system-health">6. Monitor de Saúde do Sistema &amp; Hardware</label>
-                        <button type="button" class="btn-module-info" data-module="system-health" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-system-health">Monitora CPU, RAM e disco com alertas automáticos se a memória atingir níveis críticos (&gt;90%).</label>
                     </div>
@@ -892,7 +873,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-semantic-memory">7. Memória Semântica Vetorial (RAG Local)</label>
-                        <button type="button" class="btn-module-info" data-module="semantic-memory" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-semantic-memory">Busca por similaridade de significado em fatos e conversas anteriores, superando buscas exatas.</label>
                     </div>
@@ -909,7 +889,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-knowledge-graph">8. Grafo de Conhecimento do Usuário</label>
-                        <button type="button" class="btn-module-info" data-module="knowledge-graph" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-knowledge-graph">Mapeia conexões e relações entre projetos, ferramentas e conceitos do seu dia a dia.</label>
                     </div>
@@ -926,7 +905,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-headless-browser">10. Navegador Headless Invisível</label>
-                        <button type="button" class="btn-module-info" data-module="headless-browser" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-headless-browser">Navega silenciosamente pela web usando Chromium offscreen nativo para ler artigos, documentações e capturar telas sem abrir janelas.</label>
                     </div>
@@ -943,7 +921,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-git-watcher">11. Git Watcher &amp; Commits Semânticos</label>
-                        <button type="button" class="btn-module-info" data-module="git-watcher" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-git-watcher">Monitora repositórios locais via Git nativo, detecta arquivos pendentes e sugere mensagens padronizadas (feat, fix, docs).</label>
                     </div>
@@ -973,7 +950,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-folder-organizer">12. Organizador de Downloads &amp; Desktop</label>
-                        <button type="button" class="btn-module-info" data-module="folder-organizer" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-folder-organizer">Detecta arquivos duplicados por hash MD5, instaladores velhos (&gt;30 dias) e organiza pastas por categorias com suporte a simulação segura.</label>
                     </div>
@@ -999,7 +975,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-subagents">13. Orquestrador de Subagentes Paralelos</label>
-                        <button type="button" class="btn-module-info" data-module="subagents" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-subagents">Permite ao Jasper instanciar subagentes em background (pesquisa, testes, código) consolidando o resultado sem travar a voz.</label>
                     </div>
@@ -1016,7 +991,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-reflexion-loop">14. Loop de Auto-Reflexão &amp; Bloqueio de Risco</label>
-                        <button type="button" class="btn-module-info" data-module="reflexion-loop" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-reflexion-loop">Audita comandos antes da execução e bloqueia preventivamente ações perigosas no sistema, solicitando confirmação explícita.</label>
                     </div>
@@ -1033,7 +1007,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-calendar-email">15. Agenda &amp; Resumo de E-mails</label>
-                        <button type="button" class="btn-module-info" data-module="calendar-email" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-calendar-email">Gerencia compromissos locais em padrão iCal (.ics), avisa 10 minutos antes de reuniões e resume mensagens urgentes.</label>
                     </div>
@@ -1078,7 +1051,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-webhooks">16. Gatilhos de Webhook (n8n, Zapier, Make)</label>
-                        <button type="button" class="btn-module-info" data-module="webhooks" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-webhooks">Dispara chamadas HTTP para pipelines locais do n8n ou plataformas em nuvem para automação de tarefas e notificações.</label>
                     </div>
@@ -1109,7 +1081,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-smart-home">17. Controle de Casa Inteligente (Home Assistant)</label>
-                        <button type="button" class="btn-module-info" data-module="smart-home" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-smart-home">Comanda iluminação, tomadas e climatização por voz através da API REST e WebSocket do Home Assistant.</label>
                     </div>
@@ -1146,7 +1117,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-process-manager">18. Gerenciador de Processos &amp; Programas</label>
-                        <button type="button" class="btn-module-info" data-module="process-manager" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-process-manager">Pesquisa programas no StartApps, Registro e Everything CLI, inicializa apps e encerra tarefas com taskkill seguro.</label>
                     </div>
@@ -1163,7 +1133,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-ui-automation">19. Automação de Interface Windows (UIA)</label>
-                        <button type="button" class="btn-module-info" data-module="ui-automation" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-ui-automation">Controla janelas do Windows via UI Automation: inspeciona elementos interativos, clica em botões e digita textos.</label>
                     </div>
@@ -1180,7 +1149,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-media-controller">20. Controle de Mídia &amp; Volume do Sistema</label>
-                        <button type="button" class="btn-module-info" data-module="media-controller" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-media-controller">Controla o volume global do Windows em percentual, silencia áudio (mute) e aciona teclas de reprodução (play, pause, faixas).</label>
                     </div>
@@ -1197,7 +1165,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-report-generator">21. Geração de Relatórios Executivos (PDF, Excel, Word)</label>
-                        <button type="button" class="btn-module-info" data-module="report-generator" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-report-generator">Gera PDFs corporativos vetoriais com printToPDF(), planilhas Excel (.xlsx) e documentos Word (.docx) na pasta do usuário.</label>
                     </div>
@@ -1214,7 +1181,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-file-summarizer">22. Leitor &amp; Resumidor de Arquivos Locais</label>
-                        <button type="button" class="btn-module-info" data-module="file-summarizer" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-file-summarizer">Lê e sintetiza arquivos PDF, Word (.docx), planilhas e códigos locais com redação e mascaramento de segredos/tokens.</label>
                     </div>
@@ -1231,7 +1197,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-qr-service">23. Gerador &amp; Leitor de QR Code</label>
-                        <button type="button" class="btn-module-info" data-module="qr-service" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-qr-service">Gera QR Codes em alta resolução em PNG e DataURL para links, senhas de Wi-Fi e cobranças instantâneas PIX.</label>
                     </div>
@@ -1248,7 +1213,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-ocr-service">24. OCR Local de Prints &amp; Imagens (Tesseract.js)</label>
-                        <button type="button" class="btn-module-info" data-module="ocr-service" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-ocr-service">Reconhecimento óptico de caracteres 100% local e offline (eng+por) em prints de tela e imagens com higienização de senhas.</label>
                     </div>
@@ -1265,7 +1229,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-presentation-mode">25. Modo Apresentação / Silencioso Inteligente</label>
-                        <button type="button" class="btn-module-info" data-module="presentation-mode" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-presentation-mode">Identifica conferências (Meet, Teams, Zoom, Webex) e apresentações de slides, silenciando alertas sonoros automaticamente.</label>
                     </div>
@@ -1282,7 +1245,6 @@
                     <div class="hud-switch-text">
                       <div class="hud-switch-title-row">
                         <label class="hud-switch-title" for="check-focus-mode">26. Modo Foco &amp; Bloqueador de Distrações</label>
-                        <button type="button" class="btn-module-info" data-module="focus-mode" title="Saiba como este módulo funciona">!</button>
                       </div>
                       <label class="hud-switch-desc" for="check-focus-mode">Sessões Pomodoro com cronômetro regressivo e alertas proativos contra jogos (Steam, Riot) e mensageiros distrativos.</label>
                     </div>

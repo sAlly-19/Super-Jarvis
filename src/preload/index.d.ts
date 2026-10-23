@@ -74,6 +74,10 @@ export interface ElectronAPI {
   onLicenseState: (callback: (snapshot: LicenseGateSnapshot) => void) => () => void
   onLicenseRevoked: (callback: (payload: { status: string; message: string }) => void) => () => void
 
+  // Commercial Control Consent
+  isConsentAccepted: () => Promise<boolean>
+  acceptControlConsent: () => Promise<{ success: boolean }>
+
   // Dialog
   selectDirectory: () => Promise<string | null>
 

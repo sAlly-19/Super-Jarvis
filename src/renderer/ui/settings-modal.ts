@@ -4,7 +4,7 @@ import { WakeTrainerUI } from './wake-trainer-ui'
 import { SVG_ICONS } from './icons'
 import { showHudToast } from './toast'
 import { updateStatusBadge } from './status-badge'
-import type { ConfirmationMode, UpdateConfigPayload, UpdateState } from '@shared'
+import type { UpdateConfigPayload, UpdateState } from '@shared'
 
 export interface SettingsModalOptions {
   getAgentName: () => string
@@ -182,46 +182,11 @@ export class SettingsModal {
       hassTestFeedback
     } = DOM
 
-    const confirmationModeInputs = Array.from(
-      document.querySelectorAll<HTMLInputElement>('input[name="confirmation-mode"]')
-    )
-    const confirmationModeHelp = document.getElementById('confirmation-mode-help')
     const checkUpdatesDaily = document.getElementById('check-updates-daily') as HTMLInputElement | null
     const btnCheckUpdates = document.getElementById('btn-check-updates') as HTMLButtonElement | null
     const btnDownloadUpdate = document.getElementById('btn-download-update') as HTMLButtonElement | null
     const btnInstallUpdate = document.getElementById('btn-install-update') as HTMLButtonElement | null
     const updateStatus = document.getElementById('update-status')
-    const confirmationModeDescriptions: Record<ConfirmationMode, string> = {
-      strict: 'Solicita confirmação antes de qualquer ação com efeito no computador.',
-      common: 'Libera aplicativos, mídia, volume, brilho, sites e pesquisas. Ações elevadas ainda pedem confirmação.',
-      all: 'Libera ações comuns e elevadas. As operações protegidas abaixo continuam exigindo confirmação.'
-    }
-    let acceptedConfirmationMode: ConfirmationMode = 'strict'
-
-    const setConfirmationMode = (mode: ConfirmationMode): void => {
-      confirmationModeInputs.forEach((input) => { input.checked = input.value === mode })
-      if (confirmationModeHelp) confirmationModeHelp.textContent = confirmationModeDescriptions[mode]
-    }
-
-    confirmationModeInputs.forEach((input) => {
-      input.addEventListener('change', () => {
-        if (!input.checked) return
-        const nextMode = input.value as ConfirmationMode
-        if (nextMode === 'all') {
-          const accepted = window.confirm(
-            'Todas as ações comuns e elevadas serão executadas sem diálogo. ' +
-            'Capturas de tela/OCR, credenciais, pagamentos, instalações, exclusão permanente, ' +
-            'processos críticos, licenças e segurança física continuarão protegidos. Continuar?'
-          )
-          if (!accepted) {
-            setConfirmationMode(acceptedConfirmationMode)
-            return
-          }
-        }
-        acceptedConfirmationMode = nextMode
-        setConfirmationMode(nextMode)
-      })
-    })
 
     const renderUpdateState = (state: UpdateState): void => {
       if (updateStatus) updateStatus.textContent = state.message
@@ -374,8 +339,6 @@ export class SettingsModal {
         ? config.model
         : 'gemini/gemini-2.5-flash'
       selectModel.value = modelVal
-      acceptedConfirmationMode = config.confirmationMode || 'strict'
-      setConfirmationMode(acceptedConfirmationMode)
       if (checkUpdatesDaily) checkUpdatesDaily.checked = config.checkUpdatesDaily !== false
       renderUpdateState(await window.electronAPI.getUpdateState())
 
@@ -735,7 +698,6 @@ export class SettingsModal {
       const apiKey = inputApiKey.value.trim()
       const voiceName = selectVoice.value
       const model = selectModel.value
-      const confirmationMode = (confirmationModeInputs.find((input) => input.checked)?.value || 'strict') as ConfirmationMode
       const enableWakeWord = checkWakeWord ? checkWakeWord.checked : true
       const enableBloom = checkBloom ? checkBloom.checked : true
       const enableNeuralBg = checkNeuralBg ? checkNeuralBg.checked : true
@@ -758,7 +720,6 @@ export class SettingsModal {
         agentName: newName,
         voiceName,
         model,
-        confirmationMode,
         checkUpdatesDaily: checkUpdatesDaily ? checkUpdatesDaily.checked : true,
         enableWakeWord,
         enableBloom,

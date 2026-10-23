@@ -3,8 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { getMainWindow } from '../windows/main-window'
 import { configStore } from '../config/config-store'
-import type { ConfirmationMode } from '@shared'
 
+export type ConfirmationMode = 'strict' | 'common' | 'all'
 export type ConfirmationRisk = 'common' | 'elevated' | 'mandatory' | 'critical'
 
 export function requiresConfirmation(mode: ConfirmationMode, risk: ConfirmationRisk): boolean {
@@ -36,7 +36,7 @@ function isContained(root: string, target: string): boolean {
 export class SecurityBroker {
   public async confirmOperation(request: ConfirmationRequest): Promise<boolean> {
     const risk = request.risk || 'elevated'
-    const mode = configStore.getConfig().confirmationMode || 'strict'
+    const mode = (configStore.getConfig() as any).confirmationMode || 'strict'
     if (!requiresConfirmation(mode, risk)) {
       console.log(`[SecurityBroker] Confirmation bypassed by ${mode} mode for ${risk} action.`)
       return true

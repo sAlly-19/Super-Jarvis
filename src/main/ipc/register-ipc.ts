@@ -23,6 +23,8 @@ import {
 } from '../windows/main-window'
 import { licenseManager } from '../services/license-manager'
 import { licenseGate } from '../services/license-gate'
+import { operationalAccess } from '../services/operational-access'
+import { auditLog } from '../services/audit-log'
 import { getHardwareInfo } from '../services/hwid'
 import { isTrustedRendererUrl } from '../utils/trusted-renderer'
 import { updateManager } from '../services/update-manager'
@@ -124,7 +126,6 @@ export function assertConfigPayload(payload: unknown): asserts payload is Update
       continue
     }
     if (key === 'emailImapPort' && Number.isInteger(value) && Number(value) >= 1 && Number(value) <= 65_535) continue
-    if (key === 'confirmationMode' && ['strict', 'common', 'all'].includes(String(value))) continue
     throw new Error(`Campo de configuração não permitido: ${key}.`)
   }
 }
@@ -168,9 +169,20 @@ function wireBackendForwarding(): void {
         safeSend(IPC_CHANNELS.AGENT_USER_TRANSCRIPT, (envelope.payload as any)?.text ?? '')
         break
       case 'tool_execution':
+        void auditLog.write({
+          event: 'tool_execution',
+          tool: (envelope.payload as any)?.tool,
+          status: 'started'
+        })
         safeSend(IPC_CHANNELS.AGENT_TOOL_EXECUTION, envelope.payload)
         break
       case 'tool_result':
+        void auditLog.write({
+          event: 'tool_result',
+          tool: (envelope.payload as any)?.tool,
+          status: (envelope.payload as any)?.status || 'completed',
+          durationMs: (envelope.payload as any)?.durationMs
+        })
         safeSend(IPC_CHANNELS.AGENT_TOOL_RESULT, envelope.payload)
         break
       case 'turn_complete':
@@ -180,6 +192,11 @@ function wireBackendForwarding(): void {
         safeSend(IPC_CHANNELS.AGENT_INTERRUPTED)
         break
       case 'error':
+        void auditLog.write({
+          event: 'error',
+          status: 'error',
+          details: { message: (envelope.payload as any)?.message }
+        })
         safeSend(IPC_CHANNELS.AGENT_ERROR, envelope.payload)
         break
     }
@@ -196,7 +213,7 @@ export function registerIpcHandlers(): void {
   // Agent text prompt
   ipcMain.on(IPC_CHANNELS.AGENT_SEND_TEXT, (event, message: unknown) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    operationalAccess.requireAgentAccess()
     assertTextPayload(message)
     pythonBackend.notify('chat', { text: message })
   })
@@ -204,7 +221,7 @@ export function registerIpcHandlers(): void {
   // Agent audio chunk
   ipcMain.on(IPC_CHANNELS.AGENT_SEND_AUDIO, (event, chunk: unknown) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    operationalAccess.requireAgentAccess()
     assertAudioPayload(chunk)
 
     const base64Audio = Buffer.isBuffer(chunk)
@@ -217,7 +234,7 @@ export function registerIpcHandlers(): void {
   // Agent interrupt
   ipcMain.on(IPC_CHANNELS.AGENT_INTERRUPT, (event) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    operationalAccess.requireAgentAccess()
     pythonBackend.notify('interrupt', {})
   })
 
@@ -249,6 +266,18 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  // Commercial Control Consent
+  ipcMain.handle(IPC_CHANNELS.CONSENT_GET_STATUS, (event) => {
+    assertTrustedSender(event)
+    return { accepted: operationalAccess.isConsentAccepted() }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CONSENT_ACCEPT, (event) => {
+    assertTrustedSender(event)
+    operationalAccess.acceptConsent()
+    return { success: true }
+  })
+
   // Configuration
   ipcMain.handle(IPC_CHANNELS.CONFIG_GET, async (event) => {
     assertTrustedSender(event)
@@ -272,13 +301,13 @@ export function registerIpcHandlers(): void {
   // Memory
   ipcMain.handle(IPC_CHANNELS.MEMORY_GET, (event) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    operationalAccess.requireAgentAccess()
     return loadMemory()
   })
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_CLEAR, (event) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    operationalAccess.requireAgentAccess()
     clearMemory()
     pythonBackend.notify('memory_clear', {})
     return true
