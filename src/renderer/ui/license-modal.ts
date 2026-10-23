@@ -270,7 +270,11 @@ export class LicenseModal {
     try {
       const info = await window.electronAPI.getLicenseStatus()
 
-      if (!info.isLicensed) {
+      const isOperationallyUnlocked = info.gateSnapshot
+        ? info.gateSnapshot.state === 'unlocked'
+        : info.isLicensed
+
+      if (!info.isLicensed || !isOperationallyUnlocked) {
         console.warn('[LicenseModal] Estação sem licença ativa. Exibindo modal de ativação.')
         updateStatusBadge('error', 'Licença Pendente')
         this.goToStep1()

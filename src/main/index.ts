@@ -9,6 +9,22 @@ import { updateManager } from './services/update-manager'
 import { licenseGate } from './services/license-gate'
 
 let licenseCheckTimer: NodeJS.Timeout | null = null
+let updateServiceStarted = false
+
+function syncOperationalServices(state: string): void {
+  if (state === 'unlocked') {
+    if (!updateServiceStarted) {
+      updateManager.initialize()
+      updateServiceStarted = true
+    }
+    return
+  }
+
+  if (updateServiceStarted) {
+    updateManager.dispose()
+    updateServiceStarted = false
+  }
+}
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -44,7 +60,10 @@ app.whenReady().then(() => {
 
   // 2. Cria janela principal (inicia bloqueada se não houver licença)
   createMainWindow()
-  updateManager.initialize()
+
+  licenseGate.onStateChanged((snapshot) => {
+    syncOperationalServices(snapshot.state)
+  })
 
   // 3. Inicializa máquina de estados LicenseGate (só inicia backend se estiver 'unlocked')
   licenseGate.initialize().then((snapshot) => {
@@ -80,6 +99,7 @@ app.on('window-all-closed', () => {
   }
   void licenseGate.shutdown().catch(() => {})
   updateManager.dispose()
+  updateServiceStarted = false
   if (process.platform !== 'darwin') {
     app.quit()
   }

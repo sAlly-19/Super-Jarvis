@@ -7,8 +7,11 @@ import {
 } from 'electron'
 import {
   IPC_CHANNELS,
+  LOCKED_ALLOWED_CHANNELS,
   type UpdateConfigPayload,
-  type BackendEnvelope
+  type BackendEnvelope,
+  type IpcChannel,
+  type LicenseState
 } from '@shared'
 import { configStore } from '../config/config-store'
 import { memoryStore, loadMemory, clearMemory } from '../memory'
@@ -31,6 +34,18 @@ import { updateManager } from '../services/update-manager'
 import { pythonBackend } from '../services/python-backend'
 
 export type TrustedEvent = IpcMainEvent | IpcMainInvokeEvent
+
+export function isBackendEnvelopeForwardingAllowed(
+  licenseState: LicenseState,
+  activeSessionId: number | null,
+  eventSessionId: number
+): boolean {
+  return licenseState === 'unlocked' && activeSessionId !== null && activeSessionId === eventSessionId
+}
+
+function requireIpcAccess(channel: IpcChannel): void {
+  if (!LOCKED_ALLOWED_CHANNELS.has(channel)) licenseGate.requireUnlocked()
+}
 
 export function assertTrustedSender(event: TrustedEvent): void {
   const win = getMainWindow()
@@ -131,12 +146,16 @@ export function assertConfigPayload(payload: unknown): asserts payload is Update
 }
 
 let backendForwardingWired = false
+let activeBackendSessionId: number | null = null
 
 function wireBackendForwarding(): void {
   if (backendForwardingWired) return
   backendForwardingWired = true
 
-  pythonBackend.onMessage((envelope: BackendEnvelope) => {
+  pythonBackend.onMessage((envelope: BackendEnvelope, sessionId: number) => {
+    if (!isBackendEnvelopeForwardingAllowed(licenseGate.getSnapshot().state, activeBackendSessionId, sessionId)) {
+      return
+    }
     switch (envelope.type) {
       case 'status':
         if ((envelope.payload as any)?.status === 'connected' || (envelope.payload as any)?.status === 'ready') {
@@ -203,6 +222,7 @@ function wireBackendForwarding(): void {
   })
 
   licenseGate.onStateChanged((snapshot) => {
+    activeBackendSessionId = snapshot.state === 'unlocked' ? pythonBackend.getSessionId() : null
     safeSend(IPC_CHANNELS.LICENSE_STATUS_CHANGED, snapshot)
   })
 }
@@ -213,6 +233,7 @@ export function registerIpcHandlers(): void {
   // Agent text prompt
   ipcMain.on(IPC_CHANNELS.AGENT_SEND_TEXT, (event, message: unknown) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.AGENT_SEND_TEXT)
     operationalAccess.requireAgentAccess()
     assertTextPayload(message)
     pythonBackend.notify('chat', { text: message })
@@ -221,6 +242,7 @@ export function registerIpcHandlers(): void {
   // Agent audio chunk
   ipcMain.on(IPC_CHANNELS.AGENT_SEND_AUDIO, (event, chunk: unknown) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.AGENT_SEND_AUDIO)
     operationalAccess.requireAgentAccess()
     assertAudioPayload(chunk)
 
@@ -234,6 +256,7 @@ export function registerIpcHandlers(): void {
   // Agent interrupt
   ipcMain.on(IPC_CHANNELS.AGENT_INTERRUPT, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.AGENT_INTERRUPT)
     operationalAccess.requireAgentAccess()
     pythonBackend.notify('interrupt', {})
   })
@@ -241,7 +264,7 @@ export function registerIpcHandlers(): void {
   // Agent connection
   ipcMain.handle(IPC_CHANNELS.AGENT_CONNECT, async (event, payload?: UpdateConfigPayload) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    requireIpcAccess(IPC_CHANNELS.AGENT_CONNECT)
     const cfg = configStore.getConfig()
     if (cfg.licenseStatus !== 'active') {
       return { success: false, error: 'Esta estação Jasper requer uma chave de licença ativa.' }
@@ -255,11 +278,13 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.AGENT_DISCONNECT, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.AGENT_DISCONNECT)
     return true
   })
 
   ipcMain.handle(IPC_CHANNELS.AGENT_GET_STATUS, async (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.AGENT_GET_STATUS)
     return {
       state: pythonBackend.getState(),
       healthy: await pythonBackend.isHealthy()
@@ -269,11 +294,13 @@ export function registerIpcHandlers(): void {
   // Commercial Control Consent
   ipcMain.handle(IPC_CHANNELS.CONSENT_GET_STATUS, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.CONSENT_GET_STATUS)
     return { accepted: operationalAccess.isConsentAccepted() }
   })
 
   ipcMain.handle(IPC_CHANNELS.CONSENT_ACCEPT, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.CONSENT_ACCEPT)
     operationalAccess.acceptConsent()
     return { success: true }
   })
@@ -281,13 +308,14 @@ export function registerIpcHandlers(): void {
   // Configuration
   ipcMain.handle(IPC_CHANNELS.CONFIG_GET, async (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.CONFIG_GET)
     const healthy = await pythonBackend.isHealthy()
     return configStore.getConfigSummary(healthy)
   })
 
   ipcMain.handle(IPC_CHANNELS.CONFIG_SAVE, async (event, payload: UpdateConfigPayload) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    requireIpcAccess(IPC_CHANNELS.CONFIG_SAVE)
     assertConfigPayload(payload)
     const updated = configStore.updateConfig(payload)
 
@@ -301,12 +329,14 @@ export function registerIpcHandlers(): void {
   // Memory
   ipcMain.handle(IPC_CHANNELS.MEMORY_GET, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.MEMORY_GET)
     operationalAccess.requireAgentAccess()
     return loadMemory()
   })
 
   ipcMain.handle(IPC_CHANNELS.MEMORY_CLEAR, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.MEMORY_CLEAR)
     operationalAccess.requireAgentAccess()
     clearMemory()
     pythonBackend.notify('memory_clear', {})
@@ -316,32 +346,38 @@ export function registerIpcHandlers(): void {
   // Window controls
   ipcMain.handle(IPC_CHANNELS.WINDOW_TOGGLE_PIP, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.WINDOW_TOGGLE_PIP)
     return togglePipMode()
   })
 
   ipcMain.handle(IPC_CHANNELS.WINDOW_TOGGLE_FULLSCREEN, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.WINDOW_TOGGLE_FULLSCREEN)
     return toggleFullScreenMode()
   })
 
   ipcMain.on(IPC_CHANNELS.WINDOW_MINIMIZE, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.WINDOW_MINIMIZE)
     minimizeWindow()
   })
 
   ipcMain.on(IPC_CHANNELS.WINDOW_MAXIMIZE, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.WINDOW_MAXIMIZE)
     maximizeWindow()
   })
 
   ipcMain.on(IPC_CHANNELS.WINDOW_CLOSE, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.WINDOW_CLOSE)
     closeWindow()
   })
 
   // Dialog
   ipcMain.handle(IPC_CHANNELS.DIALOG_SELECT_DIRECTORY, async (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.DIALOG_SELECT_DIRECTORY)
     const win = getMainWindow()
     const options: OpenDialogOptions = { properties: ['openDirectory'], title: 'Selecionar diretório' }
     const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options)
@@ -351,40 +387,48 @@ export function registerIpcHandlers(): void {
   // License controls
   ipcMain.handle(IPC_CHANNELS.LICENSE_GET_STATUS, (event) => {
     assertTrustedSender(event)
-    return licenseManager.getLicenseInfo()
+    requireIpcAccess(IPC_CHANNELS.LICENSE_GET_STATUS)
+    return {
+      ...licenseManager.getLicenseInfo(),
+      gateSnapshot: licenseGate.getSnapshot()
+    }
   })
 
   ipcMain.handle(IPC_CHANNELS.LICENSE_ACTIVATE, async (event, key: string) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.LICENSE_ACTIVATE)
     assertText(key, 'Chave de licença', 256)
     return licenseGate.activate(key.trim())
   })
 
   ipcMain.handle(IPC_CHANNELS.LICENSE_GET_HWID, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.LICENSE_GET_HWID)
     return getHardwareInfo()
   })
 
   // Update APIs
   ipcMain.handle(IPC_CHANNELS.UPDATE_GET_STATE, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.UPDATE_GET_STATE)
     return updateManager.getState()
   })
 
   ipcMain.handle(IPC_CHANNELS.UPDATE_CHECK, (event) => {
     assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.UPDATE_CHECK)
     return updateManager.check(true)
   })
 
   ipcMain.handle(IPC_CHANNELS.UPDATE_DOWNLOAD, (event) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    requireIpcAccess(IPC_CHANNELS.UPDATE_DOWNLOAD)
     return updateManager.download()
   })
 
   ipcMain.handle(IPC_CHANNELS.UPDATE_INSTALL, (event) => {
     assertTrustedSender(event)
-    licenseGate.requireUnlocked()
+    requireIpcAccess(IPC_CHANNELS.UPDATE_INSTALL)
     return updateManager.install()
   })
 }

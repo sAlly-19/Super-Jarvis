@@ -5,6 +5,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { MemoryStore } from '../src/main/memory'
 import type { JasperMemory } from '../src/shared/types/memory'
+import { isBackendEnvelopeForwardingAllowed } from '../src/main/ipc/register-ipc'
 
 describe('MemoryStore Retention, Installation Binding and Synchronization', () => {
   let tmpDir: string
@@ -122,5 +123,13 @@ describe('MemoryStore Retention, Installation Binding and Synchronization', () =
     const cleared = store.load()
     assert.equal(cleared.facts.length, 0)
     assert.equal(cleared.installationId, currentHwid)
+  })
+})
+
+describe('Licensed backend memory forwarding', () => {
+  test('discards late memory events after lock or from a stale backend session', () => {
+    assert.equal(isBackendEnvelopeForwardingAllowed('revoked', 10, 10), false)
+    assert.equal(isBackendEnvelopeForwardingAllowed('unlocked', 11, 10), false)
+    assert.equal(isBackendEnvelopeForwardingAllowed('unlocked', 11, 11), true)
   })
 })

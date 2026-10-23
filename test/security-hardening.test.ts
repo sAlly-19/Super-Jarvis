@@ -334,7 +334,8 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
 
       const mainSrc = fs.readFileSync(path.join(process.cwd(), 'src/renderer/main.ts'), 'utf-8')
       assert.ok(mainSrc.includes('licenseModal.checkOnStartup()'))
-      assert.ok(mainSrc.includes('!lic.isLicensed'))
+      assert.ok(mainSrc.includes('lic.gateSnapshot'))
+      assert.ok(mainSrc.includes("initialSnapshot.state === 'unlocked'"))
       assert.ok(mainSrc.includes('onLicenseState'))
       assert.equal(mainSrc.includes('onLicenseRevoked'), false)
     })

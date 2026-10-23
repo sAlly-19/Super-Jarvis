@@ -35,6 +35,8 @@ let isCallMode = false
 let shouldEndCallAfterPlayback = false
 let activeRuntimeDisposer: (() => void) | null = null
 let currentLicenseState: string = 'locked'
+let operationalBootstrapGeneration = 0
+let loadOperationalConfig: () => Promise<void> = async () => {}
 
 // Forward declarations
 let wakeTrainerUI: WakeTrainerUI
@@ -206,6 +208,9 @@ const handleStatusChange = (statusPayload: AgentStatusPayload | string, message?
 }
 
 export async function mountAgentRuntime(): Promise<() => void> {
+  const mountGeneration = operationalBootstrapGeneration
+  if (currentLicenseState !== 'unlocked') return () => {}
+
   if (activeRuntimeDisposer) {
     activeRuntimeDisposer()
     activeRuntimeDisposer = null
@@ -280,6 +285,13 @@ export async function mountAgentRuntime(): Promise<() => void> {
     await wakeWordManager.init()
   }
 
+  if (currentLicenseState !== 'unlocked' || mountGeneration !== operationalBootstrapGeneration) {
+    for (const cleanup of cleanups) cleanup()
+    micRecorder.stop()
+    audioPlayer.stopAll()
+    return () => {}
+  }
+
   isConnected = true
   syncDashboardConnectionIndicators(true, 'Tudo operacional')
   updateStatusBadge('connected', `${getCurrentAgentName()} Online`)
@@ -306,17 +318,28 @@ export async function mountAgentRuntime(): Promise<() => void> {
   return disposer
 }
 
-export function applyLicenseSnapshot(snapshot: LicenseGateSnapshot): void {
+export function applyLicenseSnapshot(
+  snapshot: LicenseGateSnapshot,
+  options: { configurationLoaded?: boolean } = {}
+): void {
+  const generation = ++operationalBootstrapGeneration
   currentLicenseState = snapshot.state
 
   if (snapshot.state === 'unlocked') {
     licenseModal.hide()
-    void window.electronAPI.isConsentAccepted().then((accepted) => {
+    void (async () => {
+      if (!options.configurationLoaded) await loadOperationalConfig()
+      if (generation !== operationalBootstrapGeneration || currentLicenseState !== 'unlocked') return
+
+      const accepted = await window.electronAPI.isConsentAccepted()
+      if (generation !== operationalBootstrapGeneration || currentLicenseState !== 'unlocked') return
       if (!accepted) {
         controlConsentModal?.show()
         return
       }
-      void mountAgentRuntime()
+      await mountAgentRuntime()
+    })().catch((error) => {
+      console.error('[Renderer] Falha no bootstrap operacional:', error)
     })
   } else {
     if (activeRuntimeDisposer) {
@@ -455,16 +478,19 @@ async function init(): Promise<void> {
   DOM.btnClose?.addEventListener('click', () => window.electronAPI.windowClose())
   DOM.btnPip?.addEventListener('click', async () => { await window.electronAPI.togglePip() })
 
-  // Load Initial Config
-  const initialConfig = await window.electronAPI.getConfig()
-  if (initialConfig.agentName) {
-    applyAgentName(initialConfig.agentName, () => wakeTrainerUI.updateUI())
+  loadOperationalConfig = async () => {
+    if (currentLicenseState !== 'unlocked') return
+    const initialConfig = await window.electronAPI.getConfig()
+    if (currentLicenseState !== 'unlocked') return
+    if (initialConfig.agentName) {
+      applyAgentName(initialConfig.agentName, () => wakeTrainerUI.updateUI())
+    }
+    isWakeWordEnabled = initialConfig.enableWakeWord !== false
+    isBloomEnabled = initialConfig.enableBloom !== false
+    setBloomEnabled(isBloomEnabled)
+    neuralBackground.setVisible(initialConfig.enableNeuralBg !== false)
+    avatar?.setEyeTrackingEnabled(initialConfig.enableEyeTracking !== false)
   }
-  isWakeWordEnabled = initialConfig.enableWakeWord !== false
-  isBloomEnabled = initialConfig.enableBloom !== false
-  setBloomEnabled(isBloomEnabled)
-  neuralBackground.setVisible(initialConfig.enableNeuralBg !== false)
-  avatar?.setEyeTrackingEnabled(initialConfig.enableEyeTracking !== false)
 
   window.electronAPI.onAgentNameUpdated((name) => {
     applyAgentName(name, () => wakeTrainerUI.updateUI())
@@ -491,18 +517,19 @@ async function init(): Promise<void> {
   })
 
   // Check initial license status and bootstrap shell
+  const initialCheckGeneration = operationalBootstrapGeneration
   const lic = await licenseModal.checkOnStartup()
-  if (!lic.isLicensed) {
-    applyLicenseSnapshot({
-      state: 'locked',
-      message: 'Ativação Obrigatória'
-    })
+  if (initialCheckGeneration !== operationalBootstrapGeneration) return
+  const initialSnapshot = lic.gateSnapshot ?? (lic.isLicensed
+    ? { state: 'unlocked' as const, message: 'Licença ativa', expiresAt: lic.expiresAt }
+    : { state: 'locked' as const, message: 'Ativação Obrigatória' })
+  currentLicenseState = initialSnapshot.state
+  if (initialSnapshot.state === 'unlocked') {
+    await loadOperationalConfig()
+    if (initialCheckGeneration !== operationalBootstrapGeneration || currentLicenseState !== 'unlocked') return
+    applyLicenseSnapshot(initialSnapshot, { configurationLoaded: true })
   } else {
-    applyLicenseSnapshot({
-      state: 'unlocked',
-      message: 'Licença ativa',
-      expiresAt: lic.expiresAt
-    })
+    applyLicenseSnapshot(initialSnapshot)
   }
 }
 

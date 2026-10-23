@@ -52,8 +52,9 @@ export class PythonBackendManager {
   private restartAttempts = 0
   private decoder = new FrameDecoder({ allowedTypes: SIDECAR_TO_HOST_MESSAGE_TYPES })
   private pendingRequests = new Map<string, PendingRequest>()
-  private messageListeners = new Set<(envelope: BackendEnvelope) => void>()
+  private messageListeners = new Set<(envelope: BackendEnvelope, sessionId: number) => void>()
   private restartTimer: unknown | null = null
+  private sessionId = 0
 
   private isExecutionAllowed: () => boolean
   private readonly manifest: BackendManifest
@@ -88,11 +89,15 @@ export class PythonBackendManager {
     return this.state === 'ready'
   }
 
-  public onMessage(listener: (envelope: BackendEnvelope) => void): () => void {
+  public onMessage(listener: (envelope: BackendEnvelope, sessionId: number) => void): () => void {
     this.messageListeners.add(listener)
     return () => {
       this.messageListeners.delete(listener)
     }
+  }
+
+  public getSessionId(): number {
+    return this.sessionId
   }
 
   public getBackendDir(): string {
@@ -182,8 +187,10 @@ export class PythonBackendManager {
     })
 
     this.process = child
+    const childSessionId = ++this.sessionId
 
     child.stdout?.on('data', (chunk: Buffer) => {
+      if (this.process !== child) return
       let frames: BackendEnvelope[]
       try {
         frames = this.decoder.push(chunk)
@@ -213,7 +220,7 @@ export class PythonBackendManager {
             return
           }
         }
-        this.handleIncomingFrame(frame)
+        this.handleIncomingFrame(frame, childSessionId)
       }
     })
 
@@ -383,11 +390,11 @@ export class PythonBackendManager {
     }
   }
 
-  private handleIncomingFrame(frame: BackendEnvelope): void {
+  private handleIncomingFrame(frame: BackendEnvelope, sessionId: number): void {
     // Notify all listeners
     for (const listener of this.messageListeners) {
       try {
-        listener(frame)
+        listener(frame, sessionId)
       } catch (err) {
         console.error('[PythonBackend] Message listener error:', err)
       }

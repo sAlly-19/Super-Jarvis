@@ -55,5 +55,6 @@ export interface LicenseInfo {
   lastSeenAt?: string
   expiresAt?: string
   error?: string
+  gateSnapshot?: LicenseGateSnapshot
 }
 

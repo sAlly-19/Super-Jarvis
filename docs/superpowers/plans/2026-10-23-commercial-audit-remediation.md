@@ -199,24 +199,24 @@
 - Test: test/renderer-license-shell.test.ts
 - Test: test/memory-sync.test.ts
 
-- [ ] Add a table-driven failing test that invokes every IPC channel while locked.
-- [ ] Assert the only allowed locked channels are license status, activation, HWID and basic window controls.
-- [ ] Add failing tests proving config, consent, dialogs, updates, agent status, tools, chat, memory and settings are denied while locked.
-- [ ] Add failing tests proving late backend output, memory writes, audio and tool results are discarded after expiry/revocation.
-- [ ] Add a failing bootstrap test proving operational config and services are not requested before unlocked.
-- [ ] Run focused tests and confirm red:
+- [x] Add a table-driven failing test that invokes every IPC channel while locked.
+- [x] Assert the only allowed locked channels are license status, activation, HWID and basic window controls.
+- [x] Add failing tests proving config, consent, dialogs, updates, agent status, tools, chat, memory and settings are denied while locked.
+- [x] Add failing tests proving late backend output, memory writes, audio and tool results are discarded after expiry/revocation.
+- [x] Add a failing bootstrap test proving operational config and services are not requested before unlocked.
+- [x] Run focused tests and confirm red:
       npx.cmd --yes node@24 scripts/run-tests.mjs agent-ipc
       npx.cmd --yes node@24 scripts/run-tests.mjs renderer-license-shell
       npx.cmd --yes node@24 scripts/run-tests.mjs memory-sync
-- [ ] Centralize LOCKED_ALLOWED_CHANNELS and make every other handler call requireUnlocked before reading or mutating state.
-- [ ] Guard outbound sidecar forwarding with the current gate snapshot; invalidate the session token on every lock transition.
-- [ ] Defer renderer operational initialization until unlocked and tear it down on each transition away from unlocked.
-- [ ] Run focused and complete Node suites:
+- [x] Centralize LOCKED_ALLOWED_CHANNELS and make every other handler call requireUnlocked before reading or mutating state.
+- [x] Guard outbound sidecar forwarding with the current gate snapshot; invalidate the session token on every lock transition.
+- [x] Defer renderer operational initialization until unlocked and tear it down on each transition away from unlocked.
+- [x] Run focused and complete Node suites:
       npx.cmd --yes node@24 scripts/run-tests.mjs agent-ipc
       npx.cmd --yes node@24 scripts/run-tests.mjs renderer-license-shell
       npx.cmd --yes node@24 scripts/run-tests.mjs memory-sync
       npm.cmd test
-- [ ] Commit:
+- [x] Commit:
       git add src/main/ipc/register-ipc.ts src/main/index.ts src/renderer/main.ts src/shared/constants/ipc-channels.ts test/agent-ipc.test.ts test/renderer-license-shell.test.ts test/memory-sync.test.ts
       git commit -m "fix: enforce locked IPC boundary"
 

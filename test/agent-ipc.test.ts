@@ -1,11 +1,13 @@
 import { test, describe, beforeEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { IPC_CHANNELS } from '../src/shared/constants/ipc-channels'
+import { ipcMain } from 'electron'
+import { IPC_CHANNELS, LOCKED_ALLOWED_CHANNELS } from '../src/shared/constants/ipc-channels'
 import {
   registerIpcHandlers,
   assertTrustedSender,
   assertTextPayload,
-  assertAudioPayload
+  assertAudioPayload,
+  isBackendEnvelopeForwardingAllowed
 } from '../src/main/ipc/register-ipc'
 import { licenseGate } from '../src/main/services/license-gate'
 import { pythonBackend } from '../src/main/services/python-backend'
@@ -115,5 +117,71 @@ describe('Agent High-Level IPC Channels Definition', () => {
   test('license state has one canonical renderer event channel', () => {
     assert.equal(IPC_CHANNELS.LICENSE_STATUS_CHANGED, 'license:status-changed')
     assert.equal('LICENSE_REVOKED' in IPC_CHANNELS, false)
+  })
+
+  test('locked IPC allowlist contains only licensing and basic window controls', () => {
+    assert.deepEqual([...LOCKED_ALLOWED_CHANNELS].sort(), [
+      IPC_CHANNELS.LICENSE_ACTIVATE,
+      IPC_CHANNELS.LICENSE_GET_HWID,
+      IPC_CHANNELS.LICENSE_GET_STATUS,
+      IPC_CHANNELS.WINDOW_CLOSE,
+      IPC_CHANNELS.WINDOW_MAXIMIZE,
+      IPC_CHANNELS.WINDOW_MINIMIZE,
+      IPC_CHANNELS.WINDOW_TOGGLE_FULLSCREEN,
+      IPC_CHANNELS.WINDOW_TOGGLE_PIP
+    ].sort())
+  })
+
+  test('every registered operational IPC handler is denied while locked', async () => {
+    const ipc = ipcMain as any
+    ipc._handlers.clear()
+    ipc._listeners.clear()
+    const originalRequireUnlocked = licenseGate.requireUnlocked
+    licenseGate.requireUnlocked = () => {
+      throw new Error('license gate locked')
+    }
+
+    try {
+      registerIpcHandlers()
+      const event = createMockIpcEvent()
+      const invokedChannels = [
+        IPC_CHANNELS.AGENT_CONNECT,
+        IPC_CHANNELS.AGENT_DISCONNECT,
+        IPC_CHANNELS.AGENT_GET_STATUS,
+        IPC_CHANNELS.CONSENT_GET_STATUS,
+        IPC_CHANNELS.CONSENT_ACCEPT,
+        IPC_CHANNELS.CONFIG_GET,
+        IPC_CHANNELS.CONFIG_SAVE,
+        IPC_CHANNELS.MEMORY_GET,
+        IPC_CHANNELS.MEMORY_CLEAR,
+        IPC_CHANNELS.DIALOG_SELECT_DIRECTORY,
+        IPC_CHANNELS.UPDATE_GET_STATE,
+        IPC_CHANNELS.UPDATE_CHECK,
+        IPC_CHANNELS.UPDATE_DOWNLOAD,
+        IPC_CHANNELS.UPDATE_INSTALL
+      ]
+      for (const channel of invokedChannels) {
+        const handler = ipc._handlers.get(channel)
+        assert.equal(typeof handler, 'function', `missing handler for ${channel}`)
+        await assert.rejects(Promise.resolve().then(() => handler(event, {})), /license gate locked/i, channel)
+      }
+
+      for (const channel of [IPC_CHANNELS.AGENT_SEND_TEXT, IPC_CHANNELS.AGENT_SEND_AUDIO, IPC_CHANNELS.AGENT_INTERRUPT]) {
+        const listener = ipc._listeners.get(channel)
+        assert.equal(typeof listener, 'function', `missing listener for ${channel}`)
+        assert.throws(() => listener(event, ''), /license gate locked/i, channel)
+      }
+    } finally {
+      licenseGate.requireUnlocked = originalRequireUnlocked
+      ipc._handlers.clear()
+      ipc._listeners.clear()
+    }
+  })
+
+  test('backend output requires both unlocked state and the current backend session', () => {
+    assert.equal(isBackendEnvelopeForwardingAllowed('locked', 7, 7), false)
+    assert.equal(isBackendEnvelopeForwardingAllowed('expired', 7, 7), false)
+    assert.equal(isBackendEnvelopeForwardingAllowed('unlocked', 8, 7), false)
+    assert.equal(isBackendEnvelopeForwardingAllowed('unlocked', 8, 8), true)
   })
 })

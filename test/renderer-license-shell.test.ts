@@ -8,6 +8,7 @@ describe('Renderer Clean Migration & License Shell (No WebSocket / Local Ports)'
   const legacySocketPath = path.join(rendererDir, ['src', 'services', ['jasper', 'Socket.ts'].join('')].join('/'))
   const mainTsPath = path.join(rendererDir, 'main.ts')
   const chatDrawerPath = path.join(rendererDir, 'ui/chat-drawer.ts')
+  const mainProcessPath = path.resolve(process.cwd(), 'src/main/index.ts')
 
   test('source hygiene: legacy socket is deleted and zero WebSocket references remain in renderer', () => {
     assert.equal(
@@ -42,5 +43,22 @@ describe('Renderer Clean Migration & License Shell (No WebSocket / Local Ports)'
       false,
       'main.ts must not subscribe to a competing revocation event'
     )
+  })
+
+  test('operational bootstrap is deferred until unlocked and invalidated on every lock transition', () => {
+    const mainTs = fs.readFileSync(mainTsPath, 'utf-8')
+    assert.match(mainTs, /\+\+operationalBootstrapGeneration/)
+    assert.match(mainTs, /snapshot\.state\s*===\s*['"]unlocked['"]/)
+    assert.match(mainTs, /await\s+loadOperationalConfig/)
+    assert.match(mainTs, /generation\s*!==\s*operationalBootstrapGeneration/)
+
+    const initialLicenseIndex = mainTs.indexOf('licenseModal.checkOnStartup()')
+    const initialConfigIndex = mainTs.indexOf('await loadOperationalConfig()', initialLicenseIndex)
+    assert.ok(initialLicenseIndex >= 0, 'initial license check must exist')
+    assert.ok(initialConfigIndex > initialLicenseIndex, 'operational config must not be requested before license status')
+
+    const mainProcess = fs.readFileSync(mainProcessPath, 'utf-8')
+    assert.match(mainProcess, /licenseGate\.onStateChanged\(\(snapshot\)[\s\S]*syncOperationalServices\(snapshot\.state\)/)
+    assert.match(mainProcess, /if\s*\(state\s*===\s*['"]unlocked['"]\)[\s\S]*updateManager\.initialize\(\)/)
   })
 })
