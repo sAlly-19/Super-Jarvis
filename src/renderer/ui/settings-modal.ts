@@ -4,7 +4,6 @@ import { WakeTrainerUI } from './wake-trainer-ui'
 import { SVG_ICONS } from './icons'
 import { showHudToast } from './toast'
 import { updateStatusBadge } from './status-badge'
-import { jasperSocket } from '../src/services/jasperSocket'
 import type { ConfirmationMode, UpdateConfigPayload, UpdateState } from '@shared'
 
 export interface SettingsModalOptions {
@@ -32,9 +31,6 @@ export class SettingsModal {
   constructor(options: SettingsModalOptions) {
     this.options = options
     this.setupListeners()
-    jasperSocket.onMemoryData = (facts) => {
-      this.renderMemoryFacts(facts)
-    }
   }
 
   private renderMemoryFacts(facts: Array<{ fact: string }>): void {
@@ -68,9 +64,6 @@ export class SettingsModal {
       const mem = await window.electronAPI.getMemory()
       const facts = mem?.facts || []
       this.renderMemoryFacts(facts)
-      if (jasperSocket.isConnected()) {
-        jasperSocket.requestMemory()
-      }
     } catch {
       const errorState = document.createElement('span')
       errorState.className = 'memory-empty'
@@ -303,7 +296,6 @@ export class SettingsModal {
       this.options.setBloomEnabled(enableBloom)
       this.options.setNeuralBgEnabled(enableNeuralBg)
       this.options.setEyeTrackingEnabled(enableEyeTracking)
-      jasperSocket.syncConfig({ agentName: newName })
 
       try {
         await window.electronAPI.saveConfig({
@@ -649,7 +641,6 @@ export class SettingsModal {
 
     btnClearMemory?.addEventListener('click', async () => {
       if (confirm('Tem certeza de que deseja apagar a memória acumulada do agente?')) {
-        jasperSocket.clearMemory()
         await window.electronAPI.clearMemory()
         await this.refreshMemoryUI()
       }
@@ -817,20 +808,6 @@ export class SettingsModal {
       try {
         await window.electronAPI.saveConfig(update)
 
-        jasperSocket.syncConfig({
-          agentName: newName,
-          model,
-          apiKey: apiKey || undefined,
-          voiceName,
-          vision: checkScreenAwareness ? checkScreenAwareness.checked : false
-        })
-        jasperSocket.connect({
-          agentName: newName,
-          model,
-          apiKey: apiKey || undefined,
-          voiceName,
-          vision: checkScreenAwareness ? checkScreenAwareness.checked : false
-        })
 
         if (previousConfig.enableWakeWord !== enableWakeWord) {
           await this.options.reinitWakeWord()

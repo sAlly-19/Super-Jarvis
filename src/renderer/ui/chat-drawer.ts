@@ -1,6 +1,5 @@
 import { DOM } from './dom'
 import { OfflineHandler } from '../offline/offline-handler'
-import { jasperSocket } from '../src/services/jasperSocket'
 
 export interface ChatDrawerOptions {
   getIsConnected: () => boolean
@@ -31,24 +30,18 @@ export function initChatDrawer(options: ChatDrawerOptions): void {
     transcriptBox.classList.remove('hidden')
     inputChatText.value = ''
 
-    // Send over WebSocket to Python FastAPI Backend
-    if (jasperSocket.isConnected()) {
-      jasperSocket.sendText(text)
-      return
-    }
-
-    // Fallback if Python WebSocket is temporarily offline
     if (!options.getIsConnected()) {
       options.offlineHandler.handleQuery(text, options.getAgentName())
       return
     }
 
-    window.electronAPI.sendTextMessage(text)
+    window.electronAPI.sendText(text)
   }
 
   btnSendText?.addEventListener('click', sendTextMessage)
   inputChatText?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
       sendTextMessage()
     }
   })
