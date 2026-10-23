@@ -232,33 +232,49 @@
 - Modify: src/main/config/config-store.ts
 - Modify: src/main/ipc/register-ipc.ts
 - Modify: src/preload/index.ts
+- Modify: src/preload/index.d.ts
 - Modify: src/renderer/index.html
+- Modify: src/renderer/audio/mic-recorder.ts
+- Modify: src/renderer/offline/offline-handler.ts
+- Modify: src/renderer/styles/modal.css
+- Modify: src/renderer/ui/dom.ts
+- Modify: src/renderer/ui/license-modal.ts
 - Modify: src/renderer/ui/settings-modal.ts
 - Modify: src/renderer/main.ts
+- Modify: src/main/services/license-manager.ts
+- Modify: src/main/services/operational-access.ts
+- Modify: src/main/windows/main-window.ts
+- Modify: src/shared/index.ts
+- Modify: src/shared/types/gemini.ts
+- Delete: src/shared/types/autonomy.ts
 - Test: test/product-surface.test.ts
+- Test: test/security-hardening.test.ts
 - Create: test/config.test.ts
+- Create: test/license-activation-recovery.test.ts
 - Create: test/preload-contract.test.ts
 
-- [ ] Define the supported public configuration whitelist in a test: apiKey, voiceName, model, agentName, checkUpdatesDaily, enableWakeWord, enableBloom, enableNeuralBg, enableEyeTracking and enableScreenAwareness.
-- [ ] Keep license, consent and migration fields internal rather than presenting them as customer features.
-- [ ] Add failing tests scanning DOM, shared types, preload and settings for unsupported smart-home, webhook, subagent, semantic-memory, command-approval and inactive tool toggles.
-- [ ] Add a failing round-trip test proving unknown config keys are rejected and not persisted.
-- [ ] Run product/config tests and confirm red:
+- [x] Define the supported public configuration whitelist in a test: apiKey, voiceName, model, agentName, checkUpdatesDaily, enableWakeWord, enableBloom, enableNeuralBg, enableEyeTracking and enableScreenAwareness.
+- [x] Keep license, consent and migration fields internal rather than presenting them as customer features.
+- [x] Add failing tests scanning DOM, shared types, preload and settings for unsupported smart-home, webhook, subagent, semantic-memory, command-approval and inactive tool toggles.
+- [x] Add a failing round-trip test proving unknown config keys are rejected and not persisted.
+- [x] Run product/config tests and confirm red:
       npx.cmd --yes node@24 scripts/run-tests.mjs product-surface
       npx.cmd --yes node@24 scripts/run-tests.mjs config
       npx.cmd --yes node@24 scripts/run-tests.mjs preload-contract
-- [ ] Remove unsupported cards, toggles, labels, type fields, IPC handlers and compatibility stubs instead of leaving no-ops.
-- [ ] Preserve only capabilities with working implementations and automated functional tests.
-- [ ] Add an explicit migration that drops obsolete keys without deleting license or consent data.
-- [ ] Run tests, type checking and build:
+- [x] Remove unsupported cards, toggles, labels, type fields, IPC handlers and compatibility stubs instead of leaving no-ops.
+- [x] Preserve only capabilities with working implementations and automated functional tests.
+- [x] Add an explicit migration that drops obsolete keys without deleting license or consent data.
+- [x] Persist server-issued device credentials before lease verification, clear stale leases and refuse activation before network access when secure local persistence is unavailable or existing ciphertext is unreadable.
+- [x] Add recovery guidance for an already-bound license whose device secret was lost; “Liberar máquina” in the commercial panel means unlinking the machine before reactivation.
+- [x] Run tests, type checking and build:
       npx.cmd --yes node@24 scripts/run-tests.mjs product-surface
       npx.cmd --yes node@24 scripts/run-tests.mjs config
       npx.cmd --yes node@24 scripts/run-tests.mjs preload-contract
       npm.cmd run typecheck
       npm.cmd run build
-- [ ] Commit:
-      git add src/shared/types/config.ts src/main/config/config-store.ts src/main/ipc/register-ipc.ts src/preload/index.ts src/renderer/index.html src/renderer/ui/settings-modal.ts src/renderer/main.ts test/product-surface.test.ts test/config.test.ts test/preload-contract.test.ts
-      git commit -m "fix: align commercial UI with implemented features"
+- [x] Commit:
+      git add docs/superpowers/plans/2026-10-23-commercial-audit-remediation.md src/main/config/config-store.ts src/main/ipc/register-ipc.ts src/main/services/license-manager.ts src/main/services/operational-access.ts src/main/windows/main-window.ts src/preload/index.d.ts src/preload/index.ts src/renderer/audio/mic-recorder.ts src/renderer/index.html src/renderer/offline/offline-handler.ts src/renderer/styles/modal.css src/renderer/ui/dom.ts src/renderer/ui/license-modal.ts src/renderer/ui/settings-modal.ts src/shared/index.ts src/shared/types/autonomy.ts src/shared/types/config.ts src/shared/types/gemini.ts test/config.test.ts test/license-activation-recovery.test.ts test/preload-contract.test.ts test/product-surface.test.ts test/security-hardening.test.ts
+      git commit -m "fix: align commercial surface and recover activation"
 
 ### Task 7: Enforce publisher identity for installation and updates
 

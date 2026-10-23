@@ -101,12 +101,12 @@ export class OfflineHandler {
     // 5. System Utilities
     if (q.includes('bloco de notas') || q.includes('notepad')) {
       this.speak('Abrindo o Bloco de Notas.', agentName)
-      window.electronAPI.sendTextMessage('abrir bloco de notas')
+      window.electronAPI.sendText('abrir bloco de notas')
       return true
     }
     if (q.includes('calculadora')) {
       this.speak('Abrindo a Calculadora.', agentName)
-      window.electronAPI.sendTextMessage('abrir calculadora')
+      window.electronAPI.sendText('abrir calculadora')
       return true
     }
 

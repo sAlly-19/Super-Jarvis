@@ -201,16 +201,6 @@ export function createMainWindow(): BrowserWindow {
           fs.writeFileSync(join(outDir, '00_identity_dashboard.png'), imgIdentity.toPNG())
           console.log('[Capture] 00_identity_dashboard.png salvo')
 
-          // 2b. Aba Autonomia (17 módulos de autonomia)
-          await mainWindow.webContents.executeJavaScript(`{
-            const btnAutonomy = document.querySelector('button[data-tab="tab-autonomy"]');
-            if (btnAutonomy) btnAutonomy.click();
-          }`)
-          await new Promise((r) => setTimeout(r, 600))
-          const img2 = await mainWindow.webContents.capturePage()
-          fs.writeFileSync(join(outDir, '02_autonomy_modules.png'), img2.toPNG())
-          console.log('[Capture] 02_autonomy_modules.png salvo')
-
           // 3. Aba IA & Voz (Gemini Live & VAD)
           await mainWindow.webContents.executeJavaScript(`{
             const btnAI = document.querySelector('button[data-tab="tab-ai"]');

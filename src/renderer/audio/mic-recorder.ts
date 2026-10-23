@@ -205,7 +205,7 @@ export class MicRecorder {
       this.pcmBuffer[this.bufferOffset++] = pcmVal
 
       if (this.bufferOffset >= MicRecorder.BUFFER_SAMPLES) {
-        window.electronAPI?.sendAudioChunk(this.pcmBuffer.buffer.slice(0))
+        window.electronAPI?.sendAudio(this.pcmBuffer.buffer.slice(0))
         this.bufferOffset = 0
       }
     }
@@ -317,7 +317,7 @@ export class MicRecorder {
   private flushRemainingBuffer(): void {
     if (this.bufferOffset > 0) {
       const slice = this.pcmBuffer.slice(0, this.bufferOffset)
-      window.electronAPI?.sendAudioChunk(slice.buffer)
+      window.electronAPI?.sendAudio(slice.buffer)
       this.bufferOffset = 0
     }
     if (this.hasSpoken) {

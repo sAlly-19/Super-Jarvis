@@ -31,17 +31,6 @@ export interface ElectronAPI {
   onTurnComplete: (callback: () => void) => () => void
   onInterrupted: (callback: () => void) => () => void
 
-  // Backward compatibility aliases
-  sendAudioChunk: (chunk: ArrayBuffer) => void
-  sendTextMessage: (text: string) => void
-  onAudioChunk: (callback: (base64Audio: string) => void) => () => void
-  onInterrupted: (callback: () => void) => () => void
-  onTurnComplete: (callback: () => void) => () => void
-  onTextChunk: (callback: (text: string) => void) => () => void
-  onStatusChange: (callback: (status: string, message?: string) => void) => () => void
-  connectGemini: (config?: UpdateConfigPayload) => Promise<{ success: boolean; error?: string }>
-  disconnectGemini: () => Promise<void>
-
   // Configuration
   getConfig: () => Promise<ConfigSummary>
   saveConfig: (config: UpdateConfigPayload) => Promise<{ success: boolean }>
@@ -80,10 +69,6 @@ export interface ElectronAPI {
   // Dialog
   selectDirectory: () => Promise<string | null>
 
-  // Compatibility stubs
-  testSmartHomeConnection: (url?: string, token?: string) => Promise<{ success: boolean; message: string }>
-  testWebhook: (url: string) => Promise<any>
-  onAutonomyNotification: (callback: (notif: any) => void) => () => void
 }
 
 declare global {

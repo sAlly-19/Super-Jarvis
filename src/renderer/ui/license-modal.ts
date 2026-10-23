@@ -202,7 +202,7 @@ export class LicenseModal {
     try {
       await window.electronAPI.saveConfig({ apiKey: rawGeminiKey })
 
-      const connResult = await window.electronAPI.connectGemini({ apiKey: rawGeminiKey })
+      const connResult = await window.electronAPI.connectAgent({ apiKey: rawGeminiKey })
       if (connResult.success) {
         this.showGeminiFeedback('Gemini conectado com sucesso! Bem-vindo ao Jasper.', 'success')
         showHudToast('Jasper Online', 'Assistente conectado com sua chave própria do Gemini!', 'info', 5000)

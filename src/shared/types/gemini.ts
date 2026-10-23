@@ -10,8 +10,6 @@ export interface GeminiLiveOptions {
   apiKey: string
   voiceName?: string
   model?: string
-  enableSystemTools?: boolean
-  enableMediaTools?: boolean
   agentName?: string
 }
 

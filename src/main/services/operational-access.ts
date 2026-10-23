@@ -35,7 +35,7 @@ export class OperationalAccess {
   public acceptConsent(): void {
     this.licenseGate.requireUnlocked()
     const currentHwid = this.getInstallationId()
-    this.configStore.updateConfig({
+    this.configStore.updateInternalConfig({
       controlConsentAcceptedAt: new Date().toISOString(),
       controlConsentInstallationId: currentHwid
     })

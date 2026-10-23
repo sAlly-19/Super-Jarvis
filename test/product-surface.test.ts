@@ -8,6 +8,19 @@ import { ConfigStore } from '../src/main/config/config-store'
 import { LicenseGate } from '../src/main/services/license-gate'
 
 describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
+  const supportedPublicConfigKeys = [
+    'apiKey',
+    'voiceName',
+    'model',
+    'agentName',
+    'checkUpdatesDaily',
+    'enableWakeWord',
+    'enableBloom',
+    'enableNeuralBg',
+    'enableEyeTracking',
+    'enableScreenAwareness'
+  ].sort()
+
   let tmpDir: string
   const hwid = 'HWID-TEST-OP-1111'
 
@@ -24,7 +37,7 @@ describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
   test('requireAgentAccess rejects if license is locked', () => {
     const configPath = path.join(tmpDir, 'config.json')
     const configStore = new ConfigStore(configPath)
-    configStore.updateConfig({
+    configStore.updateInternalConfig({
       controlConsentAcceptedAt: new Date().toISOString(),
       controlConsentInstallationId: hwid
     })
@@ -66,7 +79,7 @@ describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
   test('requireAgentAccess rejects if consent belongs to a different installation ID', () => {
     const configPath = path.join(tmpDir, 'config.json')
     const configStore = new ConfigStore(configPath)
-    configStore.updateConfig({
+    configStore.updateInternalConfig({
       controlConsentAcceptedAt: new Date().toISOString(),
       controlConsentInstallationId: 'HWID-FOREIGN-9999'
     })
@@ -120,5 +133,43 @@ describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
     const htmlSrc = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf-8')
     assert.ok(!htmlSrc.includes('name="confirmation-mode"'), 'Confirmation mode radios must be removed')
     assert.ok(!htmlSrc.includes('btn-module-info'), 'Fake module info buttons must be removed')
+  })
+
+  test('public configuration exposes exactly the implemented commercial settings', async () => {
+    const shared = await import('../src/shared/types/config')
+    assert.deepEqual([...shared.PUBLIC_CONFIG_KEYS].sort(), supportedPublicConfigKeys)
+  })
+
+  test('customer-facing sources contain no unsupported commercial feature surface', () => {
+    const root = process.cwd()
+    const sourceFiles = [
+      'src/shared/types/config.ts',
+      'src/preload/index.ts',
+      'src/preload/index.d.ts',
+      'src/renderer/index.html',
+      'src/renderer/ui/dom.ts',
+      'src/renderer/ui/settings-modal.ts'
+    ]
+    const forbidden = [
+      'enableSystemTools',
+      'enableMediaTools',
+      'enableSmartHome',
+      'enableWebhooks',
+      'enableSubagents',
+      'enableSemanticMemory',
+      'confirmation-mode',
+      'check-system-tools',
+      'check-media-tools',
+      'testSmartHomeConnection',
+      'testWebhook',
+      'onAutonomyNotification'
+    ]
+
+    for (const relativePath of sourceFiles) {
+      const source = fs.readFileSync(path.join(root, relativePath), 'utf8')
+      for (const token of forbidden) {
+        assert.ok(!source.includes(token), `${relativePath} must not expose ${token}`)
+      }
+    }
   })
 })

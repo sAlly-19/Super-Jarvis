@@ -259,7 +259,7 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
       const manager = new LicenseManager(() => nowMs)
       manager.setCustomBaseUrl(`http://127.0.0.1:${address.port}`)
       manager.setTestKeyring({ 'test-sec-2026': publicJwk })
-      configStore.updateConfig({
+      configStore.updateInternalConfig({
         licenseKey: '',
         licenseStatus: 'unlicensed',
         licenseMachineId: '',
@@ -309,7 +309,7 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
         revocationNotified = true
       })
 
-      configStore.updateConfig({ licenseKey: '', licenseStatus: 'unlicensed' })
+      configStore.updateInternalConfig({ licenseKey: '', licenseStatus: 'unlicensed' })
       const res = await manager.checkAccess24h(true)
       assert.equal(res.valid, false)
       assert.equal(revocationNotified, true)

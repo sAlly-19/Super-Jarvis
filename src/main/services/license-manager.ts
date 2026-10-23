@@ -107,7 +107,8 @@ export class LicenseManager {
   private async storeActiveLease(
     key: string,
     installationId: string,
-    response: ActivationResponse
+    response: ActivationResponse,
+    activationStatus?: 'ACTIVATED' | 'ACTIVE'
   ): Promise<LicenseValidationResult> {
     const context = this.getVerificationContext()
     context.installationId = installationId
@@ -129,7 +130,7 @@ export class LicenseManager {
     const previousObserved = cfg.licenseLastObservedAt ? Date.parse(cfg.licenseLastObservedAt) : 0
     const observedTimeIso = new Date(Math.max(Number.isFinite(previousObserved) ? previousObserved : 0, nowMs)).toISOString()
 
-    configStore.updateConfig({
+    configStore.updateInternalConfig({
       licenseKey: key,
       licenseStatus: 'active',
       licenseMachineId: getHardwareInfo().machineId,
@@ -146,7 +147,7 @@ export class LicenseManager {
 
     return {
       valid: true,
-      status: cfg.licenseDeviceId ? 'ACTIVE' : 'ACTIVATED',
+      status: activationStatus || (cfg.licenseDeviceId ? 'ACTIVE' : 'ACTIVATED'),
       message: 'Licença ativa e vinculada a esta instalação.',
       machineId: getHardwareInfo().machineId,
       activatedAt: cfg.licenseActivatedAt || now,
@@ -164,6 +165,18 @@ export class LicenseManager {
 
     const cfg = configStore.getConfig()
     const installationId = cfg.licenseInstallationId || crypto.randomUUID()
+    const wasAlreadyBound = Boolean(
+      cfg.licenseKey === cleanKey &&
+      cfg.licenseDeviceId &&
+      cfg.licenseDeviceSecret
+    )
+    if (!configStore.canPersistSecrets()) {
+      return {
+        valid: false,
+        error: 'DEVICE_STORAGE_UNAVAILABLE',
+        message: 'O armazenamento seguro do Windows está indisponível. A ativação não foi enviada para evitar perder o vínculo da licença.'
+      }
+    }
     try {
       const response = await this.requestJson<ActivationResponse>('/v1/licenses/activate', {
         licenseKey: cleanKey,
@@ -171,12 +184,54 @@ export class LicenseManager {
         machineHash: this.machineHash(),
         deviceSecret: cfg.licenseKey === cleanKey ? cfg.licenseDeviceSecret : undefined
       })
-      return this.storeActiveLease(cleanKey, installationId, response)
+      const deviceSecret = response.deviceSecret || (cfg.licenseKey === cleanKey ? cfg.licenseDeviceSecret : '')
+      if (!response.deviceId || !deviceSecret) {
+        return {
+          valid: false,
+          error: 'DEVICE_CREDENTIALS_MISSING',
+          message: 'O servidor não retornou as credenciais obrigatórias do dispositivo.'
+        }
+      }
+
+      // The server binding already exists after a successful activation response.
+      // Persist its recovery credentials before lease verification so a rejected
+      // lease cannot orphan the installation and make the next attempt impossible.
+      configStore.updateInternalConfig({
+        licenseKey: cleanKey,
+        licenseStatus: 'disabled',
+        licenseInstallationId: installationId,
+        licenseDeviceId: response.deviceId,
+        licenseDeviceSecret: deviceSecret,
+        licenseLeaseToken: '',
+        licenseLeaseExpiresAt: ''
+      })
+
+      return this.storeActiveLease(
+        cleanKey,
+        installationId,
+        { ...response, deviceSecret },
+        wasAlreadyBound ? 'ACTIVE' : 'ACTIVATED'
+      )
     } catch (error: any) {
       const code = error?.name || 'NETWORK_ERROR'
       const isNetwork = ['AbortError', 'TimeoutError', 'TypeError', 'LICENSE_API_NOT_CONFIGURED'].includes(code)
+      const needsDeviceRecovery = /device[_ -]?secret/i.test(code) || /segredo do dispositivo|device secret/i.test(error?.message || '')
+      if (needsDeviceRecovery) {
+        return {
+          valid: false,
+          error: 'DEVICE_RECOVERY_REQUIRED',
+          message: 'Esta licença já está vinculada, mas este aplicativo não possui mais o segredo do dispositivo. No painel comercial, use “Liberar máquina” e ative novamente.'
+        }
+      }
+      if (/persistir a configuração|criptografar a configuração/i.test(error?.message || '')) {
+        return {
+          valid: false,
+          error: 'DEVICE_RECOVERY_REQUIRED',
+          message: 'O servidor vinculou a licença, mas o segredo do dispositivo não pôde ser salvo. No painel comercial, use “Liberar máquina” após restaurar o armazenamento seguro do Windows.'
+        }
+      }
       if (code === 'license_already_bound' || code === 'activation_conflict') {
-        configStore.updateConfig({ licenseStatus: 'disabled' })
+        configStore.updateInternalConfig({ licenseStatus: 'disabled' })
         return { valid: false, error: 'MACHINE_MISMATCH', message: error.message }
       }
       return {
@@ -224,7 +279,7 @@ export class LicenseManager {
     const verified = await verifySignedLease(cfg.licenseLeaseToken, context)
     if (!verified.valid) {
       if (verified.error === 'EXPIRED') {
-        configStore.updateConfig({ licenseStatus: 'disabled' })
+        configStore.updateInternalConfig({ licenseStatus: 'disabled' })
         return { valid: false, error: 'EXPIRED', message: 'A autorização offline da licença expirou.' }
       }
       return { valid: false, error: verified.error, message: verified.message }
@@ -234,7 +289,7 @@ export class LicenseManager {
     const previousObserved = cfg.licenseLastObservedAt ? Date.parse(cfg.licenseLastObservedAt) : 0
     const observedTimeIso = new Date(Math.max(Number.isFinite(previousObserved) ? previousObserved : 0, nowMs)).toISOString()
     const signedExpiresAt = new Date(verified.claims.exp * 1000).toISOString()
-    configStore.updateConfig({
+    configStore.updateInternalConfig({
       licenseLastObservedAt: observedTimeIso,
       licenseLeaseExpiresAt: signedExpiresAt
     })
@@ -258,7 +313,7 @@ export class LicenseManager {
       return result
     }
     if (cfg.licenseMachineId && cfg.licenseMachineId !== getHardwareInfo().machineId) {
-      configStore.updateConfig({ licenseStatus: 'disabled' })
+      configStore.updateInternalConfig({ licenseStatus: 'disabled' })
       return { valid: false, error: 'MACHINE_MISMATCH', message: 'O hardware atual não corresponde à instalação licenciada.' }
     }
 
@@ -284,7 +339,7 @@ export class LicenseManager {
     }
 
     const isRevoked = ['REVOKED', 'LICENSE_REVOKED', 'LICENSE_UNAVAILABLE', 'DISABLED'].includes(onlineResult.error || '')
-    configStore.updateConfig({ licenseStatus: isRevoked ? 'revoked' : 'disabled' })
+    configStore.updateInternalConfig({ licenseStatus: isRevoked ? 'revoked' : 'disabled' })
     this.notifyRevoked(onlineResult)
     return onlineResult
   }

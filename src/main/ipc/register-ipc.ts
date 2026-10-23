@@ -102,29 +102,15 @@ export function assertAudioPayload(chunk: unknown): asserts chunk is Buffer | Ar
 }
 
 const CONFIG_BOOLEAN_FIELDS = new Set([
-  'enableSystemTools', 'enableMediaTools', 'enableWakeWord', 'enableBloom', 'enableNeuralBg',
-  'enableEyeTracking', 'enableScreenAwareness', 'enableWindowTracker', 'enableClipboardWatcher',
-  'enableCronEngine', 'enableDailyBriefing', 'enableSystemHealth', 'enableSemanticMemory',
-  'enableKnowledgeGraph', 'enableHeadlessBrowser', 'enableGitWatcher', 'enableFolderOrganizer',
-  'enableSubagents', 'enableReflexionLoop', 'enableCalendarEmail', 'enableWebhooks', 'enableSmartHome',
-  'enableProcessManager', 'enableUiAutomation', 'enableMediaController', 'enableReportGenerator',
-  'enableFileSummarizer', 'enableQrService', 'enableOcrService', 'enablePresentationMode', 'enableFocusMode',
-  'checkUpdatesDaily'
+  'enableWakeWord', 'enableBloom', 'enableNeuralBg', 'enableEyeTracking',
+  'enableScreenAwareness', 'checkUpdatesDaily'
 ])
 
 const CONFIG_STRING_LIMITS: Record<string, number> = {
   apiKey: 512,
   voiceName: 80,
   model: 160,
-  agentName: 80,
-  hassUrl: 2048,
-  hassToken: 4096,
-  gitRepoPath: 4096,
-  webhookDefaultUrl: 2048,
-  emailUser: 254,
-  emailImapHost: 255,
-  emailPassword: 4096,
-  folderDefaultTarget: 4096
+  agentName: 80
 }
 
 export function assertConfigPayload(payload: unknown): asserts payload is UpdateConfigPayload {
@@ -140,7 +126,6 @@ export function assertConfigPayload(payload: unknown): asserts payload is Update
       assertText(value, key, maxLength)
       continue
     }
-    if (key === 'emailImapPort' && Number.isInteger(value) && Number(value) >= 1 && Number(value) <= 65_535) continue
     throw new Error(`Campo de configuração não permitido: ${key}.`)
   }
 }

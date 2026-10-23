@@ -93,50 +93,6 @@ const electronAPI = {
     }
   },
 
-  // Backward compatibility aliases
-  sendAudioChunk: (chunk: ArrayBuffer): void => {
-    ipcRenderer.send(IPC_CHANNELS.AGENT_SEND_AUDIO, chunk)
-  },
-  sendTextMessage: (text: string): void => {
-    ipcRenderer.send(IPC_CHANNELS.AGENT_SEND_TEXT, text)
-  },
-  onAudioChunk: (callback: (base64Audio: string) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, audio: any): void => {
-      const b64 = typeof audio === 'string' ? audio : audio?.audio_base64 ?? ''
-      callback(b64)
-    }
-    ipcRenderer.on(IPC_CHANNELS.AGENT_AUDIO, handler)
-    return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_AUDIO, handler)
-    }
-  },
-  onTextChunk: (callback: (text: string) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
-    ipcRenderer.on(IPC_CHANNELS.AGENT_TEXT, handler)
-    return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_TEXT, handler)
-    }
-  },
-  onStatusChange: (callback: (status: string, message?: string) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, statusPayload: any, msg?: string): void => {
-      if (typeof statusPayload === 'string') {
-        callback(statusPayload, msg)
-      } else {
-        callback(statusPayload?.status ?? '', statusPayload?.message ?? '')
-      }
-    }
-    ipcRenderer.on(IPC_CHANNELS.AGENT_STATUS, handler)
-    return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_STATUS, handler)
-    }
-  },
-  connectGemini: (config?: UpdateConfigPayload): Promise<{ success: boolean; error?: string }> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.AGENT_CONNECT, config)
-  },
-  disconnectGemini: (): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.AGENT_DISCONNECT)
-  },
-
   // Configuration
   getConfig: (): Promise<ConfigSummary> => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET)
@@ -233,17 +189,6 @@ const electronAPI = {
   // Dialog
   selectDirectory: (): Promise<string | null> => {
     return ipcRenderer.invoke(IPC_CHANNELS.DIALOG_SELECT_DIRECTORY)
-  },
-
-  // Compatibility stubs
-  testSmartHomeConnection: (_url?: string, _token?: string): Promise<{ success: boolean; message: string }> => {
-    return Promise.resolve({ success: false, message: 'Descontinuado' })
-  },
-  testWebhook: (_url: string): Promise<any> => {
-    return Promise.resolve({ success: false, status: 404, message: 'Descontinuado' })
-  },
-  onAutonomyNotification: (_callback: (notif: any) => void): (() => void) => {
-    return () => {}
   }
 }
 
