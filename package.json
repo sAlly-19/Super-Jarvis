@@ -30,7 +30,8 @@
     "sbom:runtime": "npm sbom --omit=dev --sbom-format cyclonedx --sbom-type application",
     "capture:showcase": "node scripts/capture-showcase.cjs",
     "setup:assets": "node scripts/setup-assets.mjs",
-    "postinstall": "node scripts/setup-assets.mjs"
+    "postinstall": "node scripts/setup-assets.mjs",
+    "build:python": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-python-backend.ps1"
   },
   "dependencies": {
     "docx": "^9.7.1",

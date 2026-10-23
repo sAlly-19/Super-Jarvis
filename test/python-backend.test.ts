@@ -35,12 +35,13 @@ describe('Python Backend Stdio Runtime & Clean Architecture', () => {
     assert.doesNotMatch(mainPyContent, /8765/, 'main.py must not bind to port 8765')
   })
 
-  test('dependency hygiene: requirements.txt contains NO fastapi, uvicorn, or websockets', () => {
-    assert.ok(fs.existsSync(reqsPath), 'requirements.txt must exist')
-    const reqsContent = fs.readFileSync(reqsPath, 'utf-8').toLowerCase()
-    assert.ok(!reqsContent.includes('fastapi'), 'requirements.txt must not contain fastapi')
-    assert.ok(!reqsContent.includes('uvicorn'), 'requirements.txt must not contain uvicorn')
-    assert.ok(!reqsContent.includes('websockets'), 'requirements.txt must not contain websockets')
+  test('dependency hygiene: requirements.in contains NO fastapi, uvicorn, or websockets', () => {
+    const targetPath = fs.existsSync(reqsPath) ? reqsPath : path.join(backendDir, 'requirements.in')
+    assert.ok(fs.existsSync(targetPath), 'requirements.in must exist')
+    const reqsContent = fs.readFileSync(targetPath, 'utf-8').toLowerCase()
+    assert.ok(!reqsContent.includes('fastapi'), 'requirements must not contain fastapi')
+    assert.ok(!reqsContent.includes('uvicorn'), 'requirements must not contain uvicorn')
+    assert.ok(!reqsContent.includes('websockets'), 'requirements must not contain websockets')
   })
 
   test('total-control policy: tools_os.py has NO _is_destructive_command filter', () => {
