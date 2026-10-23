@@ -12,6 +12,7 @@ import { encodeFrame, FrameDecoder } from './backend-framing'
 import { verifyBackendIntegrity } from './backend-integrity'
 import { DEFAULT_BACKEND_MANIFEST, type BackendManifest } from '../generated/backend-manifest'
 import { terminateProcessTree } from './process-tree'
+import { resolveActiveAIConfig } from '../config/config-store'
 
 const RESTART_DELAYS_MS = [250, 1000, 4000] as const
 
@@ -375,12 +376,15 @@ export class PythonBackendManager {
 
   public async syncConfig(cfg: JasperConfig): Promise<boolean> {
     if (this.state !== 'ready') return false
+    const activeConfig = resolveActiveAIConfig(cfg)
+    if (!activeConfig.ready) return false
     try {
       await this.request('config', {
+        provider: activeConfig.provider,
         agent_name: cfg.agentName,
-        model: cfg.model,
+        model: activeConfig.model,
         voice: cfg.voiceName,
-        apiKey: cfg.apiKey,
+        apiKey: activeConfig.apiKey,
         vision: cfg.enableScreenAwareness
       })
       return true

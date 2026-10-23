@@ -3,7 +3,7 @@
 **Spec:** `docs/superpowers/specs/2026-10-23-settings-provider-credentials-design.md`  
 **Plan:** `docs/superpowers/plans/2026-10-23-provider-aware-settings-dashboard.md`  
 **Branch:** `main`  
-**Status:** Execution in progress — Task 3 verified; Task 4 is next
+**Status:** Execution in progress — Task 4 verified; Task 5 is next
 
 ## Completed
 
@@ -20,7 +20,7 @@
 - [x] Task 1 — Provider catalog and shared contracts
 - [x] Task 2 — Secure credential storage and legacy migration
 - [x] Task 3 — Credential-safe IPC and preload boundary
-- [ ] Task 4 — Active provider sidecar synchronization
+- [x] Task 4 — Active provider sidecar synchronization
 - [ ] Task 5 — Python provider routing and actionable errors
 - [ ] Task 6 — Truthful dashboard structure and styling
 - [ ] Task 7 — Renderer draft, provider UX, and onboarding
@@ -48,11 +48,20 @@ Do not stage or commit the pre-existing Task 7 release/signing changes in `.gith
 
 ## Task 3 Verification
 
+- Commit: `b972c2b` (`feat: add credential-safe provider IPC`).
 - `npm.cmd test -- agent-ipc` — 14 tests, 0 failures.
 - `npm.cmd test -- preload-contract` — 2 tests, 0 failures.
 - `npm.cmd test` — 168 tests, 30 suites, 0 failures.
 - Verified locked-license gating for credential removal, 512-character key limits, missing-key refusal before health probing, active/inactive removal behavior, and selective backend synchronization.
 - Next: Task 4 — active provider sidecar synchronization.
+
+## Task 4 Verification
+
+- `npm.cmd test -- provider-runtime-config` — 4 tests, 0 failures.
+- `npm.cmd test -- python-backend-manager` — 17 tests, 0 failures.
+- `npm.cmd test` — 172 tests, 31 suites, 0 failures.
+- Verified that Gemini and Groq frames contain only the active key, Ollama sends an empty key, and missing remote credentials send no frame.
+- Next: Task 5 — Python provider routing and actionable errors.
 
 ## Resume Instructions
 
