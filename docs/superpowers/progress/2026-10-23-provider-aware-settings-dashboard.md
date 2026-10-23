@@ -3,7 +3,7 @@
 **Spec:** `docs/superpowers/specs/2026-10-23-settings-provider-credentials-design.md`  
 **Plan:** `docs/superpowers/plans/2026-10-23-provider-aware-settings-dashboard.md`  
 **Branch:** `main`  
-**Status:** Execution in progress — Task 1 verified; Task 2 is next
+**Status:** Execution in progress — Task 2 verified; Task 3 is next
 
 ## Completed
 
@@ -18,7 +18,7 @@
 ## Implementation Tasks
 
 - [x] Task 1 — Provider catalog and shared contracts
-- [ ] Task 2 — Secure credential storage and legacy migration
+- [x] Task 2 — Secure credential storage and legacy migration
 - [ ] Task 3 — Credential-safe IPC and preload boundary
 - [ ] Task 4 — Active provider sidecar synchronization
 - [ ] Task 5 — Python provider routing and actionable errors
@@ -32,10 +32,18 @@ Do not stage or commit the pre-existing Task 7 release/signing changes in `.gith
 
 ## Task 1 Verification
 
+- Commit: `4d7bad1` (`feat: define supported AI provider catalog`).
 - `npm.cmd test -- ai-provider-catalog` — 4 tests, 0 failures.
 - `npm.cmd test -- product-surface` — 8 tests, 0 failures.
 - `npm.cmd test` — 157 tests, 30 suites, 0 failures.
 - Next: Task 2 — secure credential storage and legacy migration.
+
+## Task 2 Verification
+
+- `npm.cmd test -- config` — 10 tests, 0 failures.
+- `npm.cmd test` — 163 tests, 30 suites, 0 failures.
+- Verified independent encrypted credentials, masked summaries, active-key selection, provider/model allow-listing, idempotent legacy migration, and byte-for-byte preservation when decryption is unavailable.
+- Next: Task 3 — credential-safe IPC and preload boundary.
 
 ## Resume Instructions
 
