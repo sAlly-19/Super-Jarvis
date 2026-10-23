@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import { BUILD_FLAVOR, SMOKE_KEY_ID, SMOKE_PUBLIC_KEY } from '../generated/build-flavor'
 
 export const PRODUCTION_KEY_ID = 'prod-2026-01'
 
@@ -27,12 +28,19 @@ export function resolveKeyForId(
     return customKeyring[kid]
   }
 
-  // In packaged production, disallow dev keys
+  // In packaged production, disallow dev keys unless explicitly running ephemeral smoke flavor
   if (typeof app !== 'undefined' && app?.isPackaged) {
+    if (BUILD_FLAVOR === 'smoke' && kid === SMOKE_KEY_ID && SMOKE_PUBLIC_KEY) {
+      return SMOKE_PUBLIC_KEY
+    }
     if (kid === PRODUCTION_KEY_ID) {
       return LICENSE_KEYRING[PRODUCTION_KEY_ID]
     }
     return null
+  }
+
+  if (BUILD_FLAVOR === 'smoke' && kid === SMOKE_KEY_ID && SMOKE_PUBLIC_KEY) {
+    return SMOKE_PUBLIC_KEY
   }
 
   return LICENSE_KEYRING[kid] || null

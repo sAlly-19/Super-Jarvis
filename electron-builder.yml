@@ -13,10 +13,8 @@ files:
   - "!**/node_modules/{three,@tensorflow,@tensorflow-models}/**"
 
 extraResources:
-  - from: src/main/autonomous/scripts
-    to: scripts
-    filter:
-      - "*.ps1"
+  - from: build/python-backend/jasper-backend
+    to: jasper-backend
   - from: assets/icon.ico
     to: icon.ico
 
@@ -24,9 +22,6 @@ win:
   icon: assets/icon.ico
   target:
     - target: nsis
-      arch:
-        - x64
-    - target: portable
       arch:
         - x64
 
@@ -42,9 +37,6 @@ nsis:
   shortcutName: Jasper AI
   artifactName: Jasper-AI-Setup-${version}.${ext}
 
-portable:
-  artifactName: Jasper-AI-${version}-Portable.${ext}
-
 publish:
   provider: generic
   url: https://github.com/sAlly-19/jasper-avatar-releases/releases/latest/download
@@ -57,4 +49,3 @@ electronFuses:
   enableEmbeddedAsarIntegrityValidation: true
   onlyLoadAppFromAsar: true
   grantFileProtocolExtraPrivileges: false
-

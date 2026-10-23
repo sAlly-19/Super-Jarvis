@@ -125,6 +125,47 @@ describe('Backend Integrity Verification (backend-integrity.ts)', () => {
 
     await assert.doesNotReject(async () => verifyBackendIntegrity(tmpDir, manifest))
   })
+
+  test('fails if extraneous undeclared file is present in sidecar root', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'jasper-backend.exe'), 'fake-exe-content')
+    fs.writeFileSync(path.join(tmpDir, 'empty.txt'), '')
+    fs.writeFileSync(path.join(tmpDir, 'rogue.dll'), 'bad')
+
+    const manifest: BackendManifest = {
+      protocolVersion: 1,
+      backendVersion: '2.0.0',
+      executable: 'jasper-backend.exe',
+      files: [
+        { path: 'empty.txt', sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' }
+      ]
+    }
+
+    await assert.rejects(
+      async () => verifyBackendIntegrity(tmpDir, manifest),
+      (err: any) => err instanceof BackendIntegrityError && err.message.includes('Extraneous file')
+    )
+  })
+
+  test('fails if loose .py file is present in sidecar', async () => {
+    fs.writeFileSync(path.join(tmpDir, 'jasper-backend.exe'), 'fake-exe-content')
+    fs.writeFileSync(path.join(tmpDir, 'empty.txt'), '')
+    fs.writeFileSync(path.join(tmpDir, 'script.py'), 'print(1)')
+
+    const manifest: BackendManifest = {
+      protocolVersion: 1,
+      backendVersion: '2.0.0',
+      executable: 'jasper-backend.exe',
+      files: [
+        { path: 'empty.txt', sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' },
+        { path: 'script.py', sha256: '1e4c76b976bcf64187e1f40d1276a7eb84fd8d5beccde4488db49b1a59cc00a6' }
+      ]
+    }
+
+    await assert.rejects(
+      async () => verifyBackendIntegrity(tmpDir, manifest),
+      (err: any) => err instanceof BackendIntegrityError && err.message.includes('Loose .py source file')
+    )
+  })
 })
 
 describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
