@@ -36,7 +36,7 @@ function isContained(root: string, target: string): boolean {
 export class SecurityBroker {
   public async confirmOperation(request: ConfirmationRequest): Promise<boolean> {
     const risk = request.risk || 'elevated'
-    const mode = (configStore.getConfig() as any).confirmationMode || 'strict'
+    const mode: ConfirmationMode = 'strict'
     if (!requiresConfirmation(mode, risk)) {
       console.log(`[SecurityBroker] Confirmation bypassed by ${mode} mode for ${risk} action.`)
       return true

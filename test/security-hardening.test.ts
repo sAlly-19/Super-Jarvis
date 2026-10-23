@@ -163,7 +163,7 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
       assert.ok(micRecorderSrc.includes('Full-Duplex'))
     })
 
-    test('main.ts implementa Modo Chamada Full-Duplex, saudação proativa, barge-in e integração jasperSocket', () => {
+    test('main.ts implementa Modo Chamada Full-Duplex, saudação proativa, barge-in e integração IPC', () => {
       const mainSrc = fs.readFileSync(
         path.join(process.cwd(), 'src/renderer/main.ts'),
         'utf-8'

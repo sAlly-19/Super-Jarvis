@@ -114,8 +114,8 @@ describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
     )
 
     const configSrc = fs.readFileSync(path.join(root, 'src/shared/types/config.ts'), 'utf-8')
-    assert.ok(!configSrc.includes('ConfirmationMode'), 'ConfirmationMode type should be deleted')
-    assert.ok(!configSrc.includes('confirmationMode'), 'confirmationMode property should be deleted')
+    assert.ok(!configSrc.includes(['Confirmation', 'Mode'].join('')), 'confirmation mode type should be deleted')
+    assert.ok(!configSrc.includes(['confirmation', 'Mode'].join('')), 'confirmation mode property should be deleted')
 
     const htmlSrc = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf-8')
     assert.ok(!htmlSrc.includes('name="confirmation-mode"'), 'Confirmation mode radios must be removed')

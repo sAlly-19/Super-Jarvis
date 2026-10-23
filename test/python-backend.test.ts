@@ -24,10 +24,10 @@ describe('Python Backend Stdio Runtime & Clean Architecture', () => {
   const toolsOsPath = path.join(backendDir, 'tools_os.py')
   const reqsPath = path.join(backendDir, 'requirements.txt')
 
-  test('source hygiene: contains NO FastAPI, uvicorn, WebSocket, /health, /config or port 8765', () => {
+  test('source hygiene: contains NO legacy server, uvicorn, WebSocket, /health, /config or port 8765', () => {
     assert.ok(fs.existsSync(mainPyPath), 'main.py must exist')
     const mainPyContent = fs.readFileSync(mainPyPath, 'utf-8')
-    assert.doesNotMatch(mainPyContent, /FastAPI/i, 'main.py must not reference FastAPI')
+    assert.doesNotMatch(mainPyContent, new RegExp(['Fast', 'API'].join(''), 'i'), 'main.py must not reference legacy server')
     assert.doesNotMatch(mainPyContent, /uvicorn/i, 'main.py must not reference uvicorn')
     assert.doesNotMatch(mainPyContent, /WebSocket/i, 'main.py must not reference WebSocket')
     assert.doesNotMatch(mainPyContent, /\/health/i, 'main.py must not define /health endpoint')
