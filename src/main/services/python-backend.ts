@@ -2,12 +2,23 @@ import { spawn, type ChildProcess } from 'child_process'
 import { existsSync, realpathSync, statSync } from 'fs'
 import { isAbsolute, join, relative, resolve } from 'path'
 import { app } from 'electron'
-import type { JasperConfig } from '@shared'
+import {
+  SIDECAR_TO_HOST_MESSAGE_TYPES,
+  type BackendEnvelope,
+  type HostToSidecarMessageType,
+  type JasperConfig
+} from '@shared'
 import { encodeFrame, FrameDecoder } from './backend-framing'
 import { verifyBackendIntegrity } from './backend-integrity'
 import { DEFAULT_BACKEND_MANIFEST, type BackendManifest } from '../generated/backend-manifest'
-import type { BackendEnvelope, BackendMessageType } from '@shared'
 import { terminateProcessTree } from './process-tree'
+
+const RESTART_DELAYS_MS = [250, 1000, 4000] as const
+
+export interface RestartScheduler {
+  setTimeout(callback: () => void, delayMs: number): unknown
+  clearTimeout(handle: unknown): void
+}
 
 export type BackendState =
   | 'stopped'
@@ -21,17 +32,17 @@ interface PendingRequest {
   resolve: (value: any) => void
   reject: (reason: any) => void
   timer: NodeJS.Timeout
-  type: BackendMessageType
+  type: HostToSidecarMessageType
 }
 
 export interface PythonBackendOptions {
   isExecutionAllowed?: () => boolean
   manifest?: BackendManifest
   spawnFn?: (command: string, args: string[], options: any) => ChildProcess
-  backoffBaseMs?: number
   shutdownGraceMs?: number
   terminateProcessTreeFn?: (pid: number) => Promise<void>
   applicationRoot?: string
+  restartScheduler?: RestartScheduler
 }
 
 export class PythonBackendManager {
@@ -39,27 +50,30 @@ export class PythonBackendManager {
   private state: BackendState = 'stopped'
   private isShuttingDown = false
   private restartAttempts = 0
-  private decoder = new FrameDecoder()
+  private decoder = new FrameDecoder({ allowedTypes: SIDECAR_TO_HOST_MESSAGE_TYPES })
   private pendingRequests = new Map<string, PendingRequest>()
   private messageListeners = new Set<(envelope: BackendEnvelope) => void>()
-  private healthyTimer: NodeJS.Timeout | null = null
+  private restartTimer: unknown | null = null
 
   private isExecutionAllowed: () => boolean
   private readonly manifest: BackendManifest
   private readonly spawnFn: (command: string, args: string[], options: any) => ChildProcess
-  private readonly backoffBaseMs: number
   private readonly shutdownGraceMs: number
   private readonly terminateProcessTreeFn: (pid: number) => Promise<void>
   private readonly applicationRoot?: string
+  private readonly restartScheduler: RestartScheduler
 
   constructor(options: PythonBackendOptions = {}) {
     this.isExecutionAllowed = options.isExecutionAllowed || (() => true)
     this.manifest = options.manifest || DEFAULT_BACKEND_MANIFEST
     this.spawnFn = options.spawnFn || spawn
-    this.backoffBaseMs = options.backoffBaseMs ?? 500
     this.shutdownGraceMs = options.shutdownGraceMs ?? 1500
     this.terminateProcessTreeFn = options.terminateProcessTreeFn || terminateProcessTree
     this.applicationRoot = options.applicationRoot
+    this.restartScheduler = options.restartScheduler || {
+      setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
+      clearTimeout: (handle) => clearTimeout(handle as NodeJS.Timeout)
+    }
   }
 
   public setExecutionAllowed(fn: () => boolean): void {
@@ -122,9 +136,11 @@ export class PythonBackendManager {
       throw new Error('Sidecar execution not allowed by license gate.')
     }
 
+    const isRestartAttempt = this.state === 'restarting'
+    if (!isRestartAttempt) this.restartAttempts = 0
     this.isShuttingDown = false
     this.state = 'starting'
-    this.decoder = new FrameDecoder()
+    this.decoder = new FrameDecoder({ allowedTypes: SIDECAR_TO_HOST_MESSAGE_TYPES })
 
     let command: string
     let args: string[]
@@ -173,11 +189,30 @@ export class PythonBackendManager {
         frames = this.decoder.push(chunk)
       } catch (err) {
         console.error('[PythonBackend] Frame decoding error:', err)
-        if (child.pid) void this.terminateProcessTreeFn(child.pid).catch(() => child.kill())
+        this.handleProtocolViolation(child, err)
         return
       }
 
       for (const frame of frames) {
+        if (this.state === 'handshaking' && frame.type !== 'hello_ack') {
+          this.handleProtocolViolation(child, new Error(`Protocol state violation during handshake: ${frame.type}`))
+          return
+        }
+        if (this.state === 'handshaking' && frame.type === 'hello_ack') {
+          const pendingHello = frame.replyTo ? this.pendingRequests.get(frame.replyTo) : undefined
+          if (!pendingHello || pendingHello.type !== 'hello') {
+            this.handleProtocolViolation(child, new Error('hello_ack does not correlate to the active hello request'))
+            return
+          }
+          this.state = 'ready'
+        }
+        if (this.state === 'ready' && frame.type === 'hello_ack') {
+          const pendingHello = frame.replyTo ? this.pendingRequests.get(frame.replyTo) : undefined
+          if (!pendingHello || pendingHello.type !== 'hello') {
+            this.handleProtocolViolation(child, new Error('Protocol state violation: duplicate hello_ack'))
+            return
+          }
+        }
         this.handleIncomingFrame(frame)
       }
     })
@@ -189,7 +224,7 @@ export class PythonBackendManager {
     })
 
     child.on('exit', (code, signal) => {
-      this.handleProcessExit(code, signal)
+      this.handleProcessExit(child, code, signal)
     })
 
     this.state = 'handshaking'
@@ -206,20 +241,17 @@ export class PythonBackendManager {
       }
 
       this.state = 'ready'
-
-      // Reset restart attempts after 5 seconds of stable operation
-      if (this.healthyTimer) clearTimeout(this.healthyTimer)
-      this.healthyTimer = setTimeout(() => {
-        if (this.state === 'ready') {
-          this.restartAttempts = 0
-        }
-      }, 5000)
     } catch (err) {
-      this.state = 'error'
-      if (child.pid) {
-        await this.terminateProcessTreeFn(child.pid).catch(() => child.kill())
-      } else {
-        child.kill()
+      if (this.process === child) {
+        const terminationAlreadyStarted = this.getState() === 'error'
+        if (this.getState() !== 'restarting') this.state = 'error'
+        if (!terminationAlreadyStarted) {
+          if (child.pid) {
+            await this.terminateProcessTreeFn(child.pid).catch(() => child.kill())
+          } else {
+            child.kill()
+          }
+        }
       }
       throw err
     }
@@ -227,7 +259,10 @@ export class PythonBackendManager {
 
   public async stop(reason?: string): Promise<void> {
     this.isShuttingDown = true
-    if (this.healthyTimer) clearTimeout(this.healthyTimer)
+    if (this.restartTimer !== null) {
+      this.restartScheduler.clearTimeout(this.restartTimer)
+      this.restartTimer = null
+    }
     const proc = this.process
     const wasReady = this.state === 'ready'
     this.process = null
@@ -271,7 +306,7 @@ export class PythonBackendManager {
   }
 
   public async request<T = unknown>(
-    type: BackendMessageType,
+    type: HostToSidecarMessageType,
     payload: unknown,
     timeoutMs = 30000
   ): Promise<T> {
@@ -310,7 +345,7 @@ export class PythonBackendManager {
     })
   }
 
-  public notify(type: BackendMessageType, payload: unknown): void {
+  public notify(type: HostToSidecarMessageType, payload: unknown): void {
     if (this.state !== 'ready' || !this.process || !this.process.stdin || !this.process.stdin.writable) {
       return
     }
@@ -375,7 +410,8 @@ export class PythonBackendManager {
     }
   }
 
-  private handleProcessExit(code: number | null, signal: string | null): void {
+  private handleProcessExit(child: ChildProcess, code: number | null, signal: string | null): void {
+    if (this.process !== child) return
     this.process = null
     this.rejectAllPending(new Error(`Sidecar process exited (code=${code}, signal=${signal})`))
 
@@ -389,14 +425,15 @@ export class PythonBackendManager {
       return
     }
 
-    if (this.restartAttempts < 3) {
+    if (this.restartAttempts < RESTART_DELAYS_MS.length) {
+      const delay = RESTART_DELAYS_MS[this.restartAttempts]
       this.restartAttempts++
       this.state = 'restarting'
-      const delay = Math.min(this.backoffBaseMs * Math.pow(2, this.restartAttempts - 1), 5000)
       console.warn(
         `[PythonBackend] Process exited unexpectedly. Attempting restart ${this.restartAttempts}/3 in ${delay}ms...`
       )
-      setTimeout(() => {
+      this.restartTimer = this.restartScheduler.setTimeout(() => {
+        this.restartTimer = null
         if (!this.isShuttingDown && this.isExecutionAllowed()) {
           this.start().catch((err) => {
             console.error(`[PythonBackend] Restart attempt ${this.restartAttempts} failed:`, err)
@@ -415,6 +452,19 @@ export class PythonBackendManager {
       req.reject(reason)
     }
     this.pendingRequests.clear()
+  }
+
+  private handleProtocolViolation(child: ChildProcess, cause: unknown): void {
+    if (this.process !== child) return
+    const detail = cause instanceof Error ? cause.message : String(cause)
+    const error = new Error(`Sidecar protocol violation: ${detail}`)
+    this.state = 'error'
+    this.rejectAllPending(error)
+    if (child.pid) {
+      void this.terminateProcessTreeFn(child.pid).catch(() => child.kill())
+    } else {
+      child.kill()
+    }
   }
 
   private assertPathInside(root: string, candidate: string): void {

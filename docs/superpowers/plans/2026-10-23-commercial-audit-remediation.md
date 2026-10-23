@@ -164,26 +164,26 @@
 - Test: test/python-backend-manager.test.ts
 - Test: jasper-backend/tests/test_protocol.py
 
-- [ ] Add failing parity tests for every allowed message type in TypeScript and Python.
-- [ ] Add failing tests for invalid UTF-8, unknown message type, missing payload fields, oversized frames and wrong direction/state.
-- [ ] Add a failing test proving protocol violations tear down the session and reject pending requests.
-- [ ] Replace restart tests that use sleeps with an injected scheduler/fake clock.
-- [ ] Add failing tests for exactly three restart attempts at 250 ms, 1 s and 4 s, with no reset after an arbitrary healthy interval.
-- [ ] Run focused suites and confirm red:
+- [x] Add failing parity tests for every allowed message type in TypeScript and Python.
+- [x] Add failing tests for invalid UTF-8, unknown message type, missing payload fields, oversized frames and wrong direction/state.
+- [x] Add a failing test proving protocol violations tear down the session and reject pending requests.
+- [x] Replace restart tests that use sleeps with an injected scheduler/fake clock.
+- [x] Add failing tests for exactly three restart attempts at 250 ms, 1 s and 4 s, with no reset after an arbitrary healthy interval.
+- [x] Run focused suites and confirm red:
       npx.cmd --yes node@24 scripts/run-tests.mjs backend-framing
       npx.cmd --yes node@24 scripts/run-tests.mjs python-backend-manager
       python -m unittest jasper-backend.tests.test_protocol -v
-- [ ] Define one readonly allowlist of message names on each side and reject unknown types before dispatch.
-- [ ] Decode TypeScript payloads with fatal UTF-8 handling and validate the payload shape associated with every type.
-- [ ] Enforce handshake/direction rules: no operational messages before hello, no second hello, and no host-only messages from the backend.
-- [ ] Treat protocol violations as fatal for that process, governed by the three-attempt session budget.
-- [ ] Inject scheduler functions and remove timing sleeps from tests.
-- [ ] Run focused tests ten times, then type checking:
+- [x] Define one readonly allowlist of message names on each side and reject unknown types before dispatch.
+- [x] Decode TypeScript payloads with fatal UTF-8 handling and validate the payload shape associated with every type.
+- [x] Enforce handshake/direction rules: no operational messages before hello, no second hello, and no host-only messages from the backend.
+- [x] Treat protocol violations as fatal for that process, governed by the three-attempt session budget.
+- [x] Inject scheduler functions and remove timing sleeps from tests.
+- [x] Run focused tests ten times, then type checking:
       npx.cmd --yes node@24 scripts/run-tests.mjs backend-framing
       1..10 | ForEach-Object { npx.cmd --yes node@24 scripts/run-tests.mjs python-backend-manager; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
       python -m unittest jasper-backend.tests.test_protocol -v
       npm.cmd run typecheck
-- [ ] Commit:
+- [x] Commit:
       git add src/main/services/backend-framing.ts src/main/services/python-backend.ts src/shared/types/backend-protocol.ts jasper-backend/protocol.py test/backend-framing.test.ts test/python-backend-manager.test.ts jasper-backend/tests/test_protocol.py
       git commit -m "fix: harden sidecar protocol and supervision"
 

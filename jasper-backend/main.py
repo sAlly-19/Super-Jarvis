@@ -8,13 +8,14 @@ try:
 except Exception:
     pass
 
-from protocol import FrameDecoder, FrameError, encode_frame
+from protocol import FrameDecoder, FrameError, HOST_TO_SIDECAR_MESSAGE_TYPES, encode_frame, validate_incoming_state
 from runtime import JasperRuntime
 
 
 async def main() -> int:
     runtime = JasperRuntime()
-    decoder = FrameDecoder()
+    decoder = FrameDecoder(allowed_types=HOST_TO_SIDECAR_MESSAGE_TYPES)
+    handshake_complete = False
     write_lock = asyncio.Lock()
     read_fn = getattr(sys.stdin.buffer, "read1", sys.stdin.buffer.read)
 
@@ -48,8 +49,14 @@ async def main() -> int:
         for frame in frames:
             msg_type = frame.get("type")
             try:
+                validate_incoming_state(frame, handshake_complete)
                 async for reply in runtime.handle(frame):
                     await send_envelope(reply)
+                if msg_type == "hello":
+                    handshake_complete = True
+            except FrameError as state_err:
+                print(f"[Main] Protocol state error: {state_err}", file=sys.stderr)
+                return 1
             except Exception as handler_err:
                 print(f"[Main] Handler error for {msg_type}: {handler_err}", file=sys.stderr)
 

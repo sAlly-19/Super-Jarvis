@@ -56,6 +56,36 @@ function createMockProcess(): {
   return { proc, stdin, stdout, stderr, simulateExit, simulateStdoutFrame }
 }
 
+class FakeRestartScheduler {
+  private sequence = 0
+  private queue: Array<{ id: number; callback: () => void; delay: number; cancelled: boolean }> = []
+
+  public setTimeout = (callback: () => void, delay: number): number => {
+    const task = { id: ++this.sequence, callback, delay, cancelled: false }
+    this.queue.push(task)
+    return task.id
+  }
+
+  public clearTimeout = (id: unknown): void => {
+    const task = this.queue.find((candidate) => candidate.id === id)
+    if (task) task.cancelled = true
+  }
+
+  public pendingDelays(): number[] {
+    return this.queue.filter((task) => !task.cancelled).map((task) => task.delay)
+  }
+
+  public async runNext(expectedDelay: number): Promise<void> {
+    const task = this.queue.find((candidate) => !candidate.cancelled)
+    assert.ok(task, `Expected a scheduled restart after ${expectedDelay}ms`)
+    assert.equal(task.delay, expectedDelay)
+    task.cancelled = true
+    task.callback()
+    await new Promise((resolve) => setImmediate(resolve))
+    await new Promise((resolve) => setImmediate(resolve))
+  }
+}
+
 describe('Backend Integrity Verification (backend-integrity.ts)', () => {
   const tmpDir = path.join(process.cwd(), 'temp-test-integrity-' + Date.now())
 
@@ -201,7 +231,9 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
     const mock = createMockProcess()
     const manager = new PythonBackendManager({
       isExecutionAllowed: () => true,
-      spawnFn: () => mock.proc
+      spawnFn: () => mock.proc,
+      shutdownGraceMs: 1,
+      terminateProcessTreeFn: async () => {}
     })
 
     const startPromise = manager.start()
@@ -252,7 +284,7 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
           id: 'resp-hello-1',
           replyTo: frames[0].id,
           type: 'hello_ack',
-          payload: { service: 'jasper-backend', protocolVersion: 1 }
+          payload: { service: 'jasper-backend', protocolVersion: 1, tools: [] }
         })
       }
     })
@@ -266,9 +298,10 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
     )
   })
 
-  test('process unexpected exit rejects pending requests and triggers recovery up to 3 times', async () => {
+  test('uses exactly three deterministic restart attempts at 250ms, 1s and 4s', async () => {
     let spawnCount = 0
     let currentMock = createMockProcess()
+    const scheduler = new FakeRestartScheduler()
 
     const manager = new PythonBackendManager({
       isExecutionAllowed: () => true,
@@ -285,49 +318,49 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
                 id: 'resp-h-' + spawnCount,
                 replyTo: frames[0].id,
                 type: 'hello_ack',
-                payload: { service: 'jasper-backend', protocolVersion: 1 }
+                payload: { service: 'jasper-backend', protocolVersion: 1, tools: [] }
               })
             })
           }
         })
         return currentMock.proc
       },
-      backoffBaseMs: 10 // fast backoff for testing
+      restartScheduler: scheduler
     })
 
     await manager.start()
     assert.equal(manager.getState(), 'ready')
     assert.equal(spawnCount, 1)
 
-    // Simulate crash 1 -> should restart
     currentMock.simulateExit(1)
-    await new Promise((r) => setTimeout(r, 60))
+    assert.deepEqual(scheduler.pendingDelays(), [250])
+    await scheduler.runNext(250)
     assert.equal(spawnCount, 2)
     assert.equal(manager.getState(), 'ready')
 
-    // Simulate crash 2 -> should restart
     currentMock.simulateExit(1)
-    await new Promise((r) => setTimeout(r, 80))
+    assert.deepEqual(scheduler.pendingDelays(), [1000])
+    await scheduler.runNext(1000)
     assert.equal(spawnCount, 3)
     assert.equal(manager.getState(), 'ready')
 
-    // Simulate crash 3 -> should restart (third recovery)
     currentMock.simulateExit(1)
-    await new Promise((r) => setTimeout(r, 120))
+    assert.deepEqual(scheduler.pendingDelays(), [4000])
+    await scheduler.runNext(4000)
     assert.equal(spawnCount, 4)
     assert.equal(manager.getState(), 'ready')
 
-    // Simulate crash 4 -> budget exhausted, transitions to error
     currentMock.simulateExit(1)
-    await new Promise((r) => setTimeout(r, 80))
     assert.equal(manager.getState(), 'error')
     assert.equal(spawnCount, 4, 'Should not spawn again after 3 restarts exhausted')
+    assert.deepEqual(scheduler.pendingDelays(), [])
   })
 
   test('does not restart if isExecutionAllowed() returns false', async () => {
     let allowed = true
     let spawnCount = 0
     let currentMock = createMockProcess()
+    const scheduler = new FakeRestartScheduler()
 
     const manager = new PythonBackendManager({
       isExecutionAllowed: () => allowed,
@@ -343,14 +376,14 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
                 id: 'resp-h',
                 replyTo: frames[0].id,
                 type: 'hello_ack',
-                payload: { service: 'jasper-backend', protocolVersion: 1 }
+                payload: { service: 'jasper-backend', protocolVersion: 1, tools: [] }
               })
             })
           }
         })
         return currentMock.proc
       },
-      backoffBaseMs: 10
+      restartScheduler: scheduler
     })
 
     await manager.start()
@@ -360,9 +393,90 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
     allowed = false
     currentMock.simulateExit(1)
 
-    await new Promise((r) => setTimeout(r, 50))
     assert.equal(manager.getState(), 'stopped')
     assert.equal(spawnCount, 1, 'Should not restart when license is not allowed')
+    assert.deepEqual(scheduler.pendingDelays(), [])
+  })
+
+  test('treats a wrong-direction backend frame as fatal and rejects pending work', async () => {
+    const mock = createMockProcess()
+    let terminationCalls = 0
+    const manager = new PythonBackendManager({
+      isExecutionAllowed: () => true,
+      spawnFn: () => mock.proc,
+      shutdownGraceMs: 1,
+      terminateProcessTreeFn: async () => {
+        terminationCalls++
+      }
+    })
+
+    const startPromise = manager.start()
+    mock.stdin.once('data', (chunk) => {
+      const [hello] = new FrameDecoder().push(chunk)
+      mock.simulateStdoutFrame({
+        version: 1,
+        id: 'resp-protocol-ready',
+        replyTo: hello.id,
+        type: 'hello_ack',
+        payload: { service: 'jasper-backend', protocolVersion: 1, tools: [] }
+      })
+    })
+    await startPromise
+
+    const pendingOutcome = manager.request('chat', { text: 'pending' }, 10_000).then(
+      () => 'resolved',
+      (error: Error) => error
+    )
+    mock.simulateStdoutFrame({
+      version: 1,
+      id: 'host-only-from-sidecar',
+      type: 'chat',
+      payload: { text: 'invalid direction' }
+    })
+    const outcomeBeforeCleanup = await Promise.race([
+      pendingOutcome,
+      new Promise<'still-pending'>((resolve) => setImmediate(() => resolve('still-pending')))
+    ])
+
+    assert.ok(outcomeBeforeCleanup instanceof Error)
+    assert.match(outcomeBeforeCleanup.message, /protocol|direction|direção/i)
+    assert.equal(terminationCalls, 1)
+    await manager.stop('test_cleanup')
+  })
+
+  test('treats a second hello acknowledgement as a fatal state violation', async () => {
+    const mock = createMockProcess()
+    let terminationCalls = 0
+    const manager = new PythonBackendManager({
+      isExecutionAllowed: () => true,
+      spawnFn: () => mock.proc,
+      terminateProcessTreeFn: async () => {
+        terminationCalls++
+      }
+    })
+    const startPromise = manager.start()
+    mock.stdin.once('data', (chunk) => {
+      const [hello] = new FrameDecoder().push(chunk)
+      mock.simulateStdoutFrame({
+        version: 1,
+        id: 'first-hello-ack',
+        replyTo: hello.id,
+        type: 'hello_ack',
+        payload: { service: 'jasper-backend', protocolVersion: 1, tools: [] }
+      })
+    })
+    await startPromise
+
+    mock.simulateStdoutFrame({
+      version: 1,
+      id: 'second-hello-ack',
+      type: 'hello_ack',
+      payload: { service: 'jasper-backend', protocolVersion: 1, tools: [] }
+    })
+    await new Promise((resolve) => setImmediate(resolve))
+
+    assert.equal(terminationCalls, 1)
+    assert.equal(manager.getState(), 'error')
   })
 
   test('rejects pending requests before process-tree termination completes', async () => {
@@ -394,7 +508,7 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
         id: 'resp-stop-order',
         replyTo: hello.id,
         type: 'hello_ack',
-        payload: { service: 'jasper-backend', protocolVersion: 1 }
+        payload: { service: 'jasper-backend', protocolVersion: 1, tools: [] }
       })
     })
     await startPromise
@@ -435,6 +549,7 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
         spawnedEnvironment = options.env
         return mock.proc
       },
+      shutdownGraceMs: 1,
       terminateProcessTreeFn: async () => {}
     })
 
@@ -447,7 +562,7 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
           id: 'resp-env',
           replyTo: hello.id,
           type: 'hello_ack',
-          payload: { service: 'jasper-backend', protocolVersion: 1 }
+          payload: { service: 'jasper-backend', protocolVersion: 1, tools: [] }
         })
       })
       await startPromise

@@ -6,20 +6,18 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Will be implemented in Step 3
-try:
-    from protocol import encode_frame, FrameDecoder, FrameError
-except ImportError:
-    encode_frame = None
-    FrameDecoder = None
-    FrameError = Exception
+from protocol import (
+    ALL_MESSAGE_TYPES,
+    HOST_TO_SIDECAR_MESSAGE_TYPES,
+    SIDECAR_TO_HOST_MESSAGE_TYPES,
+    encode_frame,
+    FrameDecoder,
+    FrameError,
+    validate_incoming_state,
+)
 
 
 class TestBackendProtocol(unittest.TestCase):
-    def setUp(self):
-        if FrameDecoder is None:
-            self.skipTest("Módulo protocol.py ainda não implementado")
-
     def test_roundtrip_unicode_envelope(self):
         envelope = {
             "version": 1,
@@ -37,12 +35,50 @@ class TestBackendProtocol(unittest.TestCase):
         self.assertEqual(len(messages), 1)
         self.assertEqual(messages[0], envelope)
 
+    def test_canonical_message_allowlists_match_host_contract(self):
+        self.assertEqual(
+            ALL_MESSAGE_TYPES,
+            (
+                "hello", "config", "chat", "audio_input", "interrupt", "memory_snapshot", "memory_clear", "shutdown",
+                "hello_ack", "status", "user_transcript", "response", "audio_output", "tool_execution", "tool_result",
+                "memory_upsert", "turn_complete", "interrupted", "error",
+            ),
+        )
+        self.assertEqual(len(HOST_TO_SIDECAR_MESSAGE_TYPES), 8)
+        self.assertEqual(len(SIDECAR_TO_HOST_MESSAGE_TYPES), 12)
+
+    def test_accepts_valid_payload_for_every_allowed_message_type(self):
+        payloads = {
+            "hello": {"client": "test", "protocolVersion": 1},
+            "config": {"agent_name": "Jasper", "model": "model", "voice": "voice", "apiKey": "", "vision": False},
+            "chat": {"text": "oi"},
+            "audio_input": {"audio_base64": "AA=="},
+            "interrupt": {},
+            "memory_snapshot": {"facts": []},
+            "memory_clear": {},
+            "shutdown": {"reason": "test"},
+            "hello_ack": {"service": "jasper-backend", "protocolVersion": 1, "tools": []},
+            "status": {"status": "ready"},
+            "user_transcript": {"text": "oi"},
+            "response": {"text": "olá"},
+            "audio_output": {"audio_base64": "AA==", "format": "mp3", "text": "olá"},
+            "tool_execution": {"tool": "test", "args": {}},
+            "tool_result": {"tool": "test", "result": "ok"},
+            "memory_upsert": {"facts": []},
+            "turn_complete": {},
+            "interrupted": {},
+            "error": {"message": "erro"},
+        }
+        for message_type in ALL_MESSAGE_TYPES:
+            envelope = {"version": 1, "id": f"valid-{message_type}", "type": message_type, "payload": payloads[message_type]}
+            self.assertEqual(FrameDecoder().feed(encode_frame(envelope)), [envelope])
+
     def test_split_prefix(self):
         envelope = {
             "version": 1,
             "id": "split-pre",
             "type": "hello",
-            "payload": {"capabilities": ["os_tools"]}
+            "payload": {"client": "test", "protocolVersion": 1}
         }
         frame = encode_frame(envelope)
         decoder = FrameDecoder()
@@ -70,8 +106,8 @@ class TestBackendProtocol(unittest.TestCase):
         self.assertEqual(messages[0], envelope)
 
     def test_coalesced_frames(self):
-        env1 = {"version": 1, "id": "1", "type": "hello", "payload": {}}
-        env2 = {"version": 1, "id": "2", "type": "status", "payload": {"state": "ok"}}
+        env1 = {"version": 1, "id": "1", "type": "hello", "payload": {"client": "test", "protocolVersion": 1}}
+        env2 = {"version": 1, "id": "2", "type": "status", "payload": {"status": "ok"}}
         combined = encode_frame(env1) + encode_frame(env2)
 
         decoder = FrameDecoder()
@@ -96,6 +132,46 @@ class TestBackendProtocol(unittest.TestCase):
         decoder = FrameDecoder()
         with self.assertRaises(FrameError):
             decoder.feed(frame)
+
+    def test_rejects_invalid_utf8(self):
+        body = bytes([0xC3, 0x28])
+        with self.assertRaises(FrameError):
+            FrameDecoder().feed(struct.pack(">I", len(body)) + body)
+
+    def test_rejects_unknown_and_wrong_direction_messages(self):
+        unknown = {"version": 1, "id": "1", "type": "made_up", "payload": {}}
+        with self.assertRaises(FrameError):
+            encode_frame(unknown)
+
+        host_only = {"version": 1, "id": "2", "type": "chat", "payload": {"text": "oi"}}
+        with self.assertRaises(FrameError):
+            FrameDecoder(allowed_types=SIDECAR_TO_HOST_MESSAGE_TYPES).feed(encode_frame(host_only))
+
+    def test_rejects_missing_or_malformed_payloads(self):
+        invalid_envelopes = (
+            {"version": 1, "id": "1", "type": "hello"},
+            {"version": 1, "id": "2", "type": "hello", "payload": {}},
+            {"version": 1, "id": "3", "type": "chat", "payload": {"text": 123}},
+            {"version": 1, "id": "4", "type": "audio_input", "payload": {"audio_base64": ""}},
+            {"version": 1, "id": "5", "type": "config", "payload": {"model": "x"}},
+            {"version": 1, "id": "6", "type": "hello_ack", "payload": {"protocolVersion": 1}},
+            {"version": 1, "id": "7", "type": "status", "payload": {}},
+            {"version": 1, "id": "8", "type": "response", "payload": {"text": False}},
+            {"version": 1, "id": "9", "type": "tool_execution", "payload": {"tool": "x", "args": []}},
+            {"version": 1, "id": "10", "type": "error", "payload": {}},
+        )
+        for envelope in invalid_envelopes:
+            with self.subTest(message_type=envelope.get("type")):
+                with self.assertRaises(FrameError):
+                    encode_frame(envelope)
+
+    def test_enforces_handshake_state(self):
+        with self.assertRaises(FrameError):
+            validate_incoming_state({"type": "chat"}, handshake_complete=False)
+        with self.assertRaises(FrameError):
+            validate_incoming_state({"type": "hello"}, handshake_complete=True)
+        with self.assertRaises(FrameError):
+            validate_incoming_state({"type": "response"}, handshake_complete=True)
 
     def test_rejects_version_mismatch(self):
         body = json.dumps({"version": 2, "id": "1", "type": "hello", "payload": {}}).encode("utf-8")

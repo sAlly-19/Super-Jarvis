@@ -4,8 +4,60 @@ import assert from 'node:assert/strict'
 import { encodeFrame, FrameDecoder, FrameError } from '../src/main/services/backend-framing'
 // @ts-ignore - will be implemented in Step 3
 import type { BackendEnvelope } from '@shared'
+import {
+  BACKEND_MESSAGE_TYPES,
+  HOST_TO_SIDECAR_MESSAGE_TYPES,
+  SIDECAR_TO_HOST_MESSAGE_TYPES,
+  type BackendMessageType
+} from '@shared'
+
+function rawFrame(value: unknown): Buffer {
+  const body = Buffer.from(JSON.stringify(value), 'utf8')
+  const prefix = Buffer.alloc(4)
+  prefix.writeUInt32BE(body.length)
+  return Buffer.concat([prefix, body])
+}
 
 describe('Sidecar Versioned Framing Protocol (TypeScript)', () => {
+  test('publishes the complete canonical message allowlists', () => {
+    assert.deepEqual(BACKEND_MESSAGE_TYPES, [
+      'hello', 'config', 'chat', 'audio_input', 'interrupt', 'memory_snapshot', 'memory_clear', 'shutdown',
+      'hello_ack', 'status', 'user_transcript', 'response', 'audio_output', 'tool_execution', 'tool_result',
+      'memory_upsert', 'turn_complete', 'interrupted', 'error'
+    ])
+    assert.equal(HOST_TO_SIDECAR_MESSAGE_TYPES.length, 8)
+    assert.equal(SIDECAR_TO_HOST_MESSAGE_TYPES.length, 12)
+  })
+
+  test('accepts a valid payload for every allowed message type', () => {
+    const payloads: Record<BackendMessageType, Record<string, unknown>> = {
+      hello: { client: 'test', protocolVersion: 1 },
+      config: { agent_name: 'Jasper', model: 'model', voice: 'voice', apiKey: '', vision: false },
+      chat: { text: 'oi' },
+      audio_input: { audio_base64: 'AA==' },
+      interrupt: {},
+      memory_snapshot: { facts: [] },
+      memory_clear: {},
+      shutdown: { reason: 'test' },
+      hello_ack: { service: 'jasper-backend', protocolVersion: 1, tools: [] },
+      status: { status: 'ready' },
+      user_transcript: { text: 'oi' },
+      response: { text: 'olá' },
+      audio_output: { audio_base64: 'AA==', format: 'mp3', text: 'olá' },
+      tool_execution: { tool: 'test', args: {} },
+      tool_result: { tool: 'test', result: 'ok' },
+      memory_upsert: { facts: [] },
+      turn_complete: {},
+      interrupted: {},
+      error: { message: 'erro' }
+    }
+
+    for (const type of BACKEND_MESSAGE_TYPES) {
+      const envelope: BackendEnvelope = { version: 1, id: `valid-${type}`, type, payload: payloads[type] }
+      assert.deepEqual(new FrameDecoder().push(encodeFrame(envelope)), [envelope])
+    }
+  })
+
   test('round-trip Unicode envelope encoding and decoding', () => {
     const envelope: BackendEnvelope = {
       version: 1,
@@ -29,7 +81,7 @@ describe('Sidecar Versioned Framing Protocol (TypeScript)', () => {
       version: 1,
       id: 'msg-split-pre',
       type: 'hello',
-      payload: { nonce: 'abc', capabilities: ['system'] }
+      payload: { client: 'test', protocolVersion: 1 }
     }
 
     const frame = encodeFrame(envelope)
@@ -64,8 +116,8 @@ describe('Sidecar Versioned Framing Protocol (TypeScript)', () => {
   })
 
   test('handles coalesced frames in a single chunk', () => {
-    const env1: BackendEnvelope = { version: 1, id: '1', type: 'hello', payload: {} }
-    const env2: BackendEnvelope = { version: 1, id: '2', type: 'status', payload: { state: 'ok' } }
+    const env1: BackendEnvelope = { version: 1, id: '1', type: 'hello', payload: { client: 'test', protocolVersion: 1 } }
+    const env2: BackendEnvelope = { version: 1, id: '2', type: 'status', payload: { status: 'ok' } }
     const env3: BackendEnvelope = { version: 1, id: '3', type: 'turn_complete', payload: {} }
 
     const combined = Buffer.concat([encodeFrame(env1), encodeFrame(env2), encodeFrame(env3)])
@@ -109,6 +161,45 @@ describe('Sidecar Versioned Framing Protocol (TypeScript)', () => {
       name: 'FrameError',
       message: /JSON inválido/i
     })
+  })
+
+  test('rejects invalid UTF-8 instead of replacing bytes', () => {
+    const invalidUtf8 = Buffer.from([0xc3, 0x28])
+    const prefix = Buffer.alloc(4)
+    prefix.writeUInt32BE(invalidUtf8.length)
+    assert.throws(() => new FrameDecoder().push(Buffer.concat([prefix, invalidUtf8])), FrameError)
+  })
+
+  test('rejects unknown message types and wrong-direction messages', () => {
+    assert.throws(
+      () => new FrameDecoder().push(rawFrame({ version: 1, id: '1', type: 'made_up', payload: {} })),
+      /unknown|desconhecido/i
+    )
+    assert.throws(
+      () => new FrameDecoder({ allowedTypes: SIDECAR_TO_HOST_MESSAGE_TYPES }).push(
+        rawFrame({ version: 1, id: '2', type: 'chat', payload: { text: 'oi' } })
+      ),
+      /direction|direção/i
+    )
+  })
+
+  test('rejects missing or malformed payloads for every message family', () => {
+    const invalidEnvelopes = [
+      { version: 1, id: '1', type: 'hello' },
+      { version: 1, id: '2', type: 'hello', payload: {} },
+      { version: 1, id: '3', type: 'chat', payload: { text: 123 } },
+      { version: 1, id: '4', type: 'audio_input', payload: { audio_base64: '' } },
+      { version: 1, id: '5', type: 'config', payload: { model: 'x' } },
+      { version: 1, id: '6', type: 'hello_ack', payload: { protocolVersion: 1 } },
+      { version: 1, id: '7', type: 'status', payload: {} },
+      { version: 1, id: '8', type: 'response', payload: { text: false } },
+      { version: 1, id: '9', type: 'tool_execution', payload: { tool: 'x', args: [] } },
+      { version: 1, id: '10', type: 'error', payload: {} }
+    ]
+
+    for (const envelope of invalidEnvelopes) {
+      assert.throws(() => new FrameDecoder().push(rawFrame(envelope)), FrameError)
+    }
   })
 
   test('rejects version mismatch (version !== 1)', () => {
