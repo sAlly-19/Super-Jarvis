@@ -3,7 +3,7 @@
 **Spec:** `docs/superpowers/specs/2026-10-23-settings-provider-credentials-design.md`  
 **Plan:** `docs/superpowers/plans/2026-10-23-provider-aware-settings-dashboard.md`  
 **Branch:** `main`  
-**Status:** Execution in progress — Task 7 verified; Task 8 is next
+**Status:** Complete — All 8 tasks verified and committed
 
 ## Completed
 
@@ -24,7 +24,7 @@
 - [x] Task 5 — Python provider routing and actionable errors
 - [x] Task 6 — Truthful dashboard structure and styling
 - [x] Task 7 — Renderer draft, provider UX, and onboarding
-- [ ] Task 8 — Full verification and handoff
+- [x] Task 8 — Full verification and handoff
 
 ## Working Tree Constraint
 
@@ -82,6 +82,7 @@ Do not stage or commit the pre-existing Task 7 release/signing changes in `.gith
 
 ## Task 7 Verification
 
+- Commit: `6e4ae82` (`feat: add provider-aware settings workflow`).
 - `npm.cmd test -- settings-draft` — 4 tests, 0 failures.
 - `npm.cmd test -- settings-dashboard` — 6 tests, 0 failures.
 - `npm.cmd test -- preload-contract` — 2 tests, 0 failures.
@@ -89,6 +90,20 @@ Do not stage or commit the pre-existing Task 7 release/signing changes in `.gith
 - `npm.cmd run typecheck` — passed with 0 errors.
 - Verified pure `SettingsDraft` helpers, provider switching, dirty tracking, rollback on Cancel/X/Escape/outside click, selective backend sync vs visual-only save, immediate credential removal via `removeProviderCredential`, and provider-aware onboarding in `license-modal.ts`.
 - Next: Task 8 — full verification and handoff.
+
+## Task 8 Verification & Final Handoff
+
+- `npm.cmd run scan:secrets` — passed (`163 tracked files checked`).
+- Legacy token scan (`Select-String -Pattern 'hasFullKey|input-api-key|gemini-key-masked-display|saveConfig\(\{ apiKey'`) — zero positive references in `src/`; tokens appear only in negative assertions in `test/config.test.ts` and `test/settings-dashboard.test.ts`.
+- `npm.cmd run typecheck` — passed with 0 errors.
+- `npm.cmd test` — 182 tests, 33 suites, 0 failures.
+- `npm.cmd run test:python` — 26 tests, 0 failures.
+- `npm.cmd run build` — `out/main/index.js`, `out/preload/index.js`, and `out/renderer/index.html` compiled cleanly (note: standard Vite informational warning on renderer Three.js chunk > 500 kB).
+- Packaged-boundary review confirmed:
+  - Renderer receives only `RendererConfigSummary` with masked credential metadata (`providerCredentials.gemini` / `providerCredentials.groq`).
+  - Sidecar config payload (`buildActiveProviderConfigPayload`) transmits only the single active provider's credential (or empty string for `ollama`).
+  - Locked IPC allow-list (`LOCKED_ALLOWED_IPC_CHANNELS`) remains restricted to licensing and window controls; `CONFIG_REMOVE_CREDENTIAL` and all operational handlers are denied while locked.
+  - Pre-existing uncommitted release/signing files remain untouched in the working tree.
 
 ## Resume Instructions
 

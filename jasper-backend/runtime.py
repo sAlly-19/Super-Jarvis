@@ -42,7 +42,7 @@ PROVIDER_LABELS: Dict[str, str] = {
 
 OLLAMA_LOCAL_API_BASE = "http://127.0.0.1:11434"
 
-SECRET_TOKEN_RE = re.compile(r"(AIza[0-9A-Za-z_-]{10,}|gsk_[0-9A-Za-z_-]{10,})")
+CREDENTIAL_REDACT_RE = re.compile(r"(AIza[0-9A-Za-z_-]{10,}|gsk_[0-9A-Za-z_-]{10,})")
 
 VISION_KEYWORDS_RE = re.compile(
     r"\b(olhe a tela|olha a tela|veja a tela|analise a tela|o que est[áa] na tela|"
@@ -55,7 +55,7 @@ def _redact_secrets(text: str, active_key: str = "") -> str:
     sanitized = str(text or "")
     if active_key:
         sanitized = sanitized.replace(active_key, "[REDACTED]")
-    return SECRET_TOKEN_RE.sub("[REDACTED]", sanitized)
+    return CREDENTIAL_REDACT_RE.sub("[REDACTED]", sanitized)
 
 
 def normalize_model_name(raw_model: Optional[str]) -> str:
