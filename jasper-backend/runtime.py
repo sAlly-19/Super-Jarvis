@@ -6,7 +6,7 @@ import os
 import re
 import sys
 import uuid
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 from tools_os import (
     AVAILABLE_FUNCTIONS,
@@ -28,11 +28,34 @@ VOICE_MAP: Dict[str, str] = {
     "Zephyr": "pt-BR-ThalitaNeural",
 }
 
+SUPPORTED_PROVIDER_MODELS: Dict[str, Tuple[str, ...]] = {
+    "gemini": ("gemini/gemini-2.5-flash",),
+    "groq": ("groq/llama-3.3-70b-versatile",),
+    "ollama": ("ollama/qwen2.5:3b",),
+}
+
+PROVIDER_LABELS: Dict[str, str] = {
+    "gemini": "Google Gemini",
+    "groq": "Groq",
+    "ollama": "Ollama",
+}
+
+OLLAMA_LOCAL_API_BASE = "http://127.0.0.1:11434"
+
+SECRET_TOKEN_RE = re.compile(r"(AIza[0-9A-Za-z_-]{10,}|gsk_[0-9A-Za-z_-]{10,})")
+
 VISION_KEYWORDS_RE = re.compile(
     r"\b(olhe a tela|olha a tela|veja a tela|analise a tela|o que est[áa] na tela|"
     r"o que tem na tela|leia a tela|minha tela|print da tela|captura de tela|screenshot)\b",
     re.IGNORECASE,
 )
+
+
+def _redact_secrets(text: str, active_key: str = "") -> str:
+    sanitized = str(text or "")
+    if active_key:
+        sanitized = sanitized.replace(active_key, "[REDACTED]")
+    return SECRET_TOKEN_RE.sub("[REDACTED]", sanitized)
 
 
 def normalize_model_name(raw_model: Optional[str]) -> str:
@@ -51,6 +74,38 @@ def normalize_model_name(raw_model: Optional[str]) -> str:
     if lower.startswith("qwen") or lower.startswith("phi") or lower.startswith("mistral"):
         return f"ollama/{model}"
     return model
+
+
+def infer_provider_from_model(model: Optional[str]) -> str:
+    normalized = normalize_model_name(model)
+    prefix = normalized.split("/", 1)[0].strip().lower() if "/" in normalized else ""
+    if prefix in SUPPORTED_PROVIDER_MODELS and normalized in SUPPORTED_PROVIDER_MODELS[prefix]:
+        return prefix
+    return "gemini"
+
+
+def validate_provider_model(provider: Optional[str], model: Optional[str]) -> Tuple[str, str]:
+    normalized_provider = str(provider or "").strip().lower()
+    normalized_model = str(model or "").strip()
+
+    if normalized_provider not in SUPPORTED_PROVIDER_MODELS:
+        raise ValueError("Provedor de IA não suportado.")
+
+    allowed_models = SUPPORTED_PROVIDER_MODELS[normalized_provider]
+    if not normalized_model.startswith(f"{normalized_provider}/") or normalized_model not in allowed_models:
+        raise ValueError(f"Modelo não suportado para o provedor {PROVIDER_LABELS[normalized_provider]}.")
+
+    return normalized_provider, normalized_model
+
+
+def format_provider_error(provider: str) -> str:
+    if provider == "ollama":
+        return (
+            f"Serviço local Ollama indisponível em {OLLAMA_LOCAL_API_BASE}. "
+            "Verifique se o Ollama está em execução e se o modelo qwen2.5:3b está instalado."
+        )
+    label = PROVIDER_LABELS.get(provider, "IA")
+    return f"Não foi possível concluir a solicitação no provedor {label}. Verifique a credencial configurada e a conexão."
 
 
 def resolve_voice_name(raw_voice: Optional[str]) -> str:
@@ -90,8 +145,8 @@ async def generate_tts_base64(text: str, voice: str = "pt-BR-AntonioNeural") -> 
         return ""
 
 
-def _transcribe_wav_sync(wav_bytes: bytes, api_key: str = "") -> str:
-    groq_key = api_key if api_key.startswith("gsk_") else os.getenv("GROQ_API_KEY", "")
+def _transcribe_wav_sync(wav_bytes: bytes, api_key: str = "", provider: str = "") -> str:
+    groq_key = api_key if (provider == "groq" and api_key) else ""
     if groq_key:
         try:
             import litellm
@@ -107,7 +162,7 @@ def _transcribe_wav_sync(wav_bytes: bytes, api_key: str = "") -> str:
             if text and str(text).strip():
                 return str(text).strip()
         except Exception as exc:
-            print(f"[STT] Groq Whisper fallback: {exc}", file=sys.stderr)
+            print(f"[STT] Groq Whisper fallback: {_redact_secrets(str(exc), groq_key)}", file=sys.stderr)
 
     try:
         import speech_recognition as sr
@@ -118,32 +173,36 @@ def _transcribe_wav_sync(wav_bytes: bytes, api_key: str = "") -> str:
         text = recognizer.recognize_google(audio_data, language="pt-BR")
         return (text or "").strip()
     except Exception as exc:
-        print(f"[STT] Failed to transcribe audio: {exc}", file=sys.stderr)
+        print(f"[STT] Failed to transcribe audio: {_redact_secrets(str(exc), api_key)}", file=sys.stderr)
         return ""
 
 
-async def transcribe_audio_base64(audio_b64: str, api_key: str = "") -> str:
+async def transcribe_audio_base64(audio_b64: str, api_key: str = "", provider: str = "") -> str:
     try:
         wav_bytes = base64.b64decode(audio_b64)
-        return await asyncio.to_thread(_transcribe_wav_sync, wav_bytes, api_key)
+        return await asyncio.to_thread(_transcribe_wav_sync, wav_bytes, api_key, provider)
     except Exception as exc:
-        print(f"[STT] Base64 decode error: {exc}", file=sys.stderr)
+        print(f"[STT] Base64 decode error: {_redact_secrets(str(exc), api_key)}", file=sys.stderr)
         return ""
 
 
 class JasperRuntime:
     def __init__(self) -> None:
+        initial_provider = infer_provider_from_model(os.getenv("JASPER_MODEL", "gemini/gemini-2.5-flash"))
+        initial_model = SUPPORTED_PROVIDER_MODELS[initial_provider][0]
+        if initial_provider == "gemini":
+            initial_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""
+        elif initial_provider == "groq":
+            initial_key = os.getenv("GROQ_API_KEY") or ""
+        else:
+            initial_key = ""
+
         self.config: Dict[str, Any] = {
+            "provider": initial_provider,
             "agent_name": os.getenv("JASPER_AGENT_NAME", "Jasper"),
-            "model": normalize_model_name(os.getenv("JASPER_MODEL", "gemini/gemini-2.5-flash")),
+            "model": initial_model,
             "voice": resolve_voice_name(os.getenv("JASPER_VOICE", "pt-BR-AntonioNeural")),
-            "api_key": (
-                os.getenv("GEMINI_API_KEY")
-                or os.getenv("GOOGLE_API_KEY")
-                or os.getenv("GROQ_API_KEY")
-                or os.getenv("OPENAI_API_KEY")
-                or ""
-            ),
+            "api_key": initial_key,
             "vision_enabled": False,
         }
         self.history: List[Dict[str, Any]] = []
@@ -170,19 +229,34 @@ class JasperRuntime:
         )
 
     def update_config(self, data: Dict[str, Any]) -> None:
+        raw_model = str(data.get("model") or self.config["model"]).strip()
+        raw_provider = (
+            str(data["provider"]).strip().lower()
+            if data.get("provider") is not None
+            else (raw_model.split("/", 1)[0].strip().lower() if "/" in raw_model else str(self.config["provider"]))
+        )
+        provider, validated_model = validate_provider_model(raw_provider, raw_model)
+
+        if provider == "ollama":
+            resolved_key = ""
+        else:
+            if "api_key" in data or "apiKey" in data:
+                candidate = str(data.get("api_key") or data.get("apiKey") or "").strip()
+                resolved_key = self.config["api_key"] if "..." in candidate else candidate
+            elif self.config.get("provider") == provider:
+                resolved_key = str(self.config.get("api_key") or "").strip()
+            else:
+                resolved_key = ""
+
+            if not resolved_key:
+                raise ValueError(f"Credencial obrigatória ausente para o provedor {PROVIDER_LABELS[provider]}.")
+
         if data.get("agent_name") or data.get("agentName"):
             self.config["agent_name"] = str(data.get("agent_name") or data.get("agentName")).strip()
-        if data.get("model"):
-            self.config["model"] = normalize_model_name(str(data["model"]))
-        if "api_key" in data or "apiKey" in data:
-            new_key = str(data.get("api_key") or data.get("apiKey") or "").strip()
-            if "..." not in new_key:
-                self.config["api_key"] = new_key
-                if new_key.startswith("gsk_"):
-                    os.environ["GROQ_API_KEY"] = new_key
-                elif new_key:
-                    os.environ["GEMINI_API_KEY"] = new_key
-                    os.environ["GOOGLE_API_KEY"] = new_key
+        self.config["provider"] = provider
+        self.config["model"] = validated_model
+        self.config["api_key"] = resolved_key
+
         if data.get("voice") or data.get("voiceName"):
             self.config["voice"] = resolve_voice_name(str(data.get("voice") or data.get("voiceName")))
         if "vision" in data or "enableScreenAwareness" in data:
@@ -211,6 +285,29 @@ class JasperRuntime:
         user_text: str,
         force_vision: bool = False,
     ) -> AsyncIterator[Dict[str, Any]]:
+        provider, validated_model = validate_provider_model(
+            self.config.get("provider"),
+            self.config.get("model"),
+        )
+        active_key = str(self.config.get("api_key") or "").strip()
+        if provider in ("gemini", "groq") and not active_key:
+            missing_msg = f"Credencial obrigatória ausente para o provedor {PROVIDER_LABELS[provider]}."
+            yield {
+                "version": 1,
+                "id": str(uuid.uuid4()),
+                "replyTo": req_id,
+                "type": "error",
+                "payload": {"message": missing_msg},
+            }
+            yield {
+                "version": 1,
+                "id": str(uuid.uuid4()),
+                "replyTo": req_id,
+                "type": "turn_complete",
+                "payload": {},
+            }
+            return
+
         new_fact = self.maybe_memorize_fact(user_text)
         if new_fact:
             yield {
@@ -224,7 +321,7 @@ class JasperRuntime:
         needs_vision = force_vision or self.config["vision_enabled"] or bool(VISION_KEYWORDS_RE.search(user_text))
         user_message_content: Any = user_text
 
-        if needs_vision and not self.config["model"].startswith("ollama/"):
+        if needs_vision and provider != "ollama":
             try:
                 yield {
                     "version": 1,
@@ -243,7 +340,7 @@ class JasperRuntime:
                         },
                     ]
             except Exception as exc:
-                print(f"[AgentLoop] Screen capture error: {exc}", file=sys.stderr)
+                print(f"[AgentLoop] Screen capture error: {_redact_secrets(str(exc), active_key)}", file=sys.stderr)
 
         self.history.append({"role": "user", "content": user_message_content})
         if len(self.history) > 16:
@@ -265,16 +362,16 @@ class JasperRuntime:
 
             for _iteration in range(max_iterations):
                 completion_kwargs: Dict[str, Any] = {
-                    "model": self.config["model"],
+                    "model": validated_model,
                     "messages": messages,
                     "tools": TOOLS_SCHEMA,
                     "tool_choice": "auto",
                     "temperature": 0.4,
                 }
-                if self.config["model"].startswith("ollama/"):
-                    completion_kwargs["api_base"] = os.getenv("OLLAMA_API_BASE", "http://127.0.0.1:11434")
-                elif self.config["api_key"]:
-                    completion_kwargs["api_key"] = self.config["api_key"]
+                if provider == "ollama":
+                    completion_kwargs["api_base"] = OLLAMA_LOCAL_API_BASE
+                else:
+                    completion_kwargs["api_key"] = active_key
 
                 response = await litellm.acompletion(**completion_kwargs)
                 choice_msg = response.choices[0].message
@@ -335,12 +432,18 @@ class JasperRuntime:
                                 ensure_ascii=False,
                             )
                         except Exception as exc:
-                            tool_result = json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False)
+                            tool_result = json.dumps(
+                                {"status": "error", "error": _redact_secrets(str(exc), active_key)},
+                                ensure_ascii=False,
+                            )
                     else:
                         try:
                             tool_result = await asyncio.to_thread(fn_to_call, **fn_args)
                         except Exception as exc:
-                            tool_result = json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False)
+                            tool_result = json.dumps(
+                                {"status": "error", "error": _redact_secrets(str(exc), active_key)},
+                                ensure_ascii=False,
+                            )
 
                     yield {
                         "version": 1,
@@ -361,30 +464,28 @@ class JasperRuntime:
 
             if not final_text:
                 completion_kwargs = {
-                    "model": self.config["model"],
+                    "model": validated_model,
                     "messages": messages,
                     "temperature": 0.4,
                 }
-                if self.config["model"].startswith("ollama/"):
-                    completion_kwargs["api_base"] = os.getenv("OLLAMA_API_BASE", "http://127.0.0.1:11434")
-                elif self.config["api_key"]:
-                    completion_kwargs["api_key"] = self.config["api_key"]
+                if provider == "ollama":
+                    completion_kwargs["api_base"] = OLLAMA_LOCAL_API_BASE
+                else:
+                    completion_kwargs["api_key"] = active_key
 
                 synth_resp = await litellm.acompletion(**completion_kwargs)
                 final_text = (getattr(synth_resp.choices[0].message, "content", None) or "Ação concluída.").strip()
 
         except ImportError:
-            # Fallback when litellm is not installed (e.g. lean testing mode)
             final_text = f"[{self.config['agent_name']}] Mensagem recebida: {user_text}"
         except Exception as exc:
-            print(f"[AgentLoop] LLM error: {exc}", file=sys.stderr)
-            final_text = f"Erro na inferência: {str(exc)[:200]}"
+            print(f"[AgentLoop] LLM error ({provider}): {type(exc).__name__}", file=sys.stderr)
+            final_text = format_provider_error(provider)
 
         if isinstance(self.history[-1]["content"], list):
             self.history[-1]["content"] = user_text
         self.history.append({"role": "assistant", "content": final_text})
 
-        # Emit text response
         yield {
             "version": 1,
             "id": str(uuid.uuid4()),
@@ -393,7 +494,6 @@ class JasperRuntime:
             "payload": {"text": final_text},
         }
 
-        # Generate Edge-TTS audio if possible
         try:
             audio_b64 = await generate_tts_base64(final_text, voice=self.config["voice"])
             if audio_b64:
@@ -450,7 +550,18 @@ class JasperRuntime:
             return
 
         if msg_type == "config":
-            self.update_config(payload)
+            try:
+                self.update_config(payload)
+            except ValueError as exc:
+                yield {
+                    "version": 1,
+                    "id": str(uuid.uuid4()),
+                    "replyTo": msg_id,
+                    "type": "error",
+                    "payload": {"message": _redact_secrets(str(exc), str(payload.get("apiKey") or payload.get("api_key") or ""))},
+                }
+                return
+
             yield {
                 "version": 1,
                 "id": str(uuid.uuid4()),
@@ -458,6 +569,7 @@ class JasperRuntime:
                 "type": "status",
                 "payload": {
                     "status": "connected",
+                    "provider": self.config["provider"],
                     "agent_name": self.config["agent_name"],
                     "model": self.config["model"],
                     "voice": self.config["voice"],
@@ -527,7 +639,11 @@ class JasperRuntime:
                 "payload": {"status": "listening", "message": "Transcrevendo voz..."},
             }
 
-            transcript = await transcribe_audio_base64(audio_b64, api_key=self.config["api_key"])
+            transcript = await transcribe_audio_base64(
+                audio_b64,
+                api_key=self.config["api_key"],
+                provider=self.config["provider"],
+            )
             if not transcript:
                 yield {
                     "version": 1,
@@ -558,12 +674,16 @@ class JasperRuntime:
                     "payload": {},
                 }
             except Exception as exc:
+                print(
+                    f"[AgentLoop] Audio turn error: {_redact_secrets(str(exc), self.config['api_key'])}",
+                    file=sys.stderr,
+                )
                 yield {
                     "version": 1,
                     "id": str(uuid.uuid4()),
                     "replyTo": msg_id,
                     "type": "error",
-                    "payload": {"message": f"Erro no processamento: {str(exc)[:220]}"},
+                    "payload": {"message": format_provider_error(self.config["provider"])},
                 }
                 yield {
                     "version": 1,
@@ -607,12 +727,16 @@ class JasperRuntime:
                     "payload": {},
                 }
             except Exception as exc:
+                print(
+                    f"[AgentLoop] Chat turn error: {_redact_secrets(str(exc), self.config['api_key'])}",
+                    file=sys.stderr,
+                )
                 yield {
                     "version": 1,
                     "id": str(uuid.uuid4()),
                     "replyTo": msg_id,
                     "type": "error",
-                    "payload": {"message": f"Erro no processamento: {str(exc)[:220]}"},
+                    "payload": {"message": format_provider_error(self.config["provider"])},
                 }
                 yield {
                     "version": 1,
@@ -623,7 +747,6 @@ class JasperRuntime:
                 }
             return
 
-        # Unknown message type fallback
         yield {
             "version": 1,
             "id": str(uuid.uuid4()),

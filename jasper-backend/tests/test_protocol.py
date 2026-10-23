@@ -50,7 +50,14 @@ class TestBackendProtocol(unittest.TestCase):
     def test_accepts_valid_payload_for_every_allowed_message_type(self):
         payloads = {
             "hello": {"client": "test", "protocolVersion": 1},
-            "config": {"agent_name": "Jasper", "model": "model", "voice": "voice", "apiKey": "", "vision": False},
+            "config": {
+                "provider": "gemini",
+                "agent_name": "Jasper",
+                "model": "gemini/gemini-2.5-flash",
+                "voice": "pt-BR-AntonioNeural",
+                "apiKey": "AIzaSyTestKey",
+                "vision": False,
+            },
             "chat": {"text": "oi"},
             "audio_input": {"audio_base64": "AA=="},
             "interrupt": {},

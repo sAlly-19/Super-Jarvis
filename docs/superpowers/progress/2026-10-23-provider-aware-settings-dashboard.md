@@ -3,7 +3,7 @@
 **Spec:** `docs/superpowers/specs/2026-10-23-settings-provider-credentials-design.md`  
 **Plan:** `docs/superpowers/plans/2026-10-23-provider-aware-settings-dashboard.md`  
 **Branch:** `main`  
-**Status:** Execution in progress — Task 4 verified; Task 5 is next
+**Status:** Execution in progress — Task 5 verified; Task 6 is next
 
 ## Completed
 
@@ -21,7 +21,7 @@
 - [x] Task 2 — Secure credential storage and legacy migration
 - [x] Task 3 — Credential-safe IPC and preload boundary
 - [x] Task 4 — Active provider sidecar synchronization
-- [ ] Task 5 — Python provider routing and actionable errors
+- [x] Task 5 — Python provider routing and actionable errors
 - [ ] Task 6 — Truthful dashboard structure and styling
 - [ ] Task 7 — Renderer draft, provider UX, and onboarding
 - [ ] Task 8 — Full verification and handoff
@@ -57,11 +57,19 @@ Do not stage or commit the pre-existing Task 7 release/signing changes in `.gith
 
 ## Task 4 Verification
 
+- Commit: `d43ecc6` (`feat: isolate active provider runtime key`).
 - `npm.cmd test -- provider-runtime-config` — 4 tests, 0 failures.
 - `npm.cmd test -- python-backend-manager` — 17 tests, 0 failures.
 - `npm.cmd test` — 172 tests, 31 suites, 0 failures.
 - Verified that Gemini and Groq frames contain only the active key, Ollama sends an empty key, and missing remote credentials send no frame.
 - Next: Task 5 — Python provider routing and actionable errors.
+
+## Task 5 Verification
+
+- `npm.cmd run test:python` — 26 tests, 0 failures.
+- `npm.cmd test -- backend-framing` — 15 tests, 0 failures.
+- Verified explicit provider/model allow-list validation in Python, required keys for Gemini/Groq, keyless local Ollama routing (`http://127.0.0.1:11434`), and sanitized provider-specific error messages that never leak submitted credentials.
+- Next: Task 6 — truthful dashboard structure and styling.
 
 ## Resume Instructions
 
