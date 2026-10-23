@@ -4,6 +4,7 @@ import { ipcMain } from 'electron'
 import { IPC_CHANNELS, LOCKED_ALLOWED_CHANNELS } from '../src/shared/constants/ipc-channels'
 import {
   registerIpcHandlers,
+  assertConfigPayload,
   assertTrustedSender,
   assertTextPayload,
   assertAudioPayload,
@@ -11,6 +12,7 @@ import {
 } from '../src/main/ipc/register-ipc'
 import { licenseGate } from '../src/main/services/license-gate'
 import { pythonBackend } from '../src/main/services/python-backend'
+import { configStore } from '../src/main/config/config-store'
 import type { BackendEnvelope } from '../src/shared/types/backend-protocol'
 
 function createMockIpcEvent(options: {
@@ -92,6 +94,19 @@ describe('Agent IPC Security and Boundary Enforcement', () => {
     assert.throws(() => assertAudioPayload(oversized), /excede o limite de 16 MiB/i)
     assert.throws(() => assertAudioPayload('not-a-buffer' as any), /Payload de áudio inválido/i)
   })
+
+  test('assertConfigPayload enforces provider allow-list, credential limits and unknown fields', () => {
+    assert.doesNotThrow(() => assertConfigPayload({
+      aiProvider: 'gemini',
+      geminiApiKey: 'g'.repeat(512),
+      groqApiKey: 'q'.repeat(512)
+    }))
+    assert.throws(() => assertConfigPayload({ geminiApiKey: 'g'.repeat(513) }), /geminiApiKey.*inv.*lido/i)
+    assert.throws(() => assertConfigPayload({ groqApiKey: 'q'.repeat(513) }), /groqApiKey.*inv.*lido/i)
+    assert.throws(() => assertConfigPayload({ aiProvider: 'openai' }), /provedor.*inv.*lido/i)
+    assert.throws(() => assertConfigPayload({ aiProvider: 'gemini\0' }), /provedor.*inv.*lido/i)
+    assert.throws(() => assertConfigPayload({ unknownSetting: true }), /n.*o permitido/i)
+  })
 })
 
 describe('Agent High-Level IPC Channels Definition', () => {
@@ -152,6 +167,7 @@ describe('Agent High-Level IPC Channels Definition', () => {
         IPC_CHANNELS.CONSENT_ACCEPT,
         IPC_CHANNELS.CONFIG_GET,
         IPC_CHANNELS.CONFIG_SAVE,
+        IPC_CHANNELS.CONFIG_REMOVE_CREDENTIAL,
         IPC_CHANNELS.MEMORY_GET,
         IPC_CHANNELS.MEMORY_CLEAR,
         IPC_CHANNELS.DIALOG_SELECT_DIRECTORY,
@@ -183,5 +199,163 @@ describe('Agent High-Level IPC Channels Definition', () => {
     assert.equal(isBackendEnvelopeForwardingAllowed('expired', 7, 7), false)
     assert.equal(isBackendEnvelopeForwardingAllowed('unlocked', 8, 7), false)
     assert.equal(isBackendEnvelopeForwardingAllowed('unlocked', 8, 8), true)
+  })
+
+  test('configuration save reports missing credential, offline and synchronized outcomes', async () => {
+    const ipc = ipcMain as any
+    ipc._handlers.clear()
+    ipc._listeners.clear()
+    const originalRequireUnlocked = licenseGate.requireUnlocked
+    const originalGetConfig = configStore.getConfig
+    const originalUpdateConfig = configStore.updateConfig
+    const originalSyncConfig = pythonBackend.syncConfig
+    const originalGetState = pythonBackend.getState
+    let currentConfig = {
+      aiProvider: 'gemini',
+      geminiApiKey: '',
+      groqApiKey: 'gsk_inactive',
+      model: 'gemini/gemini-2.5-flash',
+      voiceName: 'Charon',
+      agentName: 'Jasper',
+      checkUpdatesDaily: true,
+      enableWakeWord: true,
+      enableBloom: true,
+      enableNeuralBg: true,
+      enableEyeTracking: true,
+      enableScreenAwareness: true,
+      licenseStatus: 'active'
+    } as any
+    let syncCalls = 0
+    let syncResult = false
+
+    licenseGate.requireUnlocked = () => {}
+    configStore.getConfig = () => ({ ...currentConfig })
+    configStore.updateConfig = (payload: any) => {
+      currentConfig = { ...currentConfig, ...payload }
+      return { ...currentConfig }
+    }
+    pythonBackend.syncConfig = async () => {
+      syncCalls++
+      return syncResult
+    }
+    pythonBackend.getState = () => 'stopped'
+
+    try {
+      registerIpcHandlers()
+      const handler = ipc._handlers.get(IPC_CHANNELS.CONFIG_SAVE)
+      const event = createMockIpcEvent()
+
+      const missing = await handler(event, {
+        aiProvider: 'gemini',
+        model: 'gemini/gemini-2.5-flash'
+      })
+      assert.equal(missing.runtimeStatus, 'missing-credential')
+      assert.equal(syncCalls, 0)
+
+      currentConfig.geminiApiKey = 'configured-secret'
+      const offline = await handler(event, { voiceName: 'Jenny' })
+      assert.equal(offline.runtimeStatus, 'offline')
+      assert.equal(syncCalls, 1)
+
+      syncResult = true
+      const synced = await handler(event, { agentName: 'Jasper Pro' })
+      assert.equal(synced.runtimeStatus, 'synced')
+      assert.equal(syncCalls, 2)
+
+      const visual = await handler(event, { enableBloom: false })
+      assert.equal(visual.runtimeStatus, 'offline')
+      assert.equal(syncCalls, 2, 'visual-only changes must not synchronize the backend')
+    } finally {
+      licenseGate.requireUnlocked = originalRequireUnlocked
+      configStore.getConfig = originalGetConfig
+      configStore.updateConfig = originalUpdateConfig
+      pythonBackend.syncConfig = originalSyncConfig
+      pythonBackend.getState = originalGetState
+      ipc._handlers.clear()
+      ipc._listeners.clear()
+    }
+  })
+
+  test('agent connection refuses a missing active remote credential before health probing', async () => {
+    const ipc = ipcMain as any
+    ipc._handlers.clear()
+    ipc._listeners.clear()
+    const originalRequireUnlocked = licenseGate.requireUnlocked
+    const originalGetConfig = configStore.getConfig
+    const originalIsHealthy = pythonBackend.isHealthy
+    let healthCalls = 0
+
+    licenseGate.requireUnlocked = () => {}
+    configStore.getConfig = () => ({
+      aiProvider: 'groq',
+      geminiApiKey: 'gemini-inactive',
+      groqApiKey: '',
+      model: 'groq/llama-3.3-70b-versatile',
+      licenseStatus: 'active'
+    } as any)
+    pythonBackend.isHealthy = async () => { healthCalls++; return true }
+
+    try {
+      registerIpcHandlers()
+      const handler = ipc._handlers.get(IPC_CHANNELS.AGENT_CONNECT)
+      const result = await handler(createMockIpcEvent())
+      assert.equal(result.success, false)
+      assert.match(result.error, /credencial.*Groq/i)
+      assert.equal(healthCalls, 0)
+    } finally {
+      licenseGate.requireUnlocked = originalRequireUnlocked
+      configStore.getConfig = originalGetConfig
+      pythonBackend.isHealthy = originalIsHealthy
+      ipc._handlers.clear()
+      ipc._listeners.clear()
+    }
+  })
+
+  test('credential removal disconnects only the active remote provider', async () => {
+    const ipc = ipcMain as any
+    ipc._handlers.clear()
+    ipc._listeners.clear()
+    const originalRequireUnlocked = licenseGate.requireUnlocked
+    const originalGetConfig = configStore.getConfig
+    const originalRemove = configStore.removeProviderCredential
+    const originalStop = pythonBackend.stop
+    const originalSyncConfig = pythonBackend.syncConfig
+    const originalGetState = pythonBackend.getState
+    let activeProvider: 'gemini' | 'groq' = 'gemini'
+    let stopCalls = 0
+    let syncCalls = 0
+
+    licenseGate.requireUnlocked = () => {}
+    configStore.getConfig = () => ({ aiProvider: activeProvider } as any)
+    configStore.removeProviderCredential = () => ({ aiProvider: activeProvider } as any)
+    pythonBackend.stop = async () => { stopCalls++ }
+    pythonBackend.syncConfig = async () => { syncCalls++; return true }
+    pythonBackend.getState = () => 'ready'
+
+    try {
+      registerIpcHandlers()
+      const handler = ipc._handlers.get(IPC_CHANNELS.CONFIG_REMOVE_CREDENTIAL)
+      const event = createMockIpcEvent()
+
+      const inactive = await handler(event, 'groq')
+      assert.equal(inactive.runtimeStatus, 'synced')
+      assert.equal(stopCalls, 0)
+      assert.equal(syncCalls, 0)
+
+      const active = await handler(event, 'gemini')
+      assert.equal(active.runtimeStatus, 'missing-credential')
+      assert.equal(stopCalls, 1)
+      assert.equal(syncCalls, 0)
+      assert.match(active.message, /Gemini/i)
+    } finally {
+      licenseGate.requireUnlocked = originalRequireUnlocked
+      configStore.getConfig = originalGetConfig
+      configStore.removeProviderCredential = originalRemove
+      pythonBackend.stop = originalStop
+      pythonBackend.syncConfig = originalSyncConfig
+      pythonBackend.getState = originalGetState
+      ipc._handlers.clear()
+      ipc._listeners.clear()
+    }
   })
 })

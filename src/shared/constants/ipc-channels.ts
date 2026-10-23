@@ -32,6 +32,7 @@ export const IPC_CHANNELS = {
   // Configuration
   CONFIG_GET: 'config:get',
   CONFIG_SAVE: 'config:save',
+  CONFIG_REMOVE_CREDENTIAL: 'config:remove-credential',
   CONFIG_AGENT_NAME_UPDATED: 'config:agent-name-updated',
 
   // Memory

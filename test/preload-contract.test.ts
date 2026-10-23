@@ -29,4 +29,16 @@ describe('preload API contract', () => {
       }
     }
   })
+
+  test('exposes typed credential removal and save results without returning secrets', () => {
+    const root = process.cwd()
+    const implementation = fs.readFileSync(path.join(root, 'src/preload/index.ts'), 'utf8')
+    const declaration = fs.readFileSync(path.join(root, 'src/preload/index.d.ts'), 'utf8')
+
+    assert.match(implementation, /removeProviderCredential/)
+    assert.match(implementation, /CONFIG_REMOVE_CREDENTIAL/)
+    assert.match(declaration, /removeProviderCredential:\s*\(provider:\s*RemoteAIProvider\)\s*=>\s*Promise<ConfigSaveResult>/)
+    assert.match(declaration, /saveConfig:\s*\(config:\s*UpdateConfigPayload\)\s*=>\s*Promise<ConfigSaveResult>/)
+    assert.doesNotMatch(declaration, /Promise<[^>]*(geminiApiKey|groqApiKey|apiKey)/)
+  })
 })

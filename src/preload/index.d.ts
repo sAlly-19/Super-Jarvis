@@ -1,5 +1,7 @@
 import type {
   ConfigSummary,
+  ConfigSaveResult,
+  RemoteAIProvider,
   UpdateConfigPayload,
   JasperMemory,
   LicenseInfo,
@@ -33,7 +35,8 @@ export interface ElectronAPI {
 
   // Configuration
   getConfig: () => Promise<ConfigSummary>
-  saveConfig: (config: UpdateConfigPayload) => Promise<{ success: boolean }>
+  saveConfig: (config: UpdateConfigPayload) => Promise<ConfigSaveResult>
+  removeProviderCredential: (provider: RemoteAIProvider) => Promise<ConfigSaveResult>
   onAgentNameUpdated: (callback: (name: string) => void) => () => void
 
   // Application updates

@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import {
   IPC_CHANNELS,
+  type ConfigSaveResult,
+  type RemoteAIProvider,
   type UpdateConfigPayload,
   type ConfigSummary,
   type JasperMemory,
@@ -97,8 +99,11 @@ const electronAPI = {
   getConfig: (): Promise<ConfigSummary> => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET)
   },
-  saveConfig: (config: UpdateConfigPayload): Promise<{ success: boolean }> => {
+  saveConfig: (config: UpdateConfigPayload): Promise<ConfigSaveResult> => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONFIG_SAVE, config)
+  },
+  removeProviderCredential: (provider: RemoteAIProvider): Promise<ConfigSaveResult> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.CONFIG_REMOVE_CREDENTIAL, provider)
   },
   onAgentNameUpdated: (callback: (name: string) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, name: string): void => callback(name)

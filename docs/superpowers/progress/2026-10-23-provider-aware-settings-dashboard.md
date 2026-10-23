@@ -3,7 +3,7 @@
 **Spec:** `docs/superpowers/specs/2026-10-23-settings-provider-credentials-design.md`  
 **Plan:** `docs/superpowers/plans/2026-10-23-provider-aware-settings-dashboard.md`  
 **Branch:** `main`  
-**Status:** Execution in progress — Task 2 verified; Task 3 is next
+**Status:** Execution in progress — Task 3 verified; Task 4 is next
 
 ## Completed
 
@@ -19,7 +19,7 @@
 
 - [x] Task 1 — Provider catalog and shared contracts
 - [x] Task 2 — Secure credential storage and legacy migration
-- [ ] Task 3 — Credential-safe IPC and preload boundary
+- [x] Task 3 — Credential-safe IPC and preload boundary
 - [ ] Task 4 — Active provider sidecar synchronization
 - [ ] Task 5 — Python provider routing and actionable errors
 - [ ] Task 6 — Truthful dashboard structure and styling
@@ -40,10 +40,19 @@ Do not stage or commit the pre-existing Task 7 release/signing changes in `.gith
 
 ## Task 2 Verification
 
+- Commit: `0187a83` (`feat: store provider credentials independently`).
 - `npm.cmd test -- config` — 10 tests, 0 failures.
 - `npm.cmd test` — 163 tests, 30 suites, 0 failures.
 - Verified independent encrypted credentials, masked summaries, active-key selection, provider/model allow-listing, idempotent legacy migration, and byte-for-byte preservation when decryption is unavailable.
 - Next: Task 3 — credential-safe IPC and preload boundary.
+
+## Task 3 Verification
+
+- `npm.cmd test -- agent-ipc` — 14 tests, 0 failures.
+- `npm.cmd test -- preload-contract` — 2 tests, 0 failures.
+- `npm.cmd test` — 168 tests, 30 suites, 0 failures.
+- Verified locked-license gating for credential removal, 512-character key limits, missing-key refusal before health probing, active/inactive removal behavior, and selective backend synchronization.
+- Next: Task 4 — active provider sidecar synchronization.
 
 ## Resume Instructions
 

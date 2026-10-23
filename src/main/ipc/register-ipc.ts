@@ -7,13 +7,16 @@ import {
 } from 'electron'
 import {
   IPC_CHANNELS,
+  isAIProvider,
   LOCKED_ALLOWED_CHANNELS,
+  type ConfigSaveResult,
+  type RemoteAIProvider,
   type UpdateConfigPayload,
   type BackendEnvelope,
   type IpcChannel,
   type LicenseState
 } from '@shared'
-import { configStore } from '../config/config-store'
+import { configStore, resolveActiveAIConfig } from '../config/config-store'
 import { memoryStore, loadMemory, clearMemory } from '../memory'
 import {
   getMainWindow,
@@ -107,7 +110,9 @@ const CONFIG_BOOLEAN_FIELDS = new Set([
 ])
 
 const CONFIG_STRING_LIMITS: Record<string, number> = {
-  apiKey: 512,
+  aiProvider: 16,
+  geminiApiKey: 512,
+  groqApiKey: 512,
   voiceName: 80,
   model: 160,
   agentName: 80
@@ -123,11 +128,31 @@ export function assertConfigPayload(payload: unknown): asserts payload is Update
     }
     const maxLength = CONFIG_STRING_LIMITS[key]
     if (maxLength !== undefined) {
+      if (key === 'aiProvider') {
+        if (typeof value !== 'string' || value.length > maxLength || value.includes('\0') || !isAIProvider(value)) {
+          throw new Error('Provedor de IA inválido.')
+        }
+        continue
+      }
       assertText(value, key, maxLength)
       continue
     }
     throw new Error(`Campo de configuração não permitido: ${key}.`)
   }
+}
+
+const CONFIG_BACKEND_FIELDS = new Set([
+  'aiProvider',
+  'model',
+  'geminiApiKey',
+  'groqApiKey',
+  'agentName',
+  'voiceName',
+  'enableScreenAwareness'
+])
+
+function configSaveResult(runtimeStatus: ConfigSaveResult['runtimeStatus'], message: string): ConfigSaveResult {
+  return { success: true, runtimeStatus, message }
 }
 
 let backendForwardingWired = false
@@ -250,14 +275,28 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.AGENT_CONNECT, async (event, payload?: UpdateConfigPayload) => {
     assertTrustedSender(event)
     requireIpcAccess(IPC_CHANNELS.AGENT_CONNECT)
-    const cfg = configStore.getConfig()
+    let cfg = configStore.getConfig()
     if (cfg.licenseStatus !== 'active') {
       return { success: false, error: 'Esta estação Jasper requer uma chave de licença ativa.' }
     }
     if (payload !== undefined) assertConfigPayload(payload)
-    if (payload) configStore.updateConfig(payload)
+    if (payload) cfg = configStore.updateConfig(payload)
 
-    const healthy = await pythonBackend.isHealthy()
+    const activeConfig = resolveActiveAIConfig(cfg)
+    if (!activeConfig.ready) {
+      return { success: false, error: activeConfig.error }
+    }
+
+    let healthy = await pythonBackend.isHealthy()
+    if (!healthy) {
+      try {
+        await pythonBackend.start()
+        healthy = await pythonBackend.isHealthy()
+      } catch (error: any) {
+        return { success: false, error: error?.message || 'Não foi possível iniciar o agente.' }
+      }
+    }
+    if (healthy) healthy = await pythonBackend.syncConfig(cfg)
     return { success: healthy }
   })
 
@@ -305,10 +344,45 @@ export function registerIpcHandlers(): void {
     const updated = configStore.updateConfig(payload)
 
     if (payload.agentName) safeSend(IPC_CHANNELS.CONFIG_AGENT_NAME_UPDATED, updated.agentName)
-    await pythonBackend.syncConfig(updated)
-
     if (payload.checkUpdatesDaily !== undefined) updateManager.refreshSchedule()
-    return { success: true }
+
+    const requiresBackendSync = Object.keys(payload).some((key) => CONFIG_BACKEND_FIELDS.has(key))
+    if (!requiresBackendSync) {
+      return pythonBackend.getState() === 'ready'
+        ? configSaveResult('synced', 'Configurações salvas; agente conectado.')
+        : configSaveResult('offline', 'Configurações salvas; agente desconectado.')
+    }
+
+    const activeConfig = resolveActiveAIConfig(updated)
+    if (!activeConfig.ready) {
+      return configSaveResult('missing-credential', activeConfig.error || 'Credencial do provedor obrigatória.')
+    }
+
+    const synced = await pythonBackend.syncConfig(updated)
+    return synced
+      ? configSaveResult('synced', 'Configurações salvas e sincronizadas com o agente.')
+      : configSaveResult('offline', 'Configurações salvas; agente desconectado.')
+  })
+
+  ipcMain.handle(IPC_CHANNELS.CONFIG_REMOVE_CREDENTIAL, async (event, provider: RemoteAIProvider) => {
+    assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.CONFIG_REMOVE_CREDENTIAL)
+    if (provider !== 'gemini' && provider !== 'groq') {
+      throw new Error('Provedor remoto inválido.')
+    }
+
+    const wasActive = configStore.getConfig().aiProvider === provider
+    configStore.removeProviderCredential(provider)
+    if (wasActive) {
+      activeBackendSessionId = null
+      await pythonBackend.stop('active_provider_credential_removed')
+      const label = provider === 'gemini' ? 'Gemini' : 'Groq'
+      return configSaveResult('missing-credential', `Credencial do ${label} removida; agente desconectado.`)
+    }
+
+    return pythonBackend.getState() === 'ready'
+      ? configSaveResult('synced', 'Credencial inativa removida; agente permanece conectado.')
+      : configSaveResult('offline', 'Credencial inativa removida; agente desconectado.')
   })
 
   // Memory
