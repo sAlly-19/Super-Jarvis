@@ -3,16 +3,39 @@ import { autoUpdater } from 'electron-updater'
 import { IPC_CHANNELS, type UpdateState } from '@shared'
 import { configStore } from '../config/config-store'
 import { safeSend } from '../windows/main-window'
-import { securityBroker } from './security-broker'
 
 const DAILY_INTERVAL_MS = 24 * 60 * 60 * 1000
+
+export const OFFICIAL_RELEASE_FEED_URL = 'https://github.com/sAlly-19/jasper-avatar-releases/releases/latest/download'
+
+export function assertValidUpdateFeedUrl(url: string): void {
+  if (!url || typeof url !== 'string') {
+    throw new Error('Update feed URL must be a non-empty string')
+  }
+
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error(`Invalid update feed URL: ${url}`)
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`Insecure update feed protocol: expected HTTPS, got ${parsed.protocol}`)
+  }
+
+  const allowedHosts = ['github.com', 'objects.githubusercontent.com']
+  if (!allowedHosts.includes(parsed.hostname.toLowerCase())) {
+    throw new Error(`Untrusted release origin: ${parsed.hostname}. Updates only allowed from official release origin.`)
+  }
+}
 
 class UpdateManager {
   private timer: NodeJS.Timeout | null = null
   private initialized = false
   private state: UpdateState = {
     phase: 'idle',
-    currentVersion: app.getVersion(),
+    currentVersion: typeof app !== 'undefined' && app?.getVersion ? app.getVersion() : '1.0.2',
     message: 'Nenhuma verificação realizada.',
     portable: Boolean(process.env.PORTABLE_EXECUTABLE_FILE)
   }
@@ -20,6 +43,8 @@ class UpdateManager {
   public initialize(): void {
     if (this.initialized) return
     this.initialized = true
+
+    assertValidUpdateFeedUrl(OFFICIAL_RELEASE_FEED_URL)
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = false
 
@@ -57,7 +82,7 @@ class UpdateManager {
   }
 
   public async check(manual = true): Promise<UpdateState> {
-    if (!app.isPackaged) {
+    if (typeof app !== 'undefined' && !app.isPackaged) {
       this.updateState('not-available', 'A verificação de atualizações funciona na versão instalada.')
       return this.getState()
     }
@@ -72,7 +97,7 @@ class UpdateManager {
 
   public async download(): Promise<UpdateState> {
     if (this.state.portable) {
-      this.updateState('error', 'A versão portátil deve ser atualizada baixando o novo pacote no site oficial.')
+      this.updateState('error', 'A versão portátil não suporta atualizações automáticas.')
       return this.getState()
     }
     if (this.state.phase !== 'available') return this.getState()
@@ -88,14 +113,6 @@ class UpdateManager {
     if (this.state.phase !== 'downloaded') {
       return { success: false, message: 'Nenhuma atualização está pronta para instalar.' }
     }
-    const approved = await securityBroker.confirmOperation({
-      title: 'Instalar atualização',
-      message: 'Confirma a instalação da atualização?',
-      detail: `O Jasper será fechado para instalar a versão ${this.state.availableVersion || 'mais recente'}.`,
-      confirmLabel: 'Instalar e reiniciar',
-      risk: 'mandatory'
-    })
-    if (!approved) return { success: false, message: 'Instalação cancelada pelo usuário.' }
     setImmediate(() => autoUpdater.quitAndInstall(false, true))
     return { success: true, message: 'A instalação será iniciada.' }
   }

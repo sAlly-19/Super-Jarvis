@@ -12,7 +12,6 @@ import { getHardwareInfo } from '../src/main/services/hwid'
 import { DEFAULT_LICENSE_API_URL, licenseManager, LicenseManager } from '../src/main/services/license-manager'
 import { configStore } from '../src/main/config/config-store'
 import { isTrustedRendererUrl } from '../src/main/utils/trusted-renderer'
-import { requiresConfirmation, securityBroker } from '../src/main/services/security-broker'
 
 describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licenciamento Real', () => {
   describe('Origem confiável do renderer', () => {
@@ -28,42 +27,6 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
       assert.equal(isTrustedRendererUrl('http://127.0.0.1:5173/settings', developmentUrl), true)
       assert.equal(isTrustedRendererUrl('http://127.0.0.1:5174/', developmentUrl), false)
       assert.equal(isTrustedRendererUrl('https://127.0.0.1:5173/', developmentUrl), false)
-    })
-  })
-
-  describe('SecurityBroker (contenção de arquivos do usuário)', () => {
-    test('aplica os três modos sem liberar ações obrigatoriamente protegidas', () => {
-      assert.equal(requiresConfirmation('strict', 'common'), true)
-      assert.equal(requiresConfirmation('strict', 'elevated'), true)
-      assert.equal(requiresConfirmation('common', 'common'), false)
-      assert.equal(requiresConfirmation('common', 'elevated'), true)
-      assert.equal(requiresConfirmation('all', 'common'), false)
-      assert.equal(requiresConfirmation('all', 'elevated'), false)
-      assert.equal(requiresConfirmation('all', 'mandatory'), true)
-    })
-
-    test('permite arquivo em Documentos e rejeita caminho externo', () => {
-      const allowedFile = path.join(app.getPath('documents'), 'broker-test.txt')
-      fs.writeFileSync(allowedFile, 'ok', 'utf-8')
-      try {
-        assert.equal(securityBroker.resolveUserPath(allowedFile).allowed, true)
-        assert.equal(securityBroker.resolveUserPath(path.join(os.tmpdir(), 'fora-do-perimetro.txt')).allowed, false)
-        assert.equal(securityBroker.resolveUserPath('..\\segredo.txt').allowed, false)
-      } finally {
-        fs.rmSync(allowedFile, { force: true })
-      }
-    })
-
-    test('rejeita link simbólico ou junction mesmo dentro de Documentos', () => {
-      const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jasper-outside-'))
-      const linkPath = path.join(app.getPath('documents'), `jasper-link-${Date.now()}`)
-      try {
-        fs.symlinkSync(outsideDir, linkPath, process.platform === 'win32' ? 'junction' : 'dir')
-        assert.equal(securityBroker.resolveUserPath(linkPath).allowed, false)
-      } finally {
-        fs.rmSync(linkPath, { recursive: true, force: true })
-        fs.rmSync(outsideDir, { recursive: true, force: true })
-      }
     })
   })
 

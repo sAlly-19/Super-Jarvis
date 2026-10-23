@@ -13,7 +13,7 @@ dist/
 **/dist/
 dist-electron/
 out/
-release/
+/release/
 build/
 .expo/
 **/.expo/
