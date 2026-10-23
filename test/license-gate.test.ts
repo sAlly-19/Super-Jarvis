@@ -66,6 +66,26 @@ class MockBackendLifecycle implements BackendLifecycle {
   }
 }
 
+class FakeGateTimers {
+  public callback: (() => void) | null = null
+  public delayMs: number | null = null
+
+  constructor(public nowMs: number) {}
+
+  now = (): number => this.nowMs
+
+  setTimeout = (callback: () => void, delayMs: number): NodeJS.Timeout => {
+    this.callback = callback
+    this.delayMs = delayMs
+    return {} as NodeJS.Timeout
+  }
+
+  clearTimeout = (_handle: NodeJS.Timeout): void => {
+    this.callback = null
+    this.delayMs = null
+  }
+}
+
 describe('LicenseGate State Machine & Backend Lifecycle', () => {
   test('boot without lease never calls backend start and ends in locked', async () => {
     const auth = new MockLicenseAuthority()
@@ -174,6 +194,32 @@ describe('LicenseGate State Machine & Backend Lifecycle', () => {
 
     assert.equal(outcome.snapshot.state, 'unlocked')
     assert.deepEqual(states, ['validating', 'unlocked'])
+  })
+
+  test('locks at signed expiry using an exact timer instead of waiting for refresh', async () => {
+    const nowMs = 1_800_000_000_000
+    const auth = new MockLicenseAuthority()
+    auth.currentResult = {
+      valid: true,
+      status: 'ACTIVE',
+      message: 'Licença ativa',
+      expiresAt: new Date(nowMs + 5_000).toISOString()
+    }
+    const backend = new MockBackendLifecycle()
+    const timers = new FakeGateTimers(nowMs)
+    const gate = new LicenseGate(auth, backend, timers)
+
+    const snapshot = await gate.initialize()
+    assert.equal(snapshot.state, 'unlocked')
+    assert.equal(timers.delayMs, 5_000)
+    assert.ok(timers.callback, 'expiry callback must be scheduled')
+
+    timers.nowMs += 5_000
+    timers.callback()
+    await Promise.resolve()
+
+    assert.equal(gate.getSnapshot().state, 'expired')
+    assert.equal(backend.stopReasons.at(-1), 'license_expired')
   })
 
   test('expiry or revocation stops backend and transitions correctly', async () => {

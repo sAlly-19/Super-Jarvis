@@ -89,31 +89,33 @@
 - Modify: src/main/services/license-manager.ts
 - Modify: src/main/services/lease-verifier.ts
 - Modify: src/main/services/license-gate.ts
-- Modify: src/shared/types/license.ts
+- Modify: src/main/config/config-store.ts
+- Modify: src/shared/types/config.ts
 - Test: test/license-manager.test.ts
 - Create: test/lease-verifier.test.ts
 - Test: test/license-gate.test.ts
+- Test: test/security-hardening.test.ts
 
-- [ ] Add failing tests for rollback from a previously observed time to an earlier instant, including one still between signed iat and exp.
-- [ ] Add a failing test proving unsigned API expiresAt cannot override signed JWT exp.
-- [ ] Add fake-clock tests proving the gate locks at signed expiry without waiting for the hourly refresh loop.
-- [ ] Add a failing test proving offline validation advances the last-observed monotonic time.
-- [ ] Run the focused tests and confirm red:
+- [x] Add failing tests for rollback from a previously observed time to an earlier instant, including one still between signed iat and exp.
+- [x] Add a failing test proving unsigned API expiresAt cannot override signed JWT exp.
+- [x] Add fake-clock tests proving the gate locks at signed expiry without waiting for the hourly refresh loop.
+- [x] Add a failing test proving offline validation advances the last-observed monotonic time.
+- [x] Run the focused tests and confirm red:
       npx.cmd --yes node@24 scripts/run-tests.mjs license-manager
       npx.cmd --yes node@24 scripts/run-tests.mjs lease-verifier
-- [ ] Persist signed server time and local monotonic observation separately with licenseLastTrustedAt and licenseLastObservedAt.
-- [ ] Derive effective expiry only from verified signed claims. Reject or explicitly ignore conflicting unsigned metadata.
-- [ ] On every accepted online or offline validation persist max(previousLastObservedAt, now); reject a current clock earlier than the stored observation.
-- [ ] Inject clock and timer functions into LicenseGate so tests never sleep.
-- [ ] Schedule a one-shot lock at signed expiry and reschedule after each accepted lease. Clear the timer on shutdown/revocation.
-- [ ] Keep the 72-hour server revalidation independent from local expiry enforcement.
-- [ ] Run focused tests and type checking:
+- [x] Persist signed server time and local monotonic observation separately with licenseLastTrustedAt and licenseLastObservedAt.
+- [x] Derive effective expiry only from verified signed claims. Reject or explicitly ignore conflicting unsigned metadata.
+- [x] On every accepted online or offline validation persist max(previousLastObservedAt, now); reject a current clock earlier than the stored observation.
+- [x] Inject clock and timer functions into LicenseGate so tests never sleep.
+- [x] Schedule a one-shot lock at signed expiry and reschedule after each accepted lease. Clear the timer on shutdown/revocation.
+- [x] Keep the 72-hour server revalidation independent from local expiry enforcement.
+- [x] Run focused tests and type checking:
       npx.cmd --yes node@24 scripts/run-tests.mjs license-manager
       npx.cmd --yes node@24 scripts/run-tests.mjs lease-verifier
       npx.cmd --yes node@24 scripts/run-tests.mjs license-gate
       npm.cmd run typecheck
-- [ ] Commit:
-      git add src/main/services/license-manager.ts src/main/services/lease-verifier.ts src/main/services/license-gate.ts src/shared/types/license.ts test/license-manager.test.ts test/lease-verifier.test.ts test/license-gate.test.ts
+- [x] Commit:
+      git add src/main/services/license-manager.ts src/main/services/lease-verifier.ts src/main/services/license-gate.ts src/main/config/config-store.ts src/shared/types/config.ts test/license-manager.test.ts test/lease-verifier.test.ts test/license-gate.test.ts test/security-hardening.test.ts
       git commit -m "fix: enforce signed lease expiry and clock monotonicity"
 
 ### Task 3: Terminate process trees and prevent secret inheritance

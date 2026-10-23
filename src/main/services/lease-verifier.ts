@@ -7,7 +7,9 @@ export interface LeaseVerificationContext {
   installationId: string
   machineHash: string
   nowSeconds?: number
+  nowMs?: number
   lastTrustedTimeMs?: number
+  lastObservedTimeMs?: number
 }
 
 export type VerifiedLease =
@@ -87,7 +89,8 @@ export async function verifySignedLease(
     return { valid: false, error: 'INVALID_LEASE', message: 'Timestamps iat e exp devem ser números finitos.' }
   }
 
-  const nowSeconds = context.nowSeconds ?? Math.floor(Date.now() / 1000)
+  const nowMs = context.nowMs ?? (context.nowSeconds !== undefined ? context.nowSeconds * 1000 : Date.now())
+  const nowSeconds = context.nowSeconds ?? Math.floor(nowMs / 1000)
 
   // Maximum lease lifetime: 72 hours (259200 seconds)
   if (payload.exp - payload.iat > 259_200) {
@@ -104,10 +107,15 @@ export async function verifySignedLease(
     return { valid: false, error: 'EXPIRED', message: 'A autorização offline da licença expirou.' }
   }
 
-  // Clock rollback check against last trusted server time
-  if (context.lastTrustedTimeMs) {
-    const lastTrustedSeconds = Math.floor(context.lastTrustedTimeMs / 1000)
-    if (nowSeconds < lastTrustedSeconds) {
+  // Clock rollback check against both signed server time and the latest
+  // locally observed instant. The latter prevents replaying an old wall clock
+  // that still falls inside the original lease window.
+  const rollbackFloorMs = Math.max(
+    context.lastTrustedTimeMs ?? 0,
+    context.lastObservedTimeMs ?? 0
+  )
+  if (rollbackFloorMs > 0) {
+    if (nowMs < rollbackFloorMs) {
       return {
         valid: false,
         error: 'CLOCK_ROLLBACK',

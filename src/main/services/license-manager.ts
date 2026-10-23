@@ -34,6 +34,8 @@ export class LicenseManager {
       : (process.env.JASPER_API_URL || DEFAULT_LICENSE_API_URL)
   ).replace(/\/+$/, '')
 
+  constructor(private readonly now: () => number = () => Date.now()) {}
+
   public setCustomBaseUrl(url: string | null): void {
     if (typeof app !== 'undefined' && app.isPackaged) {
       console.warn('[LicenseManager] [SEC-01] Custom license URL is prohibited in packaged production mode.')
@@ -89,11 +91,16 @@ export class LicenseManager {
   private getVerificationContext(): LeaseVerificationContext {
     const cfg = configStore.getConfig()
     const lastTrusted = cfg.licenseLastTrustedAt ? Date.parse(cfg.licenseLastTrustedAt) : undefined
+    const lastObserved = cfg.licenseLastObservedAt ? Date.parse(cfg.licenseLastObservedAt) : undefined
+    const nowMs = this.now()
     return {
       keyring: this.customKeyring ?? undefined,
       installationId: cfg.licenseInstallationId || '',
       machineHash: this.machineHash(),
-      lastTrustedTimeMs: isNaN(lastTrusted as number) ? undefined : lastTrusted
+      nowMs,
+      nowSeconds: Math.floor(nowMs / 1000),
+      lastTrustedTimeMs: isNaN(lastTrusted as number) ? undefined : lastTrusted,
+      lastObservedTimeMs: isNaN(lastObserved as number) ? undefined : lastObserved
     }
   }
 
@@ -115,8 +122,12 @@ export class LicenseManager {
     }
 
     const cfg = configStore.getConfig()
-    const now = new Date().toISOString()
+    const nowMs = this.now()
+    const now = new Date(nowMs).toISOString()
     const trustedTimeIso = new Date(verified.trustedServerTime).toISOString()
+    const signedExpiresAt = new Date(verified.claims.exp * 1000).toISOString()
+    const previousObserved = cfg.licenseLastObservedAt ? Date.parse(cfg.licenseLastObservedAt) : 0
+    const observedTimeIso = new Date(Math.max(Number.isFinite(previousObserved) ? previousObserved : 0, nowMs)).toISOString()
 
     configStore.updateConfig({
       licenseKey: key,
@@ -128,8 +139,9 @@ export class LicenseManager {
       licenseDeviceId: response.deviceId,
       licenseDeviceSecret: response.deviceSecret || cfg.licenseDeviceSecret || '',
       licenseLeaseToken: response.lease.token,
-      licenseLeaseExpiresAt: response.lease.expiresAt,
-      licenseLastTrustedAt: trustedTimeIso
+      licenseLeaseExpiresAt: signedExpiresAt,
+      licenseLastTrustedAt: trustedTimeIso,
+      licenseLastObservedAt: observedTimeIso
     })
 
     return {
@@ -139,7 +151,7 @@ export class LicenseManager {
       machineId: getHardwareInfo().machineId,
       activatedAt: cfg.licenseActivatedAt || now,
       lastSeenAt: now,
-      expiresAt: response.lease.expiresAt,
+      expiresAt: signedExpiresAt,
       trustedServerTime: verified.trustedServerTime
     }
   }
@@ -218,13 +230,22 @@ export class LicenseManager {
       return { valid: false, error: verified.error, message: verified.message }
     }
 
+    const nowMs = context.nowMs ?? this.now()
+    const previousObserved = cfg.licenseLastObservedAt ? Date.parse(cfg.licenseLastObservedAt) : 0
+    const observedTimeIso = new Date(Math.max(Number.isFinite(previousObserved) ? previousObserved : 0, nowMs)).toISOString()
+    const signedExpiresAt = new Date(verified.claims.exp * 1000).toISOString()
+    configStore.updateConfig({
+      licenseLastObservedAt: observedTimeIso,
+      licenseLeaseExpiresAt: signedExpiresAt
+    })
+
     return {
       valid: true,
       status: 'ACTIVE',
       message: 'Licença válida em modo offline dentro da janela assinada de até 72 horas.',
       machineId: getHardwareInfo().machineId,
       lastSeenAt: cfg.licenseLastCheckedAt,
-      expiresAt: cfg.licenseLeaseExpiresAt,
+      expiresAt: signedExpiresAt,
       trustedServerTime: verified.trustedServerTime
     }
   }

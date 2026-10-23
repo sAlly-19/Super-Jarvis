@@ -58,6 +58,7 @@ export interface JasperConfig {
   licenseLeaseToken?: string
   licenseLeaseExpiresAt?: string
   licenseLastTrustedAt?: string
+  licenseLastObservedAt?: string
   // Commercial Operational Consent
   controlConsentAcceptedAt?: string
   controlConsentInstallationId?: string
@@ -123,6 +124,7 @@ export interface UpdateConfigPayload {
   licenseLeaseToken?: string
   licenseLeaseExpiresAt?: string
   licenseLastTrustedAt?: string
+  licenseLastObservedAt?: string
   // Commercial Operational Consent
   controlConsentAcceptedAt?: string
   controlConsentInstallationId?: string

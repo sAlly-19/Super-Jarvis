@@ -194,9 +194,12 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
       const pair = await webcrypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']) as CryptoKeyPair
       const publicJwk = await webcrypto.subtle.exportKey('jwk', pair.publicKey)
       let activationBody: any = null
+      let nowMs = Date.now()
+      let signedExpiresAt = ''
 
       const signLease = async (installationId: string, machineHash: string): Promise<{ token: string; expiresAt: string }> => {
-        const now = Math.floor(Date.now() / 1000)
+        const now = Math.floor(nowMs / 1000)
+        signedExpiresAt = new Date((now + (72 * 60 * 60)) * 1000).toISOString()
         const header = Buffer.from(JSON.stringify({ alg: 'EdDSA', typ: 'JWT', kid: 'test-sec-2026' })).toString('base64url')
         const payload = Buffer.from(JSON.stringify({
           iss: 'jasper-license-api',
@@ -213,7 +216,7 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
         )
         return {
           token: `${header}.${payload}.${Buffer.from(signature).toString('base64url')}`,
-          expiresAt: new Date((now + (72 * 60 * 60)) * 1000).toISOString()
+          expiresAt: '2099-01-01T00:00:00.000Z'
         }
       }
 
@@ -253,7 +256,7 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
 
       await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()))
       const address = server.address() as { port: number }
-      const manager = new LicenseManager()
+      const manager = new LicenseManager(() => nowMs)
       manager.setCustomBaseUrl(`http://127.0.0.1:${address.port}`)
       manager.setTestKeyring({ 'test-sec-2026': publicJwk })
       configStore.updateConfig({
@@ -265,6 +268,8 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
         licenseDeviceSecret: '',
         licenseLeaseToken: '',
         licenseLeaseExpiresAt: '',
+        licenseLastTrustedAt: '',
+        licenseLastObservedAt: '',
       })
 
       try {
@@ -273,10 +278,15 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
         assert.equal(activated.status, 'ACTIVATED')
         assert.equal(configStore.getConfig().licenseStatus, 'active')
         assert.ok(configStore.getConfig().licenseLeaseToken?.includes('.'))
+        assert.equal(activated.expiresAt, signedExpiresAt)
+        assert.equal(configStore.getConfig().licenseLeaseExpiresAt, signedExpiresAt)
+        assert.equal(Date.parse(configStore.getConfig().licenseLastObservedAt || ''), nowMs)
 
+        nowMs += 60_000
         const renewed = await manager.verifyCurrentLicense()
         assert.equal(renewed.valid, true)
         assert.equal(renewed.status, 'ACTIVE')
+        assert.equal(Date.parse(configStore.getConfig().licenseLastObservedAt || ''), nowMs)
         assert.equal(manager.getLicenseInfo().isLicensed, true)
       } finally {
         await new Promise<void>(resolve => server.close(() => resolve()))

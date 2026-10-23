@@ -18,6 +18,18 @@ export interface BackendLifecycle {
   stop(reason?: string): Promise<void>
 }
 
+export interface LicenseGateTimers {
+  now(): number
+  setTimeout(callback: () => void, delayMs: number): NodeJS.Timeout
+  clearTimeout(handle: NodeJS.Timeout): void
+}
+
+const DEFAULT_TIMERS: LicenseGateTimers = {
+  now: () => Date.now(),
+  setTimeout: (callback, delayMs) => setTimeout(callback, delayMs),
+  clearTimeout: (handle) => clearTimeout(handle)
+}
+
 export class LicenseError extends Error {
   public readonly code = 'LICENSE_REQUIRED'
   constructor(message: string) {
@@ -34,10 +46,12 @@ export class LicenseGate {
   private listeners: Array<(snapshot: LicenseGateSnapshot) => void> = []
   private inFlightTransition: Promise<LicenseGateSnapshot> | null = null
   private unsubscribeRevocation: (() => void) | null = null
+  private expiryTimer: NodeJS.Timeout | null = null
 
   constructor(
     private readonly licenseAuthority: LicenseAuthority,
-    private readonly backend: BackendLifecycle
+    private readonly backend: BackendLifecycle,
+    private readonly timers: LicenseGateTimers = DEFAULT_TIMERS
   ) {
     this.unsubscribeRevocation = this.licenseAuthority.onRevoked((result) => {
       this.handleRevocationEvent(result)
@@ -64,7 +78,38 @@ export class LicenseGate {
         console.error('[LicenseGate] Falha no ouvinte de estado:', err)
       }
     }
+    this.syncExpiryTimer()
     return this.getSnapshot()
+  }
+
+  private clearExpiryTimer(): void {
+    if (this.expiryTimer) {
+      this.timers.clearTimeout(this.expiryTimer)
+      this.expiryTimer = null
+    }
+  }
+
+  private syncExpiryTimer(): void {
+    this.clearExpiryTimer()
+    if (this.snapshot.state !== 'unlocked' || !this.snapshot.expiresAt) return
+
+    const expiresAt = this.snapshot.expiresAt
+    const expiresAtMs = Date.parse(expiresAt)
+    if (!Number.isFinite(expiresAtMs)) return
+
+    this.expiryTimer = this.timers.setTimeout(() => {
+      this.expiryTimer = null
+      if (this.snapshot.state !== 'unlocked' || this.snapshot.expiresAt !== expiresAt) return
+
+      const remainingMs = expiresAtMs - this.timers.now()
+      if (remainingMs > 0) {
+        this.syncExpiryTimer()
+        return
+      }
+
+      this.transitionTo('expired', 'A autorização offline da licença expirou.')
+      void this.backend.stop('license_expired').catch(() => {})
+    }, Math.max(0, expiresAtMs - this.timers.now()))
   }
 
   private handleRevocationEvent(result: LicenseValidationResult): void {

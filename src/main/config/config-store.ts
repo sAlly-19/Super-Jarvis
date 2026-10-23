@@ -222,6 +222,7 @@ export class ConfigStore {
         if (data.licenseLeaseToken !== undefined) this.config.licenseLeaseToken = decryptSecret(data.licenseLeaseToken)
         if (data.licenseLeaseExpiresAt !== undefined) this.config.licenseLeaseExpiresAt = data.licenseLeaseExpiresAt
         if (data.licenseLastTrustedAt !== undefined) this.config.licenseLastTrustedAt = data.licenseLastTrustedAt
+        if (data.licenseLastObservedAt !== undefined) this.config.licenseLastObservedAt = data.licenseLastObservedAt
         if (data.controlConsentAcceptedAt !== undefined) this.config.controlConsentAcceptedAt = data.controlConsentAcceptedAt
         if (data.controlConsentInstallationId !== undefined) this.config.controlConsentInstallationId = data.controlConsentInstallationId
 
@@ -321,6 +322,7 @@ export class ConfigStore {
     if (payload.licenseLeaseToken !== undefined) this.config.licenseLeaseToken = payload.licenseLeaseToken.trim()
     if (payload.licenseLeaseExpiresAt !== undefined) this.config.licenseLeaseExpiresAt = payload.licenseLeaseExpiresAt
     if (payload.licenseLastTrustedAt !== undefined) this.config.licenseLastTrustedAt = payload.licenseLastTrustedAt
+    if (payload.licenseLastObservedAt !== undefined) this.config.licenseLastObservedAt = payload.licenseLastObservedAt
     if (payload.controlConsentAcceptedAt !== undefined) this.config.controlConsentAcceptedAt = payload.controlConsentAcceptedAt
     if (payload.controlConsentInstallationId !== undefined) this.config.controlConsentInstallationId = payload.controlConsentInstallationId
 
