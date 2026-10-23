@@ -27,7 +27,7 @@
     "verify:package": "node scripts/verify-package.mjs",
     "package:dir": "node scripts/generate-backend-manifest.mjs && electron-vite build && electron-builder --dir --win --x64",
     "smoke:packaged": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-packaged.ps1",
-    "audit:runtime": "npm audit --omit=dev --audit-level=high",
+    "audit:runtime": "npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org/",
     "audit:python": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/python-audit.ps1",
     "scan:secrets": "node scripts/scan-secrets.mjs",
     "sbom:runtime": "npm sbom --omit=dev --sbom-format cyclonedx --sbom-type application",

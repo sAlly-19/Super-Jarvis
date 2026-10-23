@@ -46,24 +46,24 @@
 - Produces: `build/python-backend/jasper-backend/` with `jasper-backend.exe` and runtime files.
 - Produces package script `build:python` and deterministic input `requirements.lock` with SHA-256 hashes.
 
-- [ ] **Step 1: Write failing packaging test**
+- [x] **Step 1: Write failing packaging test**
 
 Assert requirements contain exact pins and hashes, spec selects `main.py`, build output is `onedir`, executable exists, no FastAPI/Uvicorn/WebSocket direct dependency remains and a stdio handshake succeeds.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because lock/spec/build script are absent.
 
-- [ ] **Step 3: Create pinned inputs and hashed lock**
+- [x] **Step 3: Create pinned inputs and hashed lock**
 
 Pin direct runtime packages in `requirements.in`: `litellm==1.106.2`, `edge-tts==7.3.1`, `psutil==7.2.2`, `PyAutoGUI==0.9.54`, `mss==10.2.0`, `Pillow==12.3.0`, `pycaw==20260927`, `comtypes==1.4.17`, `SpeechRecognition==3.17.0`. Generate `requirements.lock` under Python 3.11.9 with hashes. Put `PyInstaller==6.16.0` and `pip-tools==7.5.1` plus hashes in the separate `requirements-build.lock`.
 
-- [ ] **Step 4: Implement PyInstaller build**
+- [x] **Step 4: Implement PyInstaller build**
 
 The PowerShell script validates Python `3.11.9`, creates a workspace-local build environment, installs the hashed lock, runs the spec and fails unless the executable can complete protocol handshake. It must not delete outside `build/python-backend`.
 
-- [ ] **Step 5: Verify GREEN and commit**
+- [x] **Step 5: Verify GREEN and commit**
 
 Run: `npm.cmd run build:python`, `npm.cmd test`, then `npm.cmd run test:python`.
 Expected: PASS.
@@ -90,28 +90,28 @@ git commit -m "build: package self-contained python sidecar"
 - Produces: `generate:backend-manifest`, `verify:package`, corrected `package:dir` and `dist:win` scripts.
 - Produces: packaged `resources/jasper-backend/` matching the manifest compiled into `app.asar`.
 
-- [ ] **Step 1: Write failing package inspection assertions**
+- [x] **Step 1: Write failing package inspection assertions**
 
 `verify-package.mjs` must fail when sidecar is absent, any hash differs, loose `.py` exists, removed script path is referenced, ASAR integrity fuse is disabled or packaged startup attempts `python`, `python3`, `py` or port 8765.
 
-- [ ] **Step 2: Verify RED against the current builder config**
+- [x] **Step 2: Verify RED against the current builder config**
 
 Run: `npm.cmd run package:dir`, then `npm.cmd run verify:package`.
 Expected: FAIL because `extraResources` points to removed autonomous scripts and contains no sidecar.
 
-- [ ] **Step 3: Generate and embed the manifest**
+- [x] **Step 3: Generate and embed the manifest**
 
 Hash every regular file under the built `onedir`, sort relative paths using `/`, and generate a TypeScript constant before `electron-vite build`. Never trust a manifest stored beside the sidecar.
 
-- [ ] **Step 4: Correct electron-builder and smoke test**
+- [x] **Step 4: Correct electron-builder and smoke test**
 
 Copy `build/python-backend/jasper-backend` to `jasper-backend`, retain all specified Electron Fuses, remove the deleted scripts resource and remove the portable target, leaving signed NSIS x64 as the commercial distribution. Extend smoke mode so packaged code can capture the activation shell and verify no backend process before a lease. Build a separate `smoke` flavor with an ephemeral test public key compiled into it, then verify handshake/chat and controlled PowerShell; production is rebuilt afterward as `commercial`, and `verify:package` rejects any publishable artifact whose compiled flavor or keyring contains the smoke key.
 
-- [ ] **Step 5: Test without global Python**
+- [x] **Step 5: Test without global Python**
 
 Launch with a sanitized `PATH` containing Windows system directories but no Python/Node; assert activation shell boots, valid test lease starts the packaged `.exe`, and no network listener appears on 8765.
 
-- [ ] **Step 6: Verify GREEN and commit**
+- [x] **Step 6: Verify GREEN and commit**
 
 Run: `npm.cmd run package:dir`, `npm.cmd run verify:package`, then `npm.cmd run smoke:packaged`.
 Expected: PASS.
@@ -135,24 +135,24 @@ git commit -m "build: embed and verify commercial sidecar"
 - Produces: `verify-authenticode.ps1 -Paths <string[]> -ExpectedPublisher <string>` with nonzero failure.
 - Produces: update policy that accepts only configured HTTPS release origin and electron-updater signature validation.
 
-- [ ] **Step 1: Write failing signing/update tests**
+- [x] **Step 1: Write failing signing/update tests**
 
 Assert HTTP/non-release origin is rejected, only the NSIS channel can install, no per-update confirmation remains, and unsigned/wrong-publisher test fixtures fail signature verification.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because update install still asks through `SecurityBroker` and no signature gate exists.
 
-- [ ] **Step 3: Enforce update policy**
+- [x] **Step 3: Enforce update policy**
 
 Remove `SecurityBroker.confirmOperation` from installation and delete the broker after confirmar que não possui outros consumidores; installing a downloaded verified update is an explicit settings action, not an autonomy confirmation. Restrict publisher and HTTPS feed in build configuration; document certificate/timestamp secrets as CI-only.
 
-- [ ] **Step 4: Implement Authenticode verification**
+- [x] **Step 4: Implement Authenticode verification**
 
 Use `Get-AuthenticodeSignature`; require `Status=Valid`, exact expected subject/publisher and timestamp presence for Electron executable, sidecar, installer and update artifact.
 
-- [ ] **Step 5: Verify GREEN and commit**
+- [x] **Step 5: Verify GREEN and commit**
 
 Run: `npm.cmd test` and run the verifier against signed release fixtures in CI.
 Expected: unit policy tests pass; unsigned local development artifacts fail with an explicit message.
@@ -175,24 +175,24 @@ git commit -m "build: enforce signed commercial updates"
 - Produces CI jobs `test`, `package-windows`, `clean-machine-smoke` and protected `release`.
 - Produces scripts `audit:python`, `sbom:python`, existing `sbom:runtime` output and release artifacts.
 
-- [ ] **Step 1: Add failing workflow policy test**
+- [x] **Step 1: Add failing workflow policy test**
 
 Extend `test/python-package.test.ts` to assert Node 24, Python 3.11.9, `npm ci`, hashed Python install, TS/Python tests, SAST, npm/Python audit, PyInstaller, package inspection, smoke, both SBOMs, signature verification and artifact upload ordering.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because workflows are absent.
 
-- [ ] **Step 3: Implement CI and release workflows**
+- [x] **Step 3: Implement CI and release workflows**
 
 PR CI never accesses signing secrets. Release runs only from protected version tags, imports the certificate from repository secrets, signs sidecar before Electron packaging, signs installer/update, verifies every signature/hash, then uploads artifacts and SBOMs.
 
-- [ ] **Step 4: Add Python audit/SBOM commands**
+- [x] **Step 4: Add Python audit/SBOM commands**
 
 Install audit tooling in an isolated CI tool environment, scan the hashed lock, and emit CycloneDX JSON. Runtime dependency vulnerabilities at configured high severity fail the workflow.
 
-- [ ] **Step 5: Verify workflow syntax and commit**
+- [x] **Step 5: Verify workflow syntax and commit**
 
 Run: `npm.cmd run typecheck`, `npm.cmd test`, then `npm.cmd run scan:secrets`.
 Expected: PASS; workflow policy test sees every mandatory gate.
@@ -214,25 +214,25 @@ git commit -m "ci: verify and sign commercial windows release"
 **Interfaces:**
 - Produces: verified commercial artifact and completed remediation record.
 
-- [ ] **Step 1: Run the complete verification matrix under Node 24**
+- [x] **Step 1: Run the complete verification matrix under Node 24**
 
 Run in order: `npm.cmd ci`, `npm.cmd run verify`, `npm.cmd run test:python`, `npm.cmd run scan:secrets`, `npm.cmd run audit:runtime`, `npm.cmd run audit:python`, `npm.cmd run package:dir`, `npm.cmd run verify:package`, `npm.cmd run smoke:packaged`.
 Expected: every command exits `0`.
 
-- [ ] **Step 2: Verify the signed release artifact**
+- [x] **Step 2: Verify the signed release artifact**
 
 Run `scripts/verify-authenticode.ps1` against the sidecar, unpacked Electron executable and final installer with the configured publisher.
 Expected: every signature is valid and timestamped.
 
-- [ ] **Step 3: Execute acceptance scenarios**
+- [x] **Step 3: Execute acceptance scenarios**
 
 Verify clean machine: no license shows activation only; valid lease unlocks without per-action prompts; offline works until `exp`; expiry/revocation kills sidecar; renderer cannot bypass Main; modified sidecar fails closed; no port 8765; memory prunes at 30 days.
 
-- [ ] **Step 4: Update documentation and runbook**
+- [x] **Step 4: Update documentation and runbook**
 
 Document installation/licensing/privacy behavior without exposing internal keys. Mark all plan phases complete and record artifact hashes, workflow run and final commit.
 
-- [ ] **Step 5: Final diff and commit**
+- [x] **Step 5: Final diff and commit**
 
 Run: `git diff --check`, then `git status --short`.
 Expected: no whitespace errors and only documentation tracking changes remain.

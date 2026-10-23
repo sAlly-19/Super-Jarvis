@@ -1,128 +1,65 @@
 # Jasper AI Desktop
 
-Aplicativo desktop para Windows com avatar 3D, conversa por voz via Gemini Live e ferramentas locais de produtividade. O renderer roda isolado do processo principal do Electron e as operacoes privilegiadas passam por validacao e, quando produzem efeitos externos ou capturam tela, por confirmacao do usuario.
+Aplicativo desktop comercial para Windows com avatar 3D interativo, voz em tempo real e agente autônomo total de controle de sistema operacional. O renderer roda estritamente isolado do processo principal do Electron e todo o tráfego do agente é intermediado por canais IPC tipados no processo Main.
 
-## Estado atual
+## Arquitetura Comercial
 
-- Plataforma suportada: Windows 10/11 x64.
-- Runtime de desenvolvimento: Node.js 24 LTS e npm 11.
-- Desktop: Electron 44, TypeScript, Vite, Three.js e TensorFlow.js.
-- Licenciamento: API do Cloudflare Worker com lease Ed25519 de ate 72 horas offline.
-- Code Interpreter: removido. O Jasper nao executa Python ou JavaScript fornecido pelo modelo.
-- DevTools: desativado em builds de producao.
-- Assinatura de codigo: ainda nao configurada. Builds locais nao devem ser publicados como release final.
+- **Processo Principal (Main):** Electron 44, TypeScript, Node.js 24 LTS, com Electron Fuses ativas (`enableEmbeddedAsarIntegrityValidation=true`, `onlyLoadAppFromAsar=true`).
+- **Processo de Interface (Renderer):** HTML5, CSS3, Three.js e TensorFlow.js, carregado exclusivamente pelo protocolo privilegiado `app://jasper/index.html` com Content Security Policy estrita (`script-src 'self'`).
+- **Sidecar de Agente (Python):** Binário independente compilado via PyInstaller no formato `onedir` (`resources/jasper-backend/jasper-backend.exe`), com dependências travadas via hashes SHA-256 (`requirements.lock`).
+- **Protocolo de Comunicação Privado:** Enquadramento binário com prefixo de 4 bytes big-endian e envelopes JSON versionados sobre `stdio` privado (stdin/stdout). **Zero portas de rede locais** (sem WebSocket ou HTTP em `127.0.0.1:8765`).
+- **Integridade Criptográfica:** O Main valida o manifesto SHA-256 (`backend-manifest.ts`) embutido no ASAR de cada arquivo do sidecar antes de permitir execução. Arquivos extras ou alterados causam falha fechada imediata.
+- **Licenciamento Criptográfico:** Validação de lease Ed25519 com amarração em Hardware ID (HWID). Quando sem licença válida, a aplicação opera em shell de ativação bloqueado sem inicializar o sidecar Python.
+- **Consentimento Operacional Comercial:** Termo de consentimento de controle autônomo vinculado à instalação (`controlConsentInstallationId`). Sem confirmações modais repetitivas por comando.
+- **Log de Auditoria Rotativo:** Registro de eventos em disco limitado a 5 MiB com rotação de até 5 arquivos históricos, com redação obrigatória de chaves de API, JWTs, senhas e credenciais.
+- **Memória Única Sincronizada:** Persistência em `userData/memory.json` sincronizada com o runtime do agente e poda automática de retenção a cada 30 dias.
 
-## Recursos
+## Requisitos de Desenvolvimento
 
-- Avatar 3D com lip sync e visualizacao de audio.
-- Conversa continua pelo Gemini Live.
-- Wake word local treinado com TensorFlow.js.
-- Lembretes, agenda local, foco e modo apresentacao.
-- Saude do sistema, janela ativa e observacao opcional do clipboard.
-- Relatorios PDF, planilhas, documentos e QR Code.
-- Leitura/OCR de arquivos limitados a Downloads, Desktop e Documentos.
-- Organizacao de arquivos com simulacao previa e confirmacao para mover.
-- Navegacao web isolada com bloqueio de SSRF e confirmacao para click, preenchimento e screenshot.
-- Webhooks HTTPS cadastrados com validacao de destino.
-- Home Assistant com allowlist de dominios e servicos.
-
-## Limites de seguranca
-
-O Jasper nao e um sandbox de sistema operacional. A antiga funcao de execucao de codigo foi removida. Interpretadores de comando nao podem ser abertos pelo assistente, processos externos exigem PID e confirmacao, e automacao de interface bloqueia campos de credenciais, Secure Desktop e terminais.
-
-O Home Assistant nao possui modo de demonstracao. Sem URL e token validos, consultas retornam vazias e comandos falham com `NOT_CONFIGURED`. Cada comando real exige confirmacao individual. Entidades de acesso fisico, como fechaduras, alarmes, cameras e garagens, sao bloqueadas.
-
-O suporte offline de licenca e um lease temporario, nao uma licenca permanente sem internet. Depois de no maximo 72 horas sem renovacao valida, o acesso falha fechado.
-
-## Privacidade
-
-Dados locais, como configuracoes, memoria, agenda e grafo de conhecimento, ficam no diretorio de dados do aplicativo. Segredos suportados sao protegidos com `electron.safeStorage`; logs e memorias possuem retencao maxima de 30 dias.
-
-Nem todo processamento e local:
-
-- Audio e prompts da conversa sao enviados ao Gemini Live.
-- Uma captura de tela so e produzida apos confirmacao por operacao e pode ser enviada ao Gemini quando essa foi a acao solicitada.
-- Conteudo de paginas, arquivos ou clipboard usado em uma conversa pode ser enviado ao Gemini.
-- Licenciamento consulta a API Jasper no Cloudflare Worker.
-- Home Assistant e webhooks recebem apenas as chamadas explicitamente configuradas e autorizadas.
-
-Nunca use credenciais reais em testes ou arquivos versionados. `.env`, chaves privadas e credenciais Firebase devem permanecer fora do Git.
-
-## Desenvolvimento
-
-Requisitos:
-
-- Node.js 24 LTS
+- Node.js 24 LTS (motor `>=24 <25`)
 - npm 11+
+- Python 3.11 (via `uv` ou cpython-3.11)
+- Windows 10/11 x64
 - Windows PowerShell 5.1+
 
-Instalacao e execucao:
+## Comandos do Projeto
 
+### Instalação e Desenvolvimento
 ```powershell
 npm ci
 npm run dev
 ```
 
-Use `.env.example` como referencia. A chave Gemini tambem pode ser configurada pela interface. Nao distribua um `.env` junto ao instalador.
-
-## Verificacao
-
+### Bateria de Verificação e Testes
 ```powershell
-npm run verify
-npm run audit:runtime
+npm run verify           # Executa typecheck, testes reais TS e compilação electron-vite
+npm run test:python       # Executa testes unitários do protocolo e runtime Python
+npm run scan:secrets      # Escaneia o repositório contra vazamento de credenciais
+npm run audit:runtime     # Auditoria de segurança de dependências npm contra o registro oficial
+npm run audit:python      # Auditoria de vulnerabilidades em dependências travadas do Python
 ```
 
-`npm run verify` executa typecheck, testes e build. A suite cobre os modulos reais com mocks apenas das fronteiras Electron e de rede quando necessario.
-
-`npm run test:wake` testa o TensorFlow real em Electron com microfone simulado,
-rede externa bloqueada e a CSP de producao. Cobre falha de carregamento,
-gravacao, treino, recarga do modelo salvo, reset, novo treino e liberacao de memoria.
-Depois de empacotar, `node scripts/test-wake-lifecycle.mjs --packaged` repete
-o teste lendo os assets de `release/win-unpacked/resources/app.asar`.
-
-O modelo base de voz acompanha o aplicativo em `public/speech-model` e funciona
-offline. Os scripts de desenvolvimento e build verificam seus checksums;
-somente arquivos ausentes ou corrompidos precisam ser baixados durante o build.
-
-Para validar o aplicativo empacotado:
-
+### Compilação do Sidecar Python
 ```powershell
-npm run package:dir
-npm run smoke:packaged
+npm run build:python      # Compila o backend Python em build/python-backend/jasper-backend
+npm run sbom:python       # Gera SBOM CycloneDX das dependências Python
 ```
 
-O smoke test abre o pacote, confirma que o avatar carregou, valida IPC/CSP e grava a evidencia fora do repositorio.
-
-## Empacotamento
-
+### Empacotamento e Teste de Aceitação Empacotado
 ```powershell
-npm run dist:win
+npm run package:dir       # Gera a distribuição descompactada em release/win-unpacked
+npm run verify:package    # Valida integridade do sidecar, manifesto SHA-256 e fuses
+npm run smoke:packaged    # Executa smoke test com PATH sanitizado (sem Python/Node global)
 ```
 
-O build inclui os scripts PowerShell necessarios como `extraResources` e ativa Electron Fuses para desabilitar RunAsNode, `NODE_OPTIONS`, inspector CLI e carregamento fora do ASAR.
-
-Antes de uma release publica ainda e obrigatorio:
-
-1. Adquirir um certificado de assinatura de codigo.
-2. Assinar instalador e executaveis.
-3. Executar a CI em Node 24 e o smoke test do pacote assinado.
-4. Publicar hashes do artefato e procedimento de verificacao.
-
-## Estrutura
-
-```text
-src/main/       processo principal, IPC e servicos privilegiados
-src/preload/    ponte minima e tipada para o renderer
-src/renderer/   interface, audio e avatar 3D
-src/shared/     tipos e constantes compartilhados
-test/           testes de integracao e seguranca
-scripts/        setup, runner e smoke test empacotado
+### Release e Assinatura Authenticode
+```powershell
+npm run dist:win          # Compila o instalador NSIS comercial para Windows x64
 ```
-
-## macOS
-
-O codigo possui algumas abstracoes multiplataforma, mas a versao atual depende de PowerShell, UI Automation do Windows, controles de midia e empacotamento NSIS. Uma versao macOS exige adaptadores equivalentes, permissoes de Accessibility/Screen Recording, Keychain, assinatura Developer ID e notarizacao. Nao e apenas uma troca de alvo do builder.
-
-## Evidencias visuais
-
-As imagens existentes ficam em `assets/screenshots/`. Elas devem ser atualizadas quando houver mudancas relevantes na interface; nao sao prova de comportamento de seguranca.
+A verificação de assinatura Authenticode é realizada por:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-authenticode.ps1 `
+    -Paths "release\win-unpacked\Jasper AI.exe", "release\win-unpacked\resources\jasper-backend\jasper-backend.exe" `
+    -ExpectedPublisher "CN=Jasper Team, O=Jasper Team, L=Sao Paulo, C=BR"
+```
+Consulte `docs/release/windows-signing.md` para detalhes sobre configuração de certificados na CI/CD do GitHub Actions.
