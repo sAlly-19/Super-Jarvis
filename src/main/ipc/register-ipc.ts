@@ -5,7 +5,11 @@ import {
   type IpcMainInvokeEvent,
   type OpenDialogOptions
 } from 'electron'
-import { IPC_CHANNELS, type UpdateConfigPayload } from '@shared'
+import {
+  IPC_CHANNELS,
+  type UpdateConfigPayload,
+  type BackendEnvelope
+} from '@shared'
 import { configStore } from '../config/config-store'
 import { loadMemory, saveMemory } from '../memory'
 import {
@@ -24,26 +28,59 @@ import { isTrustedRendererUrl } from '../utils/trusted-renderer'
 import { updateManager } from '../services/update-manager'
 import { pythonBackend } from '../services/python-backend'
 
-type TrustedEvent = IpcMainEvent | IpcMainInvokeEvent
+export type TrustedEvent = IpcMainEvent | IpcMainInvokeEvent
 
-function assertTrustedSender(event: TrustedEvent): void {
+export function assertTrustedSender(event: TrustedEvent): void {
   const win = getMainWindow()
   const frame = event.senderFrame
   const developmentUrl = process.env['ELECTRON_RENDERER_URL']
-  if (
-    !win ||
-    win.isDestroyed() ||
-    event.sender !== win.webContents ||
-    frame !== event.sender.mainFrame ||
-    !isTrustedRendererUrl(frame?.url || '', developmentUrl)
-  ) {
-    throw new Error('IPC rejeitado: origem não autorizada.')
+
+  if (!frame || (frame.parent !== null && frame !== event.sender.mainFrame)) {
+    throw new Error('Untrusted IPC sender frame: nested iframes not permitted.')
+  }
+
+  if (win && !win.isDestroyed() && event.sender !== win.webContents) {
+    throw new Error('Untrusted IPC sender: unrecognized webContents.')
+  }
+
+  const frameUrl = frame?.url || ''
+  if (!isTrustedRendererUrl(frameUrl, developmentUrl)) {
+    throw new Error(`Untrusted IPC sender origin: ${frameUrl}`)
   }
 }
 
-function assertText(value: unknown, field: string, maxLength: number): asserts value is string {
+export function assertText(value: unknown, field: string, maxLength: number): asserts value is string {
   if (typeof value !== 'string' || value.length > maxLength || value.includes('\0')) {
     throw new Error(`${field} inválido.`)
+  }
+}
+
+export function assertTextPayload(value: unknown): asserts value is string {
+  if (typeof value !== 'string' || value.includes('\0')) {
+    throw new Error('Payload de texto inválido: esperado string sem caracteres nulos.')
+  }
+  if (value.length > 20_000) {
+    throw new Error('Texto de mensagem excede limite de 20.000 caracteres.')
+  }
+}
+
+export function assertAudioPayload(chunk: unknown): asserts chunk is Buffer | ArrayBuffer | Uint8Array {
+  const isBuffer = Buffer.isBuffer(chunk)
+  const isArrayBuffer = chunk instanceof ArrayBuffer
+  const isView = ArrayBuffer.isView(chunk)
+
+  if (!isBuffer && !isArrayBuffer && !isView) {
+    throw new Error('Payload de áudio inválido: esperado Buffer, ArrayBuffer ou TypedArray.')
+  }
+
+  const byteLength = isBuffer
+    ? chunk.byteLength
+    : isArrayBuffer
+      ? chunk.byteLength
+      : (chunk as ArrayBufferView).byteLength
+
+  if (byteLength > 16 * 1024 * 1024) {
+    throw new Error('Payload de áudio excede o limite de 16 MiB.')
   }
 }
 
@@ -73,7 +110,7 @@ const CONFIG_STRING_LIMITS: Record<string, number> = {
   folderDefaultTarget: 4096
 }
 
-function assertConfigPayload(payload: unknown): asserts payload is UpdateConfigPayload {
+export function assertConfigPayload(payload: unknown): asserts payload is UpdateConfigPayload {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('Configuração inválida.')
   for (const [key, value] of Object.entries(payload)) {
     if (value === undefined) continue
@@ -92,23 +129,82 @@ function assertConfigPayload(payload: unknown): asserts payload is UpdateConfigP
   }
 }
 
+let backendForwardingWired = false
+
+function wireBackendForwarding(): void {
+  if (backendForwardingWired) return
+  backendForwardingWired = true
+
+  pythonBackend.onMessage((envelope: BackendEnvelope) => {
+    switch (envelope.type) {
+      case 'status':
+        safeSend(IPC_CHANNELS.AGENT_STATUS, envelope.payload)
+        break
+      case 'response':
+        safeSend(IPC_CHANNELS.AGENT_TEXT, (envelope.payload as any)?.text ?? '')
+        break
+      case 'audio_output':
+        safeSend(IPC_CHANNELS.AGENT_AUDIO, envelope.payload)
+        break
+      case 'user_transcript':
+        safeSend(IPC_CHANNELS.AGENT_USER_TRANSCRIPT, (envelope.payload as any)?.text ?? '')
+        break
+      case 'tool_execution':
+        safeSend(IPC_CHANNELS.AGENT_TOOL_EXECUTION, envelope.payload)
+        break
+      case 'tool_result':
+        safeSend(IPC_CHANNELS.AGENT_TOOL_RESULT, envelope.payload)
+        break
+      case 'turn_complete':
+        safeSend(IPC_CHANNELS.AGENT_TURN_COMPLETE)
+        break
+      case 'interrupted':
+        safeSend(IPC_CHANNELS.AGENT_INTERRUPTED)
+        break
+      case 'error':
+        safeSend(IPC_CHANNELS.AGENT_ERROR, envelope.payload)
+        break
+    }
+  })
+
+  licenseGate.onStateChanged((snapshot) => {
+    safeSend(IPC_CHANNELS.LICENSE_STATUS_CHANGED, snapshot)
+  })
+}
+
 export function registerIpcHandlers(): void {
-  // Operational audio chunk requires unlocked license
-  ipcMain.on(IPC_CHANNELS.AUDIO_CHUNK, (event, chunk: ArrayBuffer) => {
+  wireBackendForwarding()
+
+  // Agent text prompt
+  ipcMain.on(IPC_CHANNELS.AGENT_SEND_TEXT, (event, message: unknown) => {
     assertTrustedSender(event)
     licenseGate.requireUnlocked()
-    if (!(chunk instanceof ArrayBuffer) || chunk.byteLength > 1024 * 1024) return
+    assertTextPayload(message)
+    pythonBackend.notify('chat', { text: message })
   })
 
-  // Operational chat send requires unlocked license
-  ipcMain.on(IPC_CHANNELS.CHAT_SEND, (event, message: string) => {
+  // Agent audio chunk
+  ipcMain.on(IPC_CHANNELS.AGENT_SEND_AUDIO, (event, chunk: unknown) => {
     assertTrustedSender(event)
     licenseGate.requireUnlocked()
-    assertText(message, 'Mensagem', 20_000)
+    assertAudioPayload(chunk)
+
+    const base64Audio = Buffer.isBuffer(chunk)
+      ? chunk.toString('base64')
+      : Buffer.from(chunk as ArrayBuffer).toString('base64')
+
+    pythonBackend.notify('audio_input', { audio_base64: base64Audio })
   })
 
-  // Operational agent connection requires unlocked license
-  ipcMain.handle(IPC_CHANNELS.GEMINI_CONNECT, async (event, payload?: UpdateConfigPayload) => {
+  // Agent interrupt
+  ipcMain.on(IPC_CHANNELS.AGENT_INTERRUPT, (event) => {
+    assertTrustedSender(event)
+    licenseGate.requireUnlocked()
+    pythonBackend.notify('interrupt', {})
+  })
+
+  // Agent connection
+  ipcMain.handle(IPC_CHANNELS.AGENT_CONNECT, async (event, payload?: UpdateConfigPayload) => {
     assertTrustedSender(event)
     licenseGate.requireUnlocked()
     const cfg = configStore.getConfig()
@@ -122,11 +218,20 @@ export function registerIpcHandlers(): void {
     return { success: healthy }
   })
 
-  ipcMain.handle(IPC_CHANNELS.GEMINI_DISCONNECT, (event) => {
+  ipcMain.handle(IPC_CHANNELS.AGENT_DISCONNECT, (event) => {
     assertTrustedSender(event)
     return true
   })
 
+  ipcMain.handle(IPC_CHANNELS.AGENT_GET_STATUS, async (event) => {
+    assertTrustedSender(event)
+    return {
+      state: pythonBackend.getState(),
+      healthy: await pythonBackend.isHealthy()
+    }
+  })
+
+  // Configuration
   ipcMain.handle(IPC_CHANNELS.CONFIG_GET, async (event) => {
     assertTrustedSender(event)
     const healthy = await pythonBackend.isHealthy()
@@ -146,6 +251,7 @@ export function registerIpcHandlers(): void {
     return { success: true }
   })
 
+  // Memory
   ipcMain.handle(IPC_CHANNELS.MEMORY_GET, (event) => {
     assertTrustedSender(event)
     licenseGate.requireUnlocked()
@@ -156,10 +262,11 @@ export function registerIpcHandlers(): void {
     assertTrustedSender(event)
     licenseGate.requireUnlocked()
     saveMemory({ userName: '', userPreferences: [], facts: [] })
+    pythonBackend.notify('memory_clear', {})
     return true
   })
 
-  // Window controls are always available
+  // Window controls
   ipcMain.handle(IPC_CHANNELS.WINDOW_TOGGLE_PIP, (event) => {
     assertTrustedSender(event)
     return togglePipMode()
@@ -185,28 +292,7 @@ export function registerIpcHandlers(): void {
     closeWindow()
   })
 
-  ipcMain.handle(IPC_CHANNELS.AUTONOMY_REFLEXION_CONFIRMATION, (event, confirmationId: string) => {
-    assertTrustedSender(event)
-    licenseGate.requireUnlocked()
-    assertText(confirmationId, 'Confirmação', 160)
-    return true
-  })
-
-  ipcMain.handle(IPC_CHANNELS.AUTONOMY_SMART_HOME_TEST_CONNECTION, (event, url?: string, token?: string) => {
-    assertTrustedSender(event)
-    licenseGate.requireUnlocked()
-    if (url !== undefined) assertText(url, 'URL', 2048)
-    if (token !== undefined) assertText(token, 'Token', 8192)
-    return { success: true, message: 'Configuração Home Assistant salva.' }
-  })
-
-  ipcMain.handle(IPC_CHANNELS.AUTONOMY_WEBHOOK_TEST, (event, url: string) => {
-    assertTrustedSender(event)
-    licenseGate.requireUnlocked()
-    assertText(url, 'URL', 2048)
-    return { success: true, status: 200, message: 'Webhook registrado.' }
-  })
-
+  // Dialog
   ipcMain.handle(IPC_CHANNELS.DIALOG_SELECT_DIRECTORY, async (event) => {
     assertTrustedSender(event)
     const win = getMainWindow()
@@ -215,7 +301,7 @@ export function registerIpcHandlers(): void {
     return !result.canceled && result.filePaths.length > 0 ? result.filePaths[0] : null
   })
 
-  // License controls are always available
+  // License controls
   ipcMain.handle(IPC_CHANNELS.LICENSE_GET_STATUS, (event) => {
     assertTrustedSender(event)
     return licenseManager.getLicenseInfo()
@@ -237,7 +323,7 @@ export function registerIpcHandlers(): void {
     return getHardwareInfo()
   })
 
-  // Update read is always available; mutation requires unlocked license
+  // Update APIs
   ipcMain.handle(IPC_CHANNELS.UPDATE_GET_STATE, (event) => {
     assertTrustedSender(event)
     return updateManager.getState()

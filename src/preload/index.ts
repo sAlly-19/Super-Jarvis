@@ -4,64 +4,140 @@ import {
   type UpdateConfigPayload,
   type ConfigSummary,
   type JasperMemory,
-  type AutonomyNotification,
-  type WebhookTriggerResult,
   type LicenseInfo,
   type LicenseValidationResult,
-  type UpdateState
+  type LicenseGateSnapshot,
+  type UpdateState,
+  type AgentStatusPayload,
+  type AgentAudioPayload,
+  type ToolExecutionPayload,
+  type ToolResultPayload
 } from '@shared'
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  // Audio & Text streaming
-  sendAudioChunk: (chunk: ArrayBuffer): void => {
-    ipcRenderer.send(IPC_CHANNELS.AUDIO_CHUNK, chunk)
+const electronAPI = {
+  // High-level Agent APIs
+  connectAgent: (config?: UpdateConfigPayload): Promise<{ success: boolean; error?: string }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.AGENT_CONNECT, config)
   },
-  sendTextMessage: (text: string): void => {
-    ipcRenderer.send(IPC_CHANNELS.CHAT_SEND, text)
+  disconnectAgent: (): Promise<void> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.AGENT_DISCONNECT)
   },
-  onAudioChunk: (callback: (base64Audio: string) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: string): void => callback(data)
-    ipcRenderer.on(IPC_CHANNELS.GEMINI_AUDIO_CHUNK, handler)
+  sendText: (text: string): void => {
+    ipcRenderer.send(IPC_CHANNELS.AGENT_SEND_TEXT, text)
+  },
+  sendAudio: (chunk: ArrayBuffer): void => {
+    ipcRenderer.send(IPC_CHANNELS.AGENT_SEND_AUDIO, chunk)
+  },
+  interruptAgent: (): void => {
+    ipcRenderer.send(IPC_CHANNELS.AGENT_INTERRUPT)
+  },
+  getAgentStatus: (): Promise<{ state: string; healthy: boolean }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.AGENT_GET_STATUS)
+  },
+
+  // Agent Event Listeners
+  onAgentStatus: (callback: (status: AgentStatusPayload) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: AgentStatusPayload): void => callback(status)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_STATUS, handler)
     return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.GEMINI_AUDIO_CHUNK, handler)
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_STATUS, handler)
     }
   },
-  onInterrupted: (callback: () => void): (() => void) => {
-    const handler = (): void => callback()
-    ipcRenderer.on(IPC_CHANNELS.GEMINI_INTERRUPTED, handler)
+  onAgentText: (callback: (text: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_TEXT, handler)
     return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.GEMINI_INTERRUPTED, handler)
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_TEXT, handler)
+    }
+  },
+  onUserTranscript: (callback: (text: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_USER_TRANSCRIPT, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_USER_TRANSCRIPT, handler)
+    }
+  },
+  onAgentAudio: (callback: (audio: AgentAudioPayload) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, audio: AgentAudioPayload): void => callback(audio)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_AUDIO, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_AUDIO, handler)
+    }
+  },
+  onToolExecution: (callback: (tool: ToolExecutionPayload) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, tool: ToolExecutionPayload): void => callback(tool)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_TOOL_EXECUTION, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_TOOL_EXECUTION, handler)
+    }
+  },
+  onToolResult: (callback: (result: ToolResultPayload) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, result: ToolResultPayload): void => callback(result)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_TOOL_RESULT, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_TOOL_RESULT, handler)
     }
   },
   onTurnComplete: (callback: () => void): (() => void) => {
     const handler = (): void => callback()
-    ipcRenderer.on(IPC_CHANNELS.GEMINI_TURN_COMPLETE, handler)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_TURN_COMPLETE, handler)
     return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.GEMINI_TURN_COMPLETE, handler)
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_TURN_COMPLETE, handler)
+    }
+  },
+  onInterrupted: (callback: () => void): (() => void) => {
+    const handler = (): void => callback()
+    ipcRenderer.on(IPC_CHANNELS.AGENT_INTERRUPTED, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_INTERRUPTED, handler)
+    }
+  },
+
+  // Backward compatibility aliases
+  sendAudioChunk: (chunk: ArrayBuffer): void => {
+    ipcRenderer.send(IPC_CHANNELS.AGENT_SEND_AUDIO, chunk)
+  },
+  sendTextMessage: (text: string): void => {
+    ipcRenderer.send(IPC_CHANNELS.AGENT_SEND_TEXT, text)
+  },
+  onAudioChunk: (callback: (base64Audio: string) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, audio: any): void => {
+      const b64 = typeof audio === 'string' ? audio : audio?.audio_base64 ?? ''
+      callback(b64)
+    }
+    ipcRenderer.on(IPC_CHANNELS.AGENT_AUDIO, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_AUDIO, handler)
     }
   },
   onTextChunk: (callback: (text: string) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, text: string): void => callback(text)
-    ipcRenderer.on(IPC_CHANNELS.GEMINI_TEXT_CHUNK, handler)
+    ipcRenderer.on(IPC_CHANNELS.AGENT_TEXT, handler)
     return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.GEMINI_TEXT_CHUNK, handler)
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_TEXT, handler)
     }
   },
   onStatusChange: (callback: (status: string, message?: string) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, status: string, message?: string): void => callback(status, message)
-    ipcRenderer.on(IPC_CHANNELS.GEMINI_STATUS, handler)
+    const handler = (_event: Electron.IpcRendererEvent, statusPayload: any, msg?: string): void => {
+      if (typeof statusPayload === 'string') {
+        callback(statusPayload, msg)
+      } else {
+        callback(statusPayload?.status ?? '', statusPayload?.message ?? '')
+      }
+    }
+    ipcRenderer.on(IPC_CHANNELS.AGENT_STATUS, handler)
     return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.GEMINI_STATUS, handler)
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_STATUS, handler)
     }
   },
-
-  // Gemini & Configuration
   connectGemini: (config?: UpdateConfigPayload): Promise<{ success: boolean; error?: string }> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.GEMINI_CONNECT, config)
+    return ipcRenderer.invoke(IPC_CHANNELS.AGENT_CONNECT, config)
   },
   disconnectGemini: (): Promise<void> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.GEMINI_DISCONNECT)
+    return ipcRenderer.invoke(IPC_CHANNELS.AGENT_DISCONNECT)
   },
+
+  // Configuration
   getConfig: (): Promise<ConfigSummary> => {
     return ipcRenderer.invoke(IPC_CHANNELS.CONFIG_GET)
   },
@@ -76,7 +152,40 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
-  // Application updates
+  // Memory
+  getMemory: (): Promise<JasperMemory> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MEMORY_GET)
+  },
+  clearMemory: (): Promise<boolean> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.MEMORY_CLEAR)
+  },
+
+  // License & Node-Locking
+  getLicenseStatus: (): Promise<LicenseInfo> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET_STATUS)
+  },
+  activateLicense: (key: string): Promise<LicenseValidationResult> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_ACTIVATE, key)
+  },
+  getHwid: (): Promise<{ machineId: string; machineName: string; platform: string }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET_HWID)
+  },
+  onLicenseState: (callback: (snapshot: LicenseGateSnapshot) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, snapshot: LicenseGateSnapshot): void => callback(snapshot)
+    ipcRenderer.on(IPC_CHANNELS.LICENSE_STATUS_CHANGED, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.LICENSE_STATUS_CHANGED, handler)
+    }
+  },
+  onLicenseRevoked: (callback: (payload: { status: string; message: string }) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, payload: { status: string; message: string }): void => callback(payload)
+    ipcRenderer.on(IPC_CHANNELS.LICENSE_REVOKED, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.LICENSE_REVOKED, handler)
+    }
+  },
+
+  // Application Updates
   getUpdateState: (): Promise<UpdateState> => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_GET_STATE),
   checkForUpdates: (): Promise<UpdateState> => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK),
   downloadUpdate: (): Promise<UpdateState> => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_DOWNLOAD),
@@ -89,15 +198,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
-  // Memory APIs
-  getMemory: (): Promise<JasperMemory> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.MEMORY_GET)
-  },
-  clearMemory: (): Promise<boolean> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.MEMORY_CLEAR)
-  },
-
-  // Window & PIP Controls
+  // Window Controls
   windowMinimize: (): void => {
     ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE)
   },
@@ -128,44 +229,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
-  // Autonomy & Proactive Services
-  confirmReflexionAction: (confirmationId: string): Promise<boolean> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMY_REFLEXION_CONFIRMATION, confirmationId)
-  },
-  testSmartHomeConnection: (url?: string, token?: string): Promise<{ success: boolean; message: string }> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMY_SMART_HOME_TEST_CONNECTION, url, token)
-  },
-  testWebhook: (url: string): Promise<WebhookTriggerResult> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.AUTONOMY_WEBHOOK_TEST, url)
-  },
+  // Dialog
   selectDirectory: (): Promise<string | null> => {
     return ipcRenderer.invoke(IPC_CHANNELS.DIALOG_SELECT_DIRECTORY)
   },
-  onAutonomyNotification: (callback: (notif: AutonomyNotification) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, notif: AutonomyNotification): void => callback(notif)
-    ipcRenderer.on(IPC_CHANNELS.AUTONOMY_NOTIFICATION, handler)
-    return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.AUTONOMY_NOTIFICATION, handler)
-    }
-  },
 
-  // License & Node-Locking APIs
-  getLicenseStatus: (): Promise<LicenseInfo> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET_STATUS)
+  // Compatibility stubs
+  testSmartHomeConnection: (_url?: string, _token?: string): Promise<{ success: boolean; message: string }> => {
+    return Promise.resolve({ success: false, message: 'Descontinuado' })
   },
-  activateLicense: (key: string): Promise<LicenseValidationResult> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_ACTIVATE, key)
+  testWebhook: (_url: string): Promise<any> => {
+    return Promise.resolve({ success: false, status: 404, message: 'Descontinuado' })
   },
-  getHwid: (): Promise<{ machineId: string; machineName: string; platform: string }> => {
-    return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET_HWID)
-  },
-  onLicenseRevoked: (callback: (payload: { status: string; message: string }) => void): (() => void) => {
-    const handler = (_event: any, payload: { status: string; message: string }): void => {
-      callback(payload)
-    }
-    ipcRenderer.on(IPC_CHANNELS.LICENSE_REVOKED, handler)
-    return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.LICENSE_REVOKED, handler)
-    }
+  onAutonomyNotification: (_callback: (notif: any) => void): (() => void) => {
+    return () => {}
   }
-})
+}
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI)

@@ -1,16 +1,37 @@
-import {
+import type {
   ConfigSummary,
   UpdateConfigPayload,
   JasperMemory,
-  AutonomyNotification,
-  type WebhookTriggerResult,
-  type LicenseInfo,
-  type LicenseValidationResult,
-  type UpdateState
+  LicenseInfo,
+  LicenseValidationResult,
+  LicenseGateSnapshot,
+  UpdateState,
+  AgentStatusPayload,
+  AgentAudioPayload,
+  ToolExecutionPayload,
+  ToolResultPayload
 } from '@shared'
 
 export interface ElectronAPI {
-  // Audio & Text streaming
+  // High-level Agent APIs
+  connectAgent: (config?: UpdateConfigPayload) => Promise<{ success: boolean; error?: string }>
+  disconnectAgent: () => Promise<void>
+  sendText: (text: string) => void
+  sendAudio: (chunk: ArrayBuffer) => void
+  interruptAgent: () => void
+  getAgentStatus: () => Promise<{ state: string; healthy: boolean }>
+
+  // Agent Event Listeners
+  onAgentStatus: (callback: (status: AgentStatusPayload) => void) => () => void
+  onAgentText: (callback: (text: string) => void) => () => void
+  onUserTranscript: (callback: (text: string) => void) => () => void
+  onAgentAudio: (callback: (audio: AgentAudioPayload) => void) => () => void
+  onToolExecution: (callback: (tool: ToolExecutionPayload) => void) => () => void
+  onToolResult: (callback: (result: ToolResultPayload) => void) => () => void
+  onTurnComplete: (callback: () => void) => () => void
+  onInterrupted: (callback: () => void) => () => void
+
+  // Backward compatibility aliases
   sendAudioChunk: (chunk: ArrayBuffer) => void
   sendTextMessage: (text: string) => void
   onAudioChunk: (callback: (base64Audio: string) => void) => () => void
@@ -18,10 +39,10 @@ export interface ElectronAPI {
   onTurnComplete: (callback: () => void) => () => void
   onTextChunk: (callback: (text: string) => void) => () => void
   onStatusChange: (callback: (status: string, message?: string) => void) => () => void
-
-  // Gemini connection & configuration
   connectGemini: (config?: UpdateConfigPayload) => Promise<{ success: boolean; error?: string }>
   disconnectGemini: () => Promise<void>
+
+  // Configuration
   getConfig: () => Promise<ConfigSummary>
   saveConfig: (config: UpdateConfigPayload) => Promise<{ success: boolean }>
   onAgentNameUpdated: (callback: (name: string) => void) => () => void
@@ -46,18 +67,20 @@ export interface ElectronAPI {
   toggleFullscreen: () => Promise<boolean>
   onFullscreenChange: (callback: (isFullscreen: boolean) => void) => () => void
 
-  // Autonomy & Proactive Services
-  confirmReflexionAction: (confirmationId: string) => Promise<boolean>
-  testSmartHomeConnection: (url?: string, token?: string) => Promise<{ success: boolean; message: string }>
-  testWebhook: (url: string) => Promise<WebhookTriggerResult>
-  selectDirectory: () => Promise<string | null>
-  onAutonomyNotification: (callback: (notif: AutonomyNotification) => void) => () => void
-
   // License & Node-Locking
   getLicenseStatus: () => Promise<LicenseInfo>
   activateLicense: (key: string) => Promise<LicenseValidationResult>
   getHwid: () => Promise<{ machineId: string; machineName: string; platform: string }>
+  onLicenseState: (callback: (snapshot: LicenseGateSnapshot) => void) => () => void
   onLicenseRevoked: (callback: (payload: { status: string; message: string }) => void) => () => void
+
+  // Dialog
+  selectDirectory: () => Promise<string | null>
+
+  // Compatibility stubs
+  testSmartHomeConnection: (url?: string, token?: string) => Promise<{ success: boolean; message: string }>
+  testWebhook: (url: string) => Promise<any>
+  onAutonomyNotification: (callback: (notif: any) => void) => () => void
 }
 
 declare global {

@@ -1,13 +1,33 @@
 export const IPC_CHANNELS = {
-  // Audio streaming
-  AUDIO_CHUNK: 'audio:chunk',
+  // Agent traffic (Main <-> Renderer)
+  AGENT_CONNECT: 'agent:connect',
+  AGENT_DISCONNECT: 'agent:disconnect',
+  AGENT_SEND_TEXT: 'agent:send-text',
+  AGENT_SEND_AUDIO: 'agent:send-audio',
+  AGENT_INTERRUPT: 'agent:interrupt',
+  AGENT_GET_STATUS: 'agent:get-status',
 
-  // Chat
-  CHAT_SEND: 'chat:send',
+  // Agent events (Main -> Renderer)
+  AGENT_STATUS: 'agent:status',
+  AGENT_TEXT: 'agent:text',
+  AGENT_AUDIO: 'agent:audio',
+  AGENT_USER_TRANSCRIPT: 'agent:user-transcript',
+  AGENT_TOOL_EXECUTION: 'agent:tool-execution',
+  AGENT_TOOL_RESULT: 'agent:tool-result',
+  AGENT_TURN_COMPLETE: 'agent:turn-complete',
+  AGENT_INTERRUPTED: 'agent:interrupted',
+  AGENT_ERROR: 'agent:error',
 
-  // Gemini Connection
-  GEMINI_CONNECT: 'gemini:connect',
-  GEMINI_DISCONNECT: 'gemini:disconnect',
+  // Compatibility aliases for renderer transition
+  CHAT_SEND: 'agent:send-text',
+  AUDIO_CHUNK: 'agent:send-audio',
+  GEMINI_CONNECT: 'agent:connect',
+  GEMINI_DISCONNECT: 'agent:disconnect',
+  GEMINI_AUDIO_CHUNK: 'agent:audio',
+  GEMINI_TEXT_CHUNK: 'agent:text',
+  GEMINI_STATUS: 'agent:status',
+  GEMINI_INTERRUPTED: 'agent:interrupted',
+  GEMINI_TURN_COMPLETE: 'agent:turn-complete',
 
   // Configuration
   CONFIG_GET: 'config:get',
@@ -27,20 +47,6 @@ export const IPC_CHANNELS = {
   WINDOW_TOGGLE_FULLSCREEN: 'window:toggle-fullscreen',
   WINDOW_FULLSCREEN_CHANGE: 'window:fullscreen-change',
 
-  // Gemini Server Events (Main -> Renderer)
-  GEMINI_AUDIO_CHUNK: 'gemini:audio-chunk',
-  GEMINI_INTERRUPTED: 'gemini:interrupted',
-  GEMINI_TURN_COMPLETE: 'gemini:turn-complete',
-  GEMINI_TEXT_CHUNK: 'gemini:text-chunk',
-  GEMINI_STATUS: 'gemini:status',
-
-  // Autonomy & Proactive Services
-  AUTONOMY_NOTIFICATION: 'autonomy:notification',
-  AUTONOMY_SMART_HOME_TEST_CONNECTION: 'autonomy:smart-home-test-connection',
-  AUTONOMY_REFLEXION_CONFIRMATION: 'autonomy:reflexion-confirmation',
-  AUTONOMY_WEBHOOK_TEST: 'autonomy:webhook-test',
-  DIALOG_SELECT_DIRECTORY: 'dialog:select-directory',
-
   // License & Node-Locking
   LICENSE_GET_STATUS: 'license:get-status',
   LICENSE_ACTIVATE: 'license:activate',
@@ -53,8 +59,16 @@ export const IPC_CHANNELS = {
   UPDATE_CHECK: 'update:check',
   UPDATE_DOWNLOAD: 'update:download',
   UPDATE_INSTALL: 'update:install',
-  UPDATE_STATUS: 'update:status'
+  UPDATE_STATUS: 'update:status',
+
+  // Dialog
+  DIALOG_SELECT_DIRECTORY: 'dialog:select-directory',
+
+  // Autonomy compatibility
+  AUTONOMY_NOTIFICATION: 'autonomy:notification',
+  AUTONOMY_SMART_HOME_TEST_CONNECTION: 'autonomy:smart-home-test-connection',
+  AUTONOMY_REFLEXION_CONFIRMATION: 'autonomy:reflexion-confirmation',
+  AUTONOMY_WEBHOOK_TEST: 'autonomy:webhook-test'
 } as const
 
 export type IpcChannel = typeof IPC_CHANNELS[keyof typeof IPC_CHANNELS]
-

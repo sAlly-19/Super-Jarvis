@@ -106,11 +106,27 @@ export const session = {
   }
 };
 
+export const ipcMain = {
+  _handlers: new Map(),
+  _listeners: new Map(),
+  handle(channel, fn) { this._handlers.set(channel, fn); },
+  on(channel, fn) { this._listeners.set(channel, fn); },
+  removeListener(channel) { this._listeners.delete(channel); },
+  removeAllListeners() { this._handlers.clear(); this._listeners.clear(); }
+};
+
+export const ipcRenderer = {
+  invoke() { return Promise.resolve(); },
+  send() {},
+  on() {},
+  removeListener() {}
+};
+
 export const screen = {
   getPrimaryDisplay: () => ({ workArea: { x: 0, y: 0, width: 1920, height: 1080 } })
 };
 
-export default { app, safeStorage, clipboard, nativeImage, BrowserWindow, shell, desktopCapturer, dialog, session, screen };
+export default { app, safeStorage, clipboard, nativeImage, BrowserWindow, shell, desktopCapturer, dialog, session, screen, ipcMain, ipcRenderer };
 `
 
 const mockPath = path.join(tempTestRoot, '_electron-mock.mjs')
