@@ -357,12 +357,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.LICENSE_ACTIVATE, async (event, key: string) => {
     assertTrustedSender(event)
     assertText(key, 'Chave de licença', 256)
-    const result = await licenseGate.activate(key.trim())
-    safeSend(IPC_CHANNELS.LICENSE_REVOKED, {
-      status: licenseGate.getSnapshot().state,
-      message: result.message
-    })
-    return result
+    return licenseGate.activate(key.trim())
   })
 
   ipcMain.handle(IPC_CHANNELS.LICENSE_GET_HWID, (event) => {

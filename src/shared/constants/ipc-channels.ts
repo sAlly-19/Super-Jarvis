@@ -51,7 +51,6 @@ export const IPC_CHANNELS = {
   LICENSE_GET_STATUS: 'license:get-status',
   LICENSE_ACTIVATE: 'license:activate',
   LICENSE_GET_HWID: 'license:get-hwid',
-  LICENSE_REVOKED: 'license:revoked',
   LICENSE_STATUS_CHANGED: 'license:status-changed',
 
   // Application updates

@@ -5,7 +5,7 @@ import {
   type ConfigSummary,
   type JasperMemory,
   type LicenseInfo,
-  type LicenseValidationResult,
+  type LicenseActivationOutcome,
   type LicenseGateSnapshot,
   type UpdateState,
   type AgentStatusPayload,
@@ -164,7 +164,7 @@ const electronAPI = {
   getLicenseStatus: (): Promise<LicenseInfo> => {
     return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_GET_STATUS)
   },
-  activateLicense: (key: string): Promise<LicenseValidationResult> => {
+  activateLicense: (key: string): Promise<LicenseActivationOutcome> => {
     return ipcRenderer.invoke(IPC_CHANNELS.LICENSE_ACTIVATE, key)
   },
   getHwid: (): Promise<{ machineId: string; machineName: string; platform: string }> => {
@@ -177,14 +177,6 @@ const electronAPI = {
       ipcRenderer.removeListener(IPC_CHANNELS.LICENSE_STATUS_CHANGED, handler)
     }
   },
-  onLicenseRevoked: (callback: (payload: { status: string; message: string }) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, payload: { status: string; message: string }): void => callback(payload)
-    ipcRenderer.on(IPC_CHANNELS.LICENSE_REVOKED, handler)
-    return (): void => {
-      ipcRenderer.removeListener(IPC_CHANNELS.LICENSE_REVOKED, handler)
-    }
-  },
-
   // Application Updates
   getUpdateState: (): Promise<UpdateState> => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_GET_STATE),
   checkForUpdates: (): Promise<UpdateState> => ipcRenderer.invoke(IPC_CHANNELS.UPDATE_CHECK),

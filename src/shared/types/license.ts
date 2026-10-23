@@ -38,6 +38,11 @@ export interface LicenseValidationResult {
   trustedServerTime?: number
 }
 
+export interface LicenseActivationOutcome {
+  validation: LicenseValidationResult
+  snapshot: LicenseGateSnapshot
+}
+
 export interface LicenseInfo {
   isLicensed: boolean
   status: 'active' | 'disabled' | 'revoked' | 'unlicensed' | 'expired'

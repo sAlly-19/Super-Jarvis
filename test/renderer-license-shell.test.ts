@@ -34,8 +34,13 @@ describe('Renderer Clean Migration & License Shell (No WebSocket / Local Ports)'
       'main.ts must implement explicit license state snapshot application or runtime mount lifecycle'
     )
     assert.ok(
-      mainTs.includes('window.electronAPI.onLicenseState') || mainTs.includes('window.electronAPI.onLicenseRevoked'),
-      'main.ts must listen for license state changes from Main'
+      mainTs.includes('window.electronAPI.onLicenseState'),
+      'main.ts must listen for the canonical license state event from Main'
+    )
+    assert.equal(
+      mainTs.includes('window.electronAPI.onLicenseRevoked'),
+      false,
+      'main.ts must not subscribe to a competing revocation event'
     )
   })
 })

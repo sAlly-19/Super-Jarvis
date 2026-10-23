@@ -142,9 +142,38 @@ describe('LicenseGate State Machine & Backend Lifecycle', () => {
     assert.equal(backend.startCalls, 0)
 
     const actResult = await gate.activate('JASPER-ABCDE-FGHJK-LMNPQ-RSTUV-WXYZ2-34')
-    assert.equal(actResult.valid, true)
+    assert.equal(actResult.validation.valid, true)
+    assert.equal(actResult.snapshot.state, 'unlocked')
     assert.equal(gate.getSnapshot().state, 'unlocked')
     assert.equal(backend.startCalls, 1)
+  })
+
+  test('activation reports backend_error when a valid lease cannot start the backend', async () => {
+    const auth = new MockLicenseAuthority()
+    const backend = new MockBackendLifecycle()
+    backend.shouldFailStart = true
+    const gate = new LicenseGate(auth, backend)
+
+    const outcome = await gate.activate('JASPER-ABCDE-FGHJK-LMNPQ-RSTUV-WXYZ2-34')
+
+    assert.equal(outcome.validation.valid, true)
+    assert.equal(outcome.snapshot.state, 'backend_error')
+    assert.equal(gate.getSnapshot().state, 'backend_error')
+    assert.equal(backend.stopCalls, 1)
+    assert.throws(() => gate.requireUnlocked(), { name: 'LicenseError' })
+  })
+
+  test('successful activation emits each canonical state once and never fabricates revocation', async () => {
+    const auth = new MockLicenseAuthority()
+    const backend = new MockBackendLifecycle()
+    const gate = new LicenseGate(auth, backend)
+    const states: string[] = []
+    gate.onStateChanged((snapshot) => states.push(snapshot.state))
+
+    const outcome = await gate.activate('JASPER-ABCDE-FGHJK-LMNPQ-RSTUV-WXYZ2-34')
+
+    assert.equal(outcome.snapshot.state, 'unlocked')
+    assert.deepEqual(states, ['validating', 'unlocked'])
   })
 
   test('expiry or revocation stops backend and transitions correctly', async () => {

@@ -3,7 +3,7 @@ import type {
   UpdateConfigPayload,
   JasperMemory,
   LicenseInfo,
-  LicenseValidationResult,
+  LicenseActivationOutcome,
   LicenseGateSnapshot,
   UpdateState,
   AgentStatusPayload,
@@ -69,10 +69,9 @@ export interface ElectronAPI {
 
   // License & Node-Locking
   getLicenseStatus: () => Promise<LicenseInfo>
-  activateLicense: (key: string) => Promise<LicenseValidationResult>
+  activateLicense: (key: string) => Promise<LicenseActivationOutcome>
   getHwid: () => Promise<{ machineId: string; machineName: string; platform: string }>
   onLicenseState: (callback: (snapshot: LicenseGateSnapshot) => void) => () => void
-  onLicenseRevoked: (callback: (payload: { status: string; message: string }) => void) => () => void
 
   // Commercial Control Consent
   isConsentAccepted: () => Promise<boolean>

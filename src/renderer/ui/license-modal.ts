@@ -121,18 +121,6 @@ export class LicenseModal {
       }
     })
 
-    // Listener de Revogação de Licença / Bloqueio de 24h
-    window.electronAPI.onLicenseRevoked((payload) => {
-      console.warn('[LicenseModal] Notificação de revogação recebida.')
-      updateStatusBadge('error', 'Licença Bloqueada')
-      this.goToStep1()
-      this.showFeedback(
-        payload.message || 'Sua licença foi desativada ou revogada pelo administrador. Acesso bloqueado.',
-        'error'
-      )
-      this.show(true)
-      showHudToast('Acesso Revogado', payload.message || 'Licença suspensa ou expirada.', 'error', 7000)
-    })
   }
 
   public goToStep1(): void {
@@ -169,8 +157,8 @@ export class LicenseModal {
     try {
       const result = await window.electronAPI.activateLicense(rawKey)
 
-      if (result.valid) {
-        this.showFeedback(result.message || 'Licença ativada com sucesso nesta máquina!', 'success')
+      if (result.snapshot.state === 'unlocked') {
+        this.showFeedback(result.snapshot.message || 'Licença ativada com sucesso nesta máquina!', 'success')
         showHudToast('Licença Ativada', 'Estação Jasper Desbloqueada com Sucesso!', 'info', 5000)
         updateStatusBadge('online', 'Licença Válida')
 
@@ -179,7 +167,7 @@ export class LicenseModal {
           this.goToStep2()
         }, 800)
       } else {
-        this.showFeedback(result.message || 'Falha ao ativar licença.', 'error')
+        this.showFeedback(result.snapshot.message || result.validation.message || 'Falha ao ativar licença.', 'error')
       }
     } catch (err: any) {
       this.showFeedback('Erro de rede: Não foi possível conectar ao servidor de validação.', 'error')

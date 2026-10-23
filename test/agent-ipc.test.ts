@@ -111,4 +111,9 @@ describe('Agent High-Level IPC Channels Definition', () => {
     assert.ok(IPC_CHANNELS.AGENT_INTERRUPTED, 'AGENT_INTERRUPTED must be defined')
     assert.ok(IPC_CHANNELS.AGENT_ERROR, 'AGENT_ERROR must be defined')
   })
+
+  test('license state has one canonical renderer event channel', () => {
+    assert.equal(IPC_CHANNELS.LICENSE_STATUS_CHANGED, 'license:status-changed')
+    assert.equal('LICENSE_REVOKED' in IPC_CHANNELS, false)
+  })
 })

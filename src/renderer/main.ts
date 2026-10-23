@@ -482,13 +482,6 @@ async function init(): Promise<void> {
     applyLicenseSnapshot(snapshot)
   })
 
-  window.electronAPI.onLicenseRevoked((payload) => {
-    applyLicenseSnapshot({
-      state: 'revoked',
-      message: payload.message || 'Licença revogada'
-    })
-  })
-
   DOM.btnMic?.addEventListener('click', async () => {
     if (isCallMode) {
       await exitCallMode()

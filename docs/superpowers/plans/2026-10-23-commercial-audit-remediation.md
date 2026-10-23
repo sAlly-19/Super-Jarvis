@@ -52,32 +52,34 @@
 - Modify: src/preload/index.d.ts
 - Modify: src/renderer/main.ts
 - Modify: src/renderer/ui/license-modal.ts
+- Modify: src/renderer/ui/settings-modal.ts
 - Test: test/license-gate.test.ts
 - Test: test/agent-ipc.test.ts
 - Test: test/renderer-license-shell.test.ts
+- Test: test/security-hardening.test.ts
 
-- [ ] Add failing tests proving successful activation cannot be followed by a synthetic revoked state, backend startup failure leaves the gate locked, and each transition emits exactly one canonical snapshot.
-- [ ] Run the focused tests and record the expected failures:
+- [x] Add failing tests proving successful activation cannot be followed by a synthetic revoked state, backend startup failure leaves the gate locked, and each transition emits exactly one canonical snapshot.
+- [x] Run the focused tests and record the expected failures:
       npx.cmd --yes node@24 scripts/run-tests.mjs license-gate
       npx.cmd --yes node@24 scripts/run-tests.mjs agent-ipc
       npx.cmd --yes node@24 scripts/run-tests.mjs renderer-license-shell
-- [ ] Introduce one result contract:
+- [x] Introduce one result contract:
       interface LicenseActivationOutcome {
         validation: LicenseValidationResult;
         snapshot: LicenseGateSnapshot;
       }
-- [ ] Make LicenseGate.activate return LicenseActivationOutcome instead of the raw HTTP result.
-- [ ] Replace competing LICENSE_STATE and LICENSE_REVOKED paths with one LICENSE_STATUS_CHANGED event carrying a complete LicenseGateSnapshot.
-- [ ] Remove renderer logic that fabricates a revoked snapshot from an event name.
-- [ ] Use this transition order: validate lease, persist authoritative lease, start backend, publish unlocked. On failure, stop backend, publish one locked/error snapshot and return failure.
-- [ ] Close the activation modal only when outcome.snapshot.state equals unlocked.
-- [ ] Run focused tests and type checking:
+- [x] Make LicenseGate.activate return LicenseActivationOutcome instead of the raw HTTP result.
+- [x] Replace competing LICENSE_STATE and LICENSE_REVOKED paths with one LICENSE_STATUS_CHANGED event carrying a complete LicenseGateSnapshot.
+- [x] Remove renderer logic that fabricates a revoked snapshot from an event name.
+- [x] Use this transition order: validate lease, persist authoritative lease, start backend, publish unlocked. On failure, stop backend, publish one locked/error snapshot and return failure.
+- [x] Close the activation modal only when outcome.snapshot.state equals unlocked.
+- [x] Run focused tests and type checking:
       npx.cmd --yes node@24 scripts/run-tests.mjs license-gate
       npx.cmd --yes node@24 scripts/run-tests.mjs agent-ipc
       npx.cmd --yes node@24 scripts/run-tests.mjs renderer-license-shell
       npm.cmd run typecheck
-- [ ] Commit:
-      git add src/main/services/license-gate.ts src/main/index.ts src/main/ipc/register-ipc.ts src/shared/constants/ipc-channels.ts src/shared/types/license.ts src/preload/index.ts src/preload/index.d.ts src/renderer/main.ts src/renderer/ui/license-modal.ts test/license-gate.test.ts test/agent-ipc.test.ts test/renderer-license-shell.test.ts
+- [x] Commit:
+      git add src/main/services/license-gate.ts src/main/index.ts src/main/ipc/register-ipc.ts src/shared/constants/ipc-channels.ts src/shared/types/license.ts src/preload/index.ts src/preload/index.d.ts src/renderer/main.ts src/renderer/ui/license-modal.ts src/renderer/ui/settings-modal.ts test/license-gate.test.ts test/agent-ipc.test.ts test/renderer-license-shell.test.ts test/security-hardening.test.ts
       git commit -m "fix: make license transitions atomic"
 
 ### Task 2: Enforce monotonic lease time and exact expiry

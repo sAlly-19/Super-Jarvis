@@ -3,7 +3,8 @@ import { pythonBackend } from './python-backend'
 import type {
   LicenseState,
   LicenseGateSnapshot,
-  LicenseValidationResult
+  LicenseValidationResult,
+  LicenseActivationOutcome
 } from '@shared'
 
 export interface LicenseAuthority {
@@ -111,26 +112,27 @@ export class LicenseGate {
     return this.inFlightTransition
   }
 
-  public async activate(key: string): Promise<LicenseValidationResult> {
+  public async activate(key: string): Promise<LicenseActivationOutcome> {
     this.transitionTo('validating', 'Ativando licença comercial...')
     const result = await this.licenseAuthority.activateLicense(key)
+    let snapshot: LicenseGateSnapshot
 
     if (result.valid) {
       try {
         await this.backend.start()
-        this.transitionTo('unlocked', result.message || 'Licença ativada com sucesso.', result.expiresAt)
+        snapshot = this.transitionTo('unlocked', result.message || 'Licença ativada com sucesso.', result.expiresAt)
       } catch (err: any) {
         console.error('[LicenseGate] Erro ao iniciar backend após ativação:', err)
         await this.backend.stop('backend_start_failure').catch(() => {})
-        this.transitionTo('backend_error', `Erro ao iniciar backend após ativação: ${err?.message || err}`)
+        snapshot = this.transitionTo('backend_error', `Erro ao iniciar backend após ativação: ${err?.message || err}`)
       }
     } else {
       await this.backend.stop('activation_failed').catch(() => {})
       const state: LicenseState = result.error === 'REVOKED' ? 'revoked' : 'locked'
-      this.transitionTo(state, result.message)
+      snapshot = this.transitionTo(state, result.message)
     }
 
-    return result
+    return { validation: result, snapshot }
   }
 
   public async refresh(forceOnline = false): Promise<LicenseGateSnapshot> {

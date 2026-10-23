@@ -39,14 +39,6 @@ app.whenReady().then(() => {
   registerAppProtocol()
   configStore.initialize()
 
-  // Notificar o renderer em qualquer transição de estado da licença
-  licenseGate.onStateChanged((snapshot) => {
-    safeSend(IPC_CHANNELS.LICENSE_REVOKED, {
-      status: snapshot.state,
-      message: snapshot.message
-    })
-  })
-
   // 1. Registra IPC mínimo inicial
   registerIpcHandlers()
 

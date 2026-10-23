@@ -530,13 +530,14 @@ export class SettingsModal {
 
       try {
         const res = await window.electronAPI.activateLicense(key)
+        const isUnlocked = res.snapshot.state === 'unlocked'
         if (DOM.tabLicenseFeedback) {
-          DOM.tabLicenseFeedback.textContent = res.message || (res.valid ? 'Licença ativada com sucesso!' : 'Erro na ativação.')
-          DOM.tabLicenseFeedback.className = `license-feedback ${res.valid ? 'success' : 'error'}`
+          DOM.tabLicenseFeedback.textContent = res.snapshot.message || (isUnlocked ? 'Licença ativada com sucesso!' : 'Erro na ativação.')
+          DOM.tabLicenseFeedback.className = `license-feedback ${isUnlocked ? 'success' : 'error'}`
           DOM.tabLicenseFeedback.style.display = 'block'
         }
 
-        if (res.valid) {
+        if (isUnlocked) {
           showHudToast('Licença Ativada', 'Estação Jasper Desbloqueada com Sucesso!', 'info', 5000)
           updateStatusBadge('online', 'Jasper Pronto')
           await this.refreshLicenseUI()
