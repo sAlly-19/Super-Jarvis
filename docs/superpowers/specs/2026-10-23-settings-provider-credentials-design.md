@@ -1,7 +1,7 @@
 # Jasper Settings and Provider Credentials Design
 
 **Date:** 2026-10-23  
-**Status:** Approved in conversation; awaiting written-spec review  
+**Status:** Approved
 **Scope:** Settings dashboard, provider-specific credentials, configuration migration, and runtime synchronization
 
 ## 1. Objective
