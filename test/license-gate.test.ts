@@ -66,6 +66,49 @@ class MockBackendLifecycle implements BackendLifecycle {
   }
 }
 
+class StartupGuardedBackendLifecycle extends MockBackendLifecycle {
+  constructor(private readonly isStartupAllowed: () => boolean) {
+    super()
+  }
+
+  override async start(): Promise<void> {
+    if (!this.isStartupAllowed()) {
+      throw new Error('Sidecar execution not allowed by license gate.')
+    }
+    await super.start()
+  }
+}
+
+class ControlledStartupBackendLifecycle extends StartupGuardedBackendLifecycle {
+  private releaseFirstStart!: () => void
+  public readonly firstStartEntered: Promise<void>
+  private readonly firstStartRelease: Promise<void>
+
+  constructor(isStartupAllowed: () => boolean) {
+    super(isStartupAllowed)
+    this.firstStartEntered = new Promise((resolve) => {
+      this.signalFirstStartEntered = resolve
+    })
+    this.firstStartRelease = new Promise((resolve) => {
+      this.releaseFirstStart = resolve
+    })
+  }
+
+  private signalFirstStartEntered!: () => void
+
+  override async start(): Promise<void> {
+    await super.start()
+    if (this.startCalls === 1) {
+      this.signalFirstStartEntered()
+      await this.firstStartRelease
+    }
+  }
+
+  completeFirstStart(): void {
+    this.releaseFirstStart()
+  }
+}
+
 class FakeGateTimers {
   public callback: (() => void) | null = null
   public delayMs: number | null = null
@@ -109,13 +152,40 @@ describe('LicenseGate State Machine & Backend Lifecycle', () => {
       message: 'Licença ativa',
       expiresAt: new Date(Date.now() + 72 * 3600000).toISOString()
     }
-    const backend = new MockBackendLifecycle()
-    const gate = new LicenseGate(auth, backend)
+    let gate!: LicenseGate
+    const backend = new StartupGuardedBackendLifecycle(() => {
+      const startupGate = gate as unknown as { isBackendStartupAllowed?: () => boolean }
+      return startupGate.isBackendStartupAllowed?.() === true
+    })
+    gate = new LicenseGate(auth, backend)
 
     const snapshot = await gate.initialize()
     assert.equal(snapshot.state, 'unlocked')
     assert.equal(backend.startCalls, 1)
     assert.doesNotThrow(() => gate.requireUnlocked())
+  })
+
+  test('valid refresh from locked authorizes backend startup before unlocking', async () => {
+    const auth = new MockLicenseAuthority()
+    let gate!: LicenseGate
+    const backend = new StartupGuardedBackendLifecycle(() => {
+      const startupGate = gate as unknown as { isBackendStartupAllowed?: () => boolean }
+      return startupGate.isBackendStartupAllowed?.() === true
+    })
+    gate = new LicenseGate(auth, backend)
+
+    await gate.initialize()
+    auth.currentResult = {
+      valid: true,
+      status: 'ACTIVE',
+      message: 'Licença renovada',
+      expiresAt: new Date(Date.now() + 72 * 3600000).toISOString()
+    }
+
+    const snapshot = await gate.refresh(true)
+
+    assert.equal(snapshot.state, 'unlocked')
+    assert.equal(backend.startCalls, 1)
   })
 
   test('concurrent initialize calls share one in-flight promise and start backend once', async () => {
@@ -168,6 +238,56 @@ describe('LicenseGate State Machine & Backend Lifecycle', () => {
     assert.equal(backend.startCalls, 1)
   })
 
+  test('valid activation authorizes backend startup before publishing unlocked state', async () => {
+    const auth = new MockLicenseAuthority()
+    let gate!: LicenseGate
+    const backend = new ControlledStartupBackendLifecycle(() => {
+      const startupGate = gate as unknown as { isBackendStartupAllowed?: () => boolean }
+      return startupGate.isBackendStartupAllowed?.() === true
+    })
+    gate = new LicenseGate(auth, backend)
+
+    const activation = gate.activate('JASPER-ABCDE-FGHJK-LMNPQ-RSTUV-WXYZ2-34')
+    await backend.firstStartEntered
+
+    assert.equal(gate.getSnapshot().state, 'validating')
+    assert.throws(() => gate.requireUnlocked(), { name: 'LicenseError' })
+    assert.equal(gate.isBackendStartupAllowed(), true)
+
+    backend.completeFirstStart()
+    const outcome = await activation
+
+    assert.equal(outcome.snapshot.state, 'unlocked')
+    assert.equal(backend.startCalls, 1)
+    assert.equal(gate.isBackendStartupAllowed(), true)
+  })
+
+  test('concurrent activations cannot publish unlocked before the first backend handshake completes', async () => {
+    const auth = new MockLicenseAuthority()
+    let gate!: LicenseGate
+    const backend = new ControlledStartupBackendLifecycle(() => {
+      const startupGate = gate as unknown as { isBackendStartupAllowed?: () => boolean }
+      return startupGate.isBackendStartupAllowed?.() === true
+    })
+    gate = new LicenseGate(auth, backend)
+
+    const firstActivation = gate.activate('JASPER-ABCDE-FGHJK-LMNPQ-RSTUV-WXYZ2-34')
+    await backend.firstStartEntered
+    let secondSettled = false
+    const secondActivation = gate.activate('JASPER-ABCDE-FGHJK-LMNPQ-RSTUV-WXYZ2-34')
+      .finally(() => { secondSettled = true })
+    await new Promise<void>((resolve) => setImmediate(resolve))
+
+    assert.equal(secondSettled, false)
+    assert.equal(gate.getSnapshot().state, 'validating')
+    assert.throws(() => gate.requireUnlocked(), { name: 'LicenseError' })
+
+    backend.completeFirstStart()
+    const [firstOutcome, secondOutcome] = await Promise.all([firstActivation, secondActivation])
+    assert.equal(firstOutcome.snapshot.state, 'unlocked')
+    assert.equal(secondOutcome.snapshot.state, 'unlocked')
+  })
+
   test('activation reports backend_error when a valid lease cannot start the backend', async () => {
     const auth = new MockLicenseAuthority()
     const backend = new MockBackendLifecycle()
@@ -180,6 +300,7 @@ describe('LicenseGate State Machine & Backend Lifecycle', () => {
     assert.equal(outcome.snapshot.state, 'backend_error')
     assert.equal(gate.getSnapshot().state, 'backend_error')
     assert.equal(backend.stopCalls, 1)
+    assert.equal(gate.isBackendStartupAllowed(), false)
     assert.throws(() => gate.requireUnlocked(), { name: 'LicenseError' })
   })
 

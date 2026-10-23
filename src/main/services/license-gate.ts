@@ -45,8 +45,10 @@ export class LicenseGate {
   }
   private listeners: Array<(snapshot: LicenseGateSnapshot) => void> = []
   private inFlightTransition: Promise<LicenseGateSnapshot> | null = null
+  private transitionTail: Promise<void> = Promise.resolve()
   private unsubscribeRevocation: (() => void) | null = null
   private expiryTimer: NodeJS.Timeout | null = null
+  private validatedBackendStarts = 0
 
   constructor(
     private readonly licenseAuthority: LicenseAuthority,
@@ -124,19 +126,40 @@ export class LicenseGate {
     }
   }
 
+  public isBackendStartupAllowed(): boolean {
+    return this.snapshot.state === 'unlocked' || this.validatedBackendStarts > 0
+  }
+
+  private async startBackendWithValidatedLicense(): Promise<void | boolean> {
+    this.validatedBackendStarts++
+    try {
+      return await this.backend.start()
+    } finally {
+      this.validatedBackendStarts--
+    }
+  }
+
+  private enqueueTransition<T>(operation: () => Promise<T>): Promise<T> {
+    const scheduled = this.transitionTail.then(operation)
+    this.transitionTail = scheduled.then(
+      () => undefined,
+      () => undefined
+    )
+    return scheduled
+  }
+
   public async initialize(): Promise<LicenseGateSnapshot> {
     if (this.inFlightTransition) {
       return this.inFlightTransition
     }
 
-    this.inFlightTransition = (async () => {
-      try {
+    const transition = this.enqueueTransition(async () => {
         this.transitionTo('validating', 'Validando autorização de licença...')
         const validation = await this.licenseAuthority.verifyCurrentLicense(false)
 
         if (validation.valid) {
           try {
-            await this.backend.start()
+            await this.startBackendWithValidatedLicense()
             return this.transitionTo('unlocked', validation.message || 'Licença comercial válida.', validation.expiresAt)
           } catch (err: any) {
             console.error('[LicenseGate] Erro ao iniciar backend na inicialização:', err)
@@ -149,35 +172,41 @@ export class LicenseGate {
         await this.backend.stop(validation.error || 'unlicensed').catch(() => {})
         const state: LicenseState = validation.error === 'EXPIRED' ? 'expired' : (validation.error === 'REVOKED' ? 'revoked' : 'locked')
         return this.transitionTo(state, validation.message)
-      } finally {
+    })
+    this.inFlightTransition = transition
+
+    try {
+      return await transition
+    } finally {
+      if (this.inFlightTransition === transition) {
         this.inFlightTransition = null
       }
-    })()
-
-    return this.inFlightTransition
+    }
   }
 
   public async activate(key: string): Promise<LicenseActivationOutcome> {
-    this.transitionTo('validating', 'Ativando licença comercial...')
-    const result = await this.licenseAuthority.activateLicense(key)
-    let snapshot: LicenseGateSnapshot
+    return this.enqueueTransition(async () => {
+      this.transitionTo('validating', 'Ativando licença comercial...')
+      const result = await this.licenseAuthority.activateLicense(key)
+      let snapshot: LicenseGateSnapshot
 
-    if (result.valid) {
-      try {
-        await this.backend.start()
-        snapshot = this.transitionTo('unlocked', result.message || 'Licença ativada com sucesso.', result.expiresAt)
-      } catch (err: any) {
-        console.error('[LicenseGate] Erro ao iniciar backend após ativação:', err)
-        await this.backend.stop('backend_start_failure').catch(() => {})
-        snapshot = this.transitionTo('backend_error', `Erro ao iniciar backend após ativação: ${err?.message || err}`)
+      if (result.valid) {
+        try {
+          await this.startBackendWithValidatedLicense()
+          snapshot = this.transitionTo('unlocked', result.message || 'Licença ativada com sucesso.', result.expiresAt)
+        } catch (err: any) {
+          console.error('[LicenseGate] Erro ao iniciar backend após ativação:', err)
+          await this.backend.stop('backend_start_failure').catch(() => {})
+          snapshot = this.transitionTo('backend_error', `Erro ao iniciar backend após ativação: ${err?.message || err}`)
+        }
+      } else {
+        await this.backend.stop('activation_failed').catch(() => {})
+        const state: LicenseState = result.error === 'REVOKED' ? 'revoked' : 'locked'
+        snapshot = this.transitionTo(state, result.message)
       }
-    } else {
-      await this.backend.stop('activation_failed').catch(() => {})
-      const state: LicenseState = result.error === 'REVOKED' ? 'revoked' : 'locked'
-      snapshot = this.transitionTo(state, result.message)
-    }
 
-    return { validation: result, snapshot }
+      return { validation: result, snapshot }
+    })
   }
 
   public async refresh(forceOnline = false): Promise<LicenseGateSnapshot> {
@@ -185,14 +214,13 @@ export class LicenseGate {
       return this.inFlightTransition
     }
 
-    this.inFlightTransition = (async () => {
-      try {
+    const transition = this.enqueueTransition(async () => {
         const validation = await this.licenseAuthority.verifyCurrentLicense(forceOnline)
 
         if (validation.valid) {
           if (this.snapshot.state !== 'unlocked') {
             try {
-              await this.backend.start()
+              await this.startBackendWithValidatedLicense()
             } catch (err: any) {
               await this.backend.stop('backend_start_failure').catch(() => {})
               return this.transitionTo('backend_error', `Falha no backend durante renovação: ${err?.message || err}`)
@@ -204,12 +232,16 @@ export class LicenseGate {
         await this.backend.stop(validation.error || 'refresh_invalid').catch(() => {})
         const state: LicenseState = validation.error === 'EXPIRED' ? 'expired' : (validation.error === 'REVOKED' ? 'revoked' : 'locked')
         return this.transitionTo(state, validation.message)
-      } finally {
+    })
+    this.inFlightTransition = transition
+
+    try {
+      return await transition
+    } finally {
+      if (this.inFlightTransition === transition) {
         this.inFlightTransition = null
       }
-    })()
-
-    return this.inFlightTransition
+    }
   }
 
   public markBackendError(message: string): void {
@@ -228,5 +260,5 @@ export class LicenseGate {
 }
 
 export const licenseGate = new LicenseGate(licenseManager, pythonBackend)
-pythonBackend.setExecutionAllowed(() => licenseGate.getSnapshot().state === 'unlocked')
+pythonBackend.setExecutionAllowed(() => licenseGate.isBackendStartupAllowed())
 

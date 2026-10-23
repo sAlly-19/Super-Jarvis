@@ -419,6 +419,14 @@
 
 ## Definition of Done
 
+### Post-audit hotfix: authorize licensed sidecar bootstrap without early unlock
+
+- [x] Add a regression test reproducing activation failing with `Sidecar execution not allowed by license gate` while the canonical state is `validating`.
+- [x] Keep the public gate locked until the sidecar handshake completes, but authorize `PythonBackendManager.start()` inside a bounded, license-validated startup window.
+- [x] Apply the same startup path to initialization, activation and refresh recovery.
+- [x] Serialize state-changing license operations so concurrent activation cannot publish `unlocked` before the in-flight backend handshake completes.
+- [x] Verify the focused license-gate suite and TypeScript types before committing the hotfix separately from Task 7 release-signing work.
+
 - [ ] Licença válida desbloqueia uma vez; licença ausente, inválida, revogada, expirada ou com rollback mantém todo o produto bloqueado.
 - [ ] Expiração/revogação encerra sidecar e descendentes sem aguardar o ciclo de 72 horas.
 - [ ] Nenhum segredo de provedor é herdado por sidecar ou comandos.
