@@ -5,7 +5,6 @@ import path from 'node:path'
 import os from 'node:os'
 import { OperationalAccess } from '../src/main/services/operational-access'
 import { ConfigStore } from '../src/main/config/config-store'
-import { LicenseGate } from '../src/main/services/license-gate'
 
 describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
   const supportedPublicConfigKeys = [
@@ -63,7 +62,6 @@ describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
     const configPath = path.join(tmpDir, 'config.json')
     const configStore = new ConfigStore(configPath)
 
-    // Mock unlocked gate
     const gate = {
       getSnapshot: () => ({ state: 'unlocked' as const }),
       requireUnlocked: () => {}
@@ -179,5 +177,6 @@ describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
     const html = fs.readFileSync(path.join(process.cwd(), 'src/renderer/index.html'), 'utf8')
     assert.match(html, /validação contínua a cada 72 horas/i)
     assert.doesNotMatch(html, /validação contínua a cada 24 horas/i)
+    assert.doesNotMatch(html, /id="modal-module-detail"/)
   })
 })

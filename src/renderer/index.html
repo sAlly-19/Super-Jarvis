@@ -120,16 +120,16 @@
       <!-- Settings Modal Full-Screen Dashboard -->
       <div id="settings-modal" class="modal-backdrop hidden">
         <div class="dashboard-shell">
-          <!-- COLUNA ESQUERDA (SIDEBAR DE NAVEGAÇÃO) -->
+          <!-- COLUNA ESQUERDA (SIDEBAR DE NAVEGAÇÃO ÚNICA) -->
           <aside class="dashboard-sidebar">
             <!-- 1. Topo (Brand Header) -->
             <div class="sidebar-brand-header">
               <div class="eclipse-ring" aria-hidden="true"></div>
               <div class="sidebar-brand-info">
-                <span class="sidebar-brand-title">GEMINI</span>
-                <span class="sidebar-brand-subtitle">ASSISTENTE IA</span>
+                <span class="sidebar-brand-title">JASPER</span>
+                <span class="sidebar-brand-subtitle">ESTAÇÃO NEURAL</span>
                 <span class="sidebar-brand-line"></span>
-                <span class="sidebar-brand-micro">INTELIGÊNCIA SEM LIMITES</span>
+                <span class="sidebar-brand-micro">CONTROLE OPERACIONAL WINDOWS</span>
               </div>
               <button id="btn-close-settings" type="button" class="sidebar-hex-btn modal-close" title="Voltar ao HUD / Fechar">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -138,9 +138,9 @@
               </button>
             </div>
 
-            <!-- 2. Meio (Lista de Navegação Vertical) -->
+            <!-- 2. Meio (Lista de Navegação Vertical Única) -->
             <nav class="sidebar-nav-list" aria-label="Menu do Painel de Controle">
-              <button type="button" class="settings-tab-btn sidebar-nav-item active" data-tab="tab-identity">
+              <button type="button" class="settings-tab-btn sidebar-nav-item active" data-tab="general">
                 <span class="sidebar-item-icon">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 10.5L12 3l9 7.5"></path>
@@ -149,12 +149,12 @@
                   </svg>
                 </span>
                 <span class="sidebar-item-text">
-                  <span class="sidebar-item-title">Painel de Controle</span>
-                  <span class="sidebar-item-sub">Personalização e sistema</span>
+                  <span class="sidebar-item-title">Geral &amp; Aparência</span>
+                  <span class="sidebar-item-sub">Identidade e efeitos 3D</span>
                 </span>
               </button>
 
-              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-ai">
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="ai-voice">
                 <span class="sidebar-item-icon">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
@@ -165,23 +165,23 @@
                 </span>
                 <span class="sidebar-item-text">
                   <span class="sidebar-item-title">IA &amp; Voz</span>
-                  <span class="sidebar-item-sub">Modelo, voz e linguagem</span>
+                  <span class="sidebar-item-sub">Provedores, chaves e voz</span>
                 </span>
               </button>
 
-              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-tools">
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="system">
                 <span class="sidebar-item-icon">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                   </svg>
                 </span>
                 <span class="sidebar-item-text">
-                  <span class="sidebar-item-title">Ferramentas</span>
-                  <span class="sidebar-item-sub">Integrações e recursos</span>
+                  <span class="sidebar-item-title">Sistema &amp; Automação</span>
+                  <span class="sidebar-item-sub">Capacidades e atualizações</span>
                 </span>
               </button>
 
-              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-memory">
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="memory">
                 <span class="sidebar-item-icon">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
@@ -191,13 +191,11 @@
                 </span>
                 <span class="sidebar-item-text">
                   <span class="sidebar-item-title">Memória</span>
-                  <span class="sidebar-item-sub">Contexto e preferências</span>
+                  <span class="sidebar-item-sub">Fatos e preferências</span>
                 </span>
               </button>
 
-
-
-              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="tab-license">
+              <button type="button" class="settings-tab-btn sidebar-nav-item" data-tab="license">
                 <span class="sidebar-item-icon">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="4" y="11" width="16" height="10" rx="2" ry="2"></rect>
@@ -207,18 +205,18 @@
                 </span>
                 <span class="sidebar-item-text">
                   <span class="sidebar-item-title">Licença</span>
-                  <span class="sidebar-item-sub">Plano e assinatura</span>
+                  <span class="sidebar-item-sub">Node-locking e lease 72h</span>
                 </span>
               </button>
             </nav>
 
             <!-- 3. Rodapé da Sidebar (Status Card) -->
-            <div id="sidebar-live-card" class="sidebar-status-card" title="Interagir com o Assistente">
+            <div id="sidebar-live-card" class="sidebar-status-card" title="Estado atual do Jasper Core">
               <div class="sidebar-status-main">
                 <span class="glow-dot-white"></span>
                 <div class="sidebar-status-copy">
-                  <span class="sidebar-status-headline">Conectado ao <strong>Gemini Live</strong></span>
-                  <span class="sidebar-status-caption">IA pronta para interagir</span>
+                  <span class="sidebar-status-headline">Aguardando <strong>Jasper Core</strong></span>
+                  <span class="sidebar-status-caption">Verificando conexão do agente</span>
                 </div>
               </div>
               <div class="sidebar-status-actions">
@@ -239,25 +237,25 @@
 
           <!-- COLUNA DIREITA (PAINEL PRINCIPAL) -->
           <div class="modal-card dashboard-main">
-            <!-- 1. Cabeçalho Superior (Top Bar) -->
+            <!-- 1. Cabeçalho Superior Dinâmico (Top Bar) -->
             <div class="modal-header dashboard-topbar">
               <div class="modal-title-wrap">
                 <div class="modal-arc-ring">
                   <span class="modal-arc-dot"></span>
                 </div>
                 <div>
-                  <h3>PAINEL DE CONTROLE // SISTEMA</h3>
-                  <span class="modal-subtitle">Personalização, inteligência artificial e recursos.</span>
+                  <h3 id="settings-section-title">GERAL &amp; APARÊNCIA</h3>
+                  <span id="settings-section-description" class="modal-subtitle">Personalize a identidade, expressões faciais e efeitos holográficos do Jasper.</span>
                 </div>
               </div>
 
               <div class="topbar-widgets">
-                <!-- Widget 1 (Status) -->
+                <!-- Widget 1 (Status Real) -->
                 <div class="topbar-widget widget-status">
                   <span class="glow-dot-white"></span>
                   <div class="widget-copy">
-                    <strong class="widget-status-title">Sistema Online</strong>
-                    <span class="widget-status-sub">Tudo operacional</span>
+                    <strong id="settings-connection-status" class="widget-status-title" aria-live="polite">Agente Desconectado</strong>
+                    <span id="settings-connection-detail" class="widget-status-sub">Sincronizando estado...</span>
                   </div>
                 </div>
 
@@ -277,61 +275,10 @@
               </div>
             </div>
 
-            <!-- 2. Barra de Abas Secundária (Horizontal) -->
-            <nav class="settings-tabs-nav">
-              <button type="button" class="settings-tab-btn top-tab-btn active" data-tab="tab-identity">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="8" r="4"></circle>
-                  <path d="M20 20a8 8 0 1 0-16 0"></path>
-                </svg>
-                <span>IDENTIDADE &amp; VISUAL</span>
-              </button>
-              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-ai">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                  <line x1="12" y1="19" x2="12" y2="22"></line>
-                  <line x1="8" y1="22" x2="16" y2="22"></line>
-                </svg>
-                <span>IA &amp; Voz</span>
-              </button>
-              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-tools">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
-                <span>Ferramentas</span>
-              </button>
-              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-memory">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                  <ellipse cx="12" cy="5" rx="8" ry="3"></ellipse>
-                  <path d="M20 12c0 1.66-3.58 3-8 3s-8-1.34-8-3"></path>
-                  <path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"></path>
-                </svg>
-                <span>Memória</span>
-              </button>
-
-              <button type="button" class="settings-tab-btn top-tab-btn" data-tab="tab-license">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="4" y="11" width="16" height="10" rx="2" ry="2"></rect>
-                  <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
-                  <circle cx="12" cy="16" r="1" fill="currentColor"></circle>
-                </svg>
-                <span>Licença</span>
-              </button>
-            </nav>
-
-            <!-- Linha de instrução abaixo das abas -->
-            <div class="tab-instruction-line">
-              <svg class="diamond-star-icon" viewBox="0 0 16 16" width="11" height="11" fill="currentColor" aria-hidden="true">
-                <path d="M8 1L9.7 6.3L15 8L9.7 9.7L8 15L6.3 9.7L1 8L6.3 6.3L8 1Z"></path>
-              </svg>
-              <span>Customize a aparência, comportamento visual e identidade do seu assistente de IA.</span>
-            </div>
-
-            <!-- Modal Body with Scrollable Tab Panes -->
+            <!-- Modal Body with Scrollable Section Panes -->
             <div class="modal-body">
-              <!-- TAB 1: IDENTIDADE & VISUAL -->
-              <div id="tab-identity" class="settings-tab-pane active">
+              <!-- SECTION 1: GERAL & APARÊNCIA -->
+              <div id="tab-general" class="settings-tab-pane active">
                 <!-- Card 1 — Nome do Agente Assistente -->
                 <div class="settings-card settings-row-card">
                   <div class="settings-card-header">
@@ -343,7 +290,7 @@
                     </span>
                     <div class="card-text-col">
                       <h4>Nome do Agente Assistente</h4>
-                      <p>Altera a identidade em toda a interface, na ativação por voz e no prompt de IA.</p>
+                      <p>Altera a identidade em toda a interface, na ativação por voz e no prompt do Jasper.</p>
                     </div>
                   </div>
                   <div class="form-group row-control-right row-control-input">
@@ -367,7 +314,7 @@
                     </span>
                     <div class="card-text-col">
                       <h4>Expressão Facial do Avatar</h4>
-                      <p>Altera o humor e as microexpressões faciais em tempo real.</p>
+                      <p>Pré-visualize o humor e as microexpressões faciais em tempo real.</p>
                     </div>
                   </div>
                   <div class="emotion-bar settings-emotion-bar">
@@ -390,7 +337,7 @@
                     </span>
                     <div class="card-text-col">
                       <h4>Efeito Holográfico Bloom &amp; Glow</h4>
-                      <p>Aplica pós-processamento Three.js UnrealBloomPass para um brilho sci-fi neon nos olhos e bordas do avatar.</p>
+                      <p>Aplica pós-processamento Three.js UnrealBloomPass nos olhos e contornos do avatar.</p>
                     </div>
                   </div>
                   <label class="row-control-right toggle-status-control" for="check-bloom">
@@ -418,7 +365,7 @@
                     </span>
                     <div class="card-text-col">
                       <h4>Plano de Fundo Neural Animado</h4>
-                      <p>Partículas e sinapses holográficas 3D fluindo em várias direções com conexões dinâmicas.</p>
+                      <p>Partículas e sinapses holográficas 3D com conexões dinâmicas.</p>
                     </div>
                   </div>
                   <label class="row-control-right toggle-status-control" for="check-neural-bg">
@@ -429,12 +376,12 @@
                     <div class="toggle-side-labels">
                       <span class="toggle-side-state state-when-on">Ativado</span>
                       <span class="toggle-side-state state-when-off">Desativado</span>
-                      <span class="toggle-side-desc">Plano de fundo estático.</span>
+                      <span class="toggle-side-desc">Malha neural 3D em segundo plano.</span>
                     </div>
                   </label>
                 </div>
 
-                <!-- Card 5 — Rastreamento Ocular (Olhar Segue o Mouse) -->
+                <!-- Card 5 — Rastreamento Ocular -->
                 <div class="settings-card settings-row-card">
                   <div class="settings-card-header">
                     <span class="card-icon">
@@ -479,58 +426,122 @@
                     <button type="button" id="btn-settings-fullscreen" class="btn-fullscreen-card">Ativar Tela Cheia</button>
                     <div class="fullscreen-shortcut-note">
                       <span class="info-circle-badge" aria-hidden="true">i</span>
-                      <span>Pressione <strong>F12</strong> a qualquer momento para entrar.</span>
+                      <span>Pressione <strong>F12</strong> a qualquer momento para alternar.</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- TAB 2: IA & VOZ -->
-              <div id="tab-ai" class="settings-tab-pane">
-                <!-- Gemini API Key Card -->
+              <!-- SECTION 2: IA & VOZ -->
+              <div id="tab-ai-voice" class="settings-tab-pane">
+                <!-- Active Provider, Model & Voice Selector Card -->
                 <div class="settings-card">
                   <div class="settings-card-header">
                     <span class="card-icon">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-2.5-2.5"/></svg>
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
                     </span>
-                    <div>
-                      <h4>GOOGLE_API_KEY (Gemini Multimodal Live)</h4>
-                      <p>Necessária para comunicação bidirecional de áudio e inteligência artificial.</p>
+                    <div class="card-text-col">
+                      <h4>Provedor Ativo, Modelo e Síntese de Voz</h4>
+                      <p>Escolha o provedor de IA ativo para o Jasper. Somente a credencial do provedor selecionado é enviada ao runtime.</p>
                     </div>
                   </div>
-
-                  <!-- Active Key Masked Display -->
-                  <div class="active-key-info-badge" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px;">
-                    <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">CHAVE EM USO ATUAL:</span>
-                    <code id="gemini-key-masked-display" style="font-family: monospace; font-size: 11px; color: #ffffff; background: rgba(0,0,0,0.6); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);">NENHUMA CHAVE CONFIGURADA</code>
-                  </div>
-
-                  <div class="input-password-wrap" style="display: flex; gap: 6px;">
-                    <input type="password" id="input-api-key" placeholder="Digite uma nova chave para alterar..." style="flex: 1;" />
-                    <button id="btn-toggle-key" type="button" class="btn-toggle">Mostrar</button>
-                    <button id="btn-remove-key" type="button" class="btn-toggle" style="background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.22); color: #d4d4d8;" title="Remover chave configurada">Remover</button>
-                  </div>
-                  <div class="api-key-hint">
-                    <small>Obtenha sua chave gratuita no <a href="https://aistudio.google.com/" target="_blank">Google AI Studio &nearr;</a></small>
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="select-ai-provider">Provedor de IA Ativo:</label>
+                      <select id="select-ai-provider">
+                        <option value="gemini" selected>Gemini (Google AI)</option>
+                        <option value="groq">Groq Cloud</option>
+                        <option value="ollama">Ollama Local (Offline)</option>
+                      </select>
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="select-model">Modelo Permitido:</label>
+                      <select id="select-model">
+                        <option value="gemini/gemini-2.5-flash" selected>Gemini 2.5 Flash</option>
+                      </select>
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="select-voice">Voz Neural (Edge-TTS):</label>
+                      <select id="select-voice">
+                        <option value="pt-BR-AntonioNeural" selected>Antonio Neural (Masculina)</option>
+                        <option value="pt-BR-FranciscaNeural">Francisca Neural (Feminina)</option>
+                        <option value="pt-BR-ThalitaNeural">Thalita Neural (Feminina Expressiva)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                <!-- TensorFlow.js Speech Commands Engine Card (100% Free & Local) -->
+                <!-- Independent Provider Credentials Grid -->
+                <div class="provider-credentials-grid">
+                  <!-- Gemini Credential Card -->
+                  <div class="settings-card provider-credential-card" data-provider-card="gemini">
+                    <div class="provider-card-top">
+                      <div>
+                        <h4>Credencial Google Gemini</h4>
+                        <p>Chave pessoal para o modelo <code>gemini/gemini-2.5-flash</code>.</p>
+                      </div>
+                      <code id="gemini-credential-status" class="credential-status-pill" aria-live="polite">Não configurada</code>
+                    </div>
+                    <div class="input-password-wrap">
+                      <input type="password" id="input-gemini-key" autocomplete="off" spellcheck="false" placeholder="Digite para configurar ou substituir..." />
+                      <button id="btn-toggle-gemini-key" type="button" class="btn-toggle">Mostrar</button>
+                      <button id="btn-remove-gemini-key" type="button" class="btn-toggle btn-remove-credential" title="Remover credencial do Gemini">Remover</button>
+                    </div>
+                    <div class="api-key-hint">
+                      <small>Obtenha sua chave em <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Google AI Studio &nearr;</a></small>
+                    </div>
+                  </div>
+
+                  <!-- Groq Credential Card -->
+                  <div class="settings-card provider-credential-card" data-provider-card="groq">
+                    <div class="provider-card-top">
+                      <div>
+                        <h4>Credencial Groq</h4>
+                        <p>Chave independente para o modelo <code>groq/llama-3.3-70b-versatile</code>.</p>
+                      </div>
+                      <code id="groq-credential-status" class="credential-status-pill" aria-live="polite">Não configurada</code>
+                    </div>
+                    <div class="input-password-wrap">
+                      <input type="password" id="input-groq-key" autocomplete="off" spellcheck="false" placeholder="Digite sua chave gsk_ para configurar..." />
+                      <button id="btn-toggle-groq-key" type="button" class="btn-toggle">Mostrar</button>
+                      <button id="btn-remove-groq-key" type="button" class="btn-toggle btn-remove-credential" title="Remover credencial da Groq">Remover</button>
+                    </div>
+                    <div class="api-key-hint">
+                      <small>Obtenha sua chave em <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer">Groq Console &nearr;</a></small>
+                    </div>
+                  </div>
+
+                  <!-- Ollama Local Card -->
+                  <div class="settings-card provider-credential-card" data-provider-card="ollama">
+                    <div class="provider-card-top">
+                      <div>
+                        <h4>Ollama Local</h4>
+                        <p>Execução local com <code>ollama/qwen2.5:3b</code> sem necessidade de chave de API.</p>
+                      </div>
+                      <code id="ollama-provider-status" class="credential-status-pill" aria-live="polite">Sem chave necessária</code>
+                    </div>
+                    <p class="provider-local-note">
+                      Requer o serviço Ollama em execução localmente em <code>http://127.0.0.1:11434</code>. Nenhuma credencial remota é enviada.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- TensorFlow.js Speech Commands Engine Card (100% Local) -->
                 <div class="settings-card">
                   <div class="settings-card-header">
                     <span class="card-icon">
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                     </span>
-                    <div>
-                      <h4>Ativação por Voz (Nome do Agente)</h4>
-                      <p>Detecção neural personalizada com TensorFlow.js. Ativa exclusivamente ao ouvir o nome do assistente.</p>
+                    <div class="card-text-col">
+                      <h4>Ativação por Voz Local (TensorFlow.js)</h4>
+                      <p>Detecção neural local que abre o microfone ao ouvir o nome configurado do assistente.</p>
                     </div>
                   </div>
 
-                  <label class="hud-switch-item">
+                  <label class="hud-switch-item" for="check-wake-word">
                     <div class="hud-switch-text">
                       <span class="hud-switch-title">Ativar Escuta por Voz</span>
-                      <span class="hud-switch-desc">Abre o microfone automaticamente ao ouvir o nome definido.</span>
+                      <span class="hud-switch-desc">Escuta continuamente de forma 100% local pelo nome definido.</span>
                     </div>
                     <div class="hud-toggle">
                       <input type="checkbox" id="check-wake-word" checked />
@@ -538,121 +549,124 @@
                     </div>
                   </label>
 
-                  <!-- Status Box -->
-                  <div id="wake-word-status-box" class="wake-word-status-box" style="margin-top: 12px; padding: 10px 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 8px; font-size: 0.82rem; color: var(--text-dim); display: flex; align-items: center; gap: 10px;">
-                    <span id="wake-status-icon" style="display: inline-flex; align-items: center; justify-content: center; color: #ffffff;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+                  <div id="wake-word-status-box" class="wake-word-status-box">
+                    <span id="wake-status-icon" class="wake-status-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
                     <div>
-                      <strong id="wake-status-title" style="color: #ffffff; display: block; margin-bottom: 2px;">Calibração TensorFlow para: <span class="lbl-agent-target-name">Jasper</span></strong>
-                      <span id="wake-status-desc">Grave 3 amostras dizendo o nome do assistente, 2 de silêncio e 3 de outras palavras comuns (ex: "olá", "teste", "ok") para treinar a rede neural sem falsos positivos.</span>
+                      <strong id="wake-status-title" class="wake-status-title">Calibração TensorFlow para: <span class="lbl-agent-target-name">Jasper</span></strong>
+                      <span id="wake-status-desc">Grave 3 amostras dizendo o nome do assistente, 2 de silêncio e 3 de outras palavras comuns para treinar a rede neural sem falsos positivos.</span>
                     </div>
                   </div>
 
-                  <!-- Voice Calibration Box (Transfer Learning) -->
-                  <div class="voice-trainer-box" style="margin-top: 14px; padding: 12px 14px; background: rgba(12, 12, 14, 0.85); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                      <span style="font-size: 0.8rem; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
+                  <div class="voice-trainer-box">
+                    <div class="voice-trainer-header">
+                      <span class="voice-trainer-heading">
                         Treinamento Neural TensorFlow (Voz Local - 3 Classes)
                       </span>
-                      <span id="badge-model-state" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); color: #d4d4d8; border: 1px solid rgba(255, 255, 255, 0.25);">
+                      <span id="badge-model-state" class="badge-model-state">
                         Não Calibrado
                       </span>
                     </div>
 
-                    <!-- Step Counters (3 Classes) -->
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-                      <div style="flex: 1; min-width: 120px; padding: 6px 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; font-size: 0.75rem;">
-                        Nome (<span class="lbl-agent-target-name" style="color: #ffffff; font-weight: bold;">Jasper</span>):
-                        <strong id="count-name-samples" style="color: #fff; font-size: 0.85rem; margin-left: 4px;">0</strong>/3
+                    <div class="trainer-counters-row">
+                      <div class="trainer-counter-pill">
+                        Nome (<span class="lbl-agent-target-name trainer-target-highlight">Jasper</span>):
+                        <strong id="count-name-samples">0</strong>/3
                       </div>
-                      <div style="flex: 1; min-width: 120px; padding: 6px 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; font-size: 0.75rem;">
+                      <div class="trainer-counter-pill">
                         Ruído / Silêncio:
-                        <strong id="count-noise-samples" style="color: #fff; font-size: 0.85rem; margin-left: 4px;">0</strong>/2
+                        <strong id="count-noise-samples">0</strong>/2
                       </div>
-                      <div style="flex: 1; min-width: 120px; padding: 6px 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; font-size: 0.75rem;">
+                      <div class="trainer-counter-pill">
                         Outras Palavras:
-                        <strong id="count-other-samples" style="color: #fff; font-size: 0.85rem; margin-left: 4px;">0</strong>/3
+                        <strong id="count-other-samples">0</strong>/3
                       </div>
                     </div>
 
-                    <!-- Trainer Buttons -->
-                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                      <button type="button" id="btn-sample-name" class="btn-trainer" style="flex: 1; min-width: 130px; padding: 8px 10px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; color: #ffffff; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div class="trainer-buttons-row">
+                      <button type="button" id="btn-sample-name" class="btn-trainer btn-trainer-primary">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                         Gravar "<span class="lbl-agent-target-name">Jasper</span>"
                       </button>
-                      <button type="button" id="btn-sample-noise" class="btn-trainer" style="flex: 1; min-width: 120px; padding: 8px 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 6px; color: #e4e4e7; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                      <button type="button" id="btn-sample-noise" class="btn-trainer">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                         Gravar Silêncio
                       </button>
-                      <button type="button" id="btn-sample-other" class="btn-trainer" style="flex: 1; min-width: 140px; padding: 8px 10px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 6px; color: #ffffff; font-size: 0.78rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                      <button type="button" id="btn-sample-other" class="btn-trainer">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                         Gravar Outras Palavras
                       </button>
                     </div>
 
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                      <button type="button" id="btn-train-custom-model" class="btn-trainer" disabled style="flex: 2; padding: 8px 14px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 6px; color: #ffffff; font-size: 0.82rem; font-weight: 600; cursor: not-allowed; opacity: 0.5; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    <div class="trainer-actions-row">
+                      <button type="button" id="btn-train-custom-model" class="btn-trainer btn-trainer-submit" disabled>
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                         Treinar Modelo Neural (1s)
                       </button>
-                      <button type="button" id="btn-reset-custom-model" class="btn-trainer" style="flex: 1; padding: 8px 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 6px; color: #a1a1aa; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                      <button type="button" id="btn-reset-custom-model" class="btn-trainer btn-trainer-reset">
                         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         Resetar
                       </button>
                     </div>
 
-                    <div id="trainer-feedback-msg" style="margin-top: 8px; font-size: 0.76rem; color: var(--text-dim); min-height: 18px;">
+                    <div id="trainer-feedback-msg" class="trainer-feedback-msg" aria-live="polite">
                       Clique em "Gravar" e pronuncie a amostra quando o sinal tocar.
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Voice & Model Card -->
-                <div class="settings-card">
-                  <div class="settings-card-header">
-                    <span class="card-icon">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-                    </span>
-                    <div>
-                      <h4>Voz e Modelo de Síntese</h4>
-                      <p>Personalize o tom vocal e o motor de linguagem nativo.</p>
-                    </div>
-                  </div>
-                  <div class="form-row">
-                    <div class="form-group flex-1">
-                      <label for="select-voice">Voz Neural (Edge-TTS):</label>
-                      <select id="select-voice">
-                        <option value="pt-BR-AntonioNeural" selected>Antonio Neural (Masculina, Grave e Natural)</option>
-                        <option value="pt-BR-FranciscaNeural">Francisca Neural (Feminina, Suave e Elegante)</option>
-                        <option value="pt-BR-ThalitaNeural">Thalita Neural (Feminina, Expressiva e Dinâmica)</option>
-                      </select>
-                    </div>
-                    <div class="form-group flex-1">
-                      <label for="select-model">Modelo Híbrido (LiteLLM):</label>
-                      <select id="select-model">
-                        <option value="gemini/gemini-2.5-flash" selected>Gemini 2.5 Flash (Rápido, Visão &amp; Tools)</option>
-                        <option value="groq/llama-3.3-70b-versatile">Groq Llama 3.3 70B (Ultra-Rápido / Free Tier)</option>
-                        <option value="ollama/qwen2.5:3b">Ollama Qwen 2.5 3B (100% Local / Offline)</option>
-                      </select>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- TAB 3: FERRAMENTAS -->
-              <div id="tab-tools" class="settings-tab-pane">
+              <!-- SECTION 3: SISTEMA & AUTOMAÇÃO -->
+              <div id="tab-system" class="settings-tab-pane">
+                <!-- Screen Context Toggle -->
+                <div class="settings-card">
+                  <div class="hud-switch-item">
+                    <div class="hud-switch-text">
+                      <div class="hud-switch-title-row">
+                        <label class="hud-switch-title" for="check-screen-awareness">Contexto visual da tela</label>
+                      </div>
+                      <label class="hud-switch-desc" for="check-screen-awareness">Permite ao agente capturar e analisar a tela quando solicitado em provedores com visão.</label>
+                    </div>
+                    <label class="hud-toggle" for="check-screen-awareness">
+                      <input type="checkbox" id="check-screen-awareness" checked />
+                      <span class="hud-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Implemented Capabilities & Operational Consent -->
+                <div class="settings-card">
+                  <div class="settings-card-header">
+                    <span class="card-icon">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </span>
+                    <div class="card-text-col">
+                      <h4>Capacidades Nativas do Sistema &amp; Consentimento Operacional</h4>
+                      <p>Ferramentas reais executadas pelo sidecar Python no Windows sem prompts repetitivos por comando.</p>
+                    </div>
+                    <code id="operational-consent-status" class="credential-status-pill" aria-live="polite">Verificando consentimento...</code>
+                  </div>
+                  <ul class="capabilities-readonly-list">
+                    <li><strong>PowerShell Nativo:</strong> Execução de comandos e scripts de administração (<code>run_powershell</code>).</li>
+                    <li><strong>Automação GUI (Teclado e Mouse):</strong> Controle de cliques, atalhos e digitação (<code>gui_action</code>).</li>
+                    <li><strong>Volume do Sistema:</strong> Ajuste e silenciamento de áudio do Windows (<code>control_system_volume</code>).</li>
+                    <li><strong>Telemetria do Sistema:</strong> Leitura de uso de CPU, memória RAM, disco e processos (<code>get_system_telemetry</code>).</li>
+                    <li><strong>Captura de Tela:</strong> Inspeção visual sob demanda da área de trabalho (<code>capture_screen_base64</code>).</li>
+                  </ul>
+                </div>
+
+                <!-- Application Updates -->
                 <div class="settings-card update-settings-card">
                   <div class="settings-card-header">
                     <span class="card-icon">&#8635;</span>
-                    <div>
-                      <h4>Atualizações</h4>
-                      <p>Verifique e instale novas versões do Jasper.</p>
+                    <div class="card-text-col">
+                      <h4>Atualizações do Aplicativo</h4>
+                      <p>Verifique e instale novas versões assinadas do Jasper.</p>
                     </div>
                   </div>
-                  <label class="toggle-row">
+                  <label class="toggle-row" for="check-updates-daily">
                     <span>
                       <strong>Verificar diariamente</strong>
-                      <small>Apenas verifica. O download e a instalação exigem sua ação.</small>
+                      <small>Apenas verifica disponibilidade. O download e a instalação exigem sua ação.</small>
                     </span>
                     <input id="check-updates-daily" type="checkbox" checked />
                   </label>
@@ -663,25 +677,9 @@
                   </div>
                   <p id="update-status" class="settings-help" aria-live="polite">Nenhuma verificação realizada.</p>
                 </div>
-
-                <!-- Screen context -->
-                <div class="settings-card">
-                  <div class="hud-switch-item">
-                    <div class="hud-switch-text">
-                      <div class="hud-switch-title-row">
-                        <label class="hud-switch-title" for="check-screen-awareness">Contexto visual da tela</label>
-                      </div>
-                      <label class="hud-switch-desc" for="check-screen-awareness">Permite ao agente capturar e analisar a tela quando solicitado.</label>
-                    </div>
-                    <label class="hud-toggle" for="check-screen-awareness">
-                      <input type="checkbox" id="check-screen-awareness" checked />
-                      <span class="hud-toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
               </div>
 
-              <!-- TAB 4: BANCO DE MEMÓRIA -->
+              <!-- SECTION 4: MEMÓRIA -->
               <div id="tab-memory" class="settings-tab-pane">
                 <div class="settings-card">
                   <div class="settings-card-header">
@@ -689,77 +687,76 @@
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></svg>
                     </span>
                     <div class="memory-header-info">
-                      <h4>Banco de Memória de Longo Prazo</h4>
-                      <p>Fatos e preferências memorizados automaticamente durante suas conversas.</p>
+                      <h4>Banco de Memória Persistida</h4>
+                      <p>Fatos memorizados durante suas conversas e sincronizados com o agente.</p>
                     </div>
                     <span id="memory-count-badge" class="memory-badge">0 fatos</span>
                   </div>
                   <div class="memory-terminal">
                     <div id="memory-facts-list" class="memory-facts-list">
-                      <span class="memory-empty">Nenhum fato memorizado ainda. Converse com o agente para ele aprender sobre você.</span>
+                      <span class="memory-empty">Nenhum fato memorizado ainda.</span>
                     </div>
                   </div>
                   <div class="memory-footer-actions">
-                    <span class="memory-tip">Dica: Diga "Lembre-se que eu gosto de rock" para criar memórias.</span>
+                    <span class="memory-tip">Dica: Diga "Lembre que eu prefiro respostas curtas" para registrar um fato.</span>
                     <button type="button" id="btn-clear-memory" class="btn-danger-sm">Limpar Memória</button>
                   </div>
                 </div>
               </div>
 
-              <!-- TAB 6: LICENÇA VITALÍCIA & NODE-LOCKING -->
+              <!-- SECTION 5: LICENÇA -->
               <div id="tab-license" class="settings-tab-pane">
                 <div class="settings-card">
                   <div class="settings-card-header">
                     <span class="card-icon">
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                     </span>
-                    <div>
-                      <h4>Status da Licença Vitalícia</h4>
-                      <p>Autenticação criptográfica de máquina (Node-Locking) e registro de proprietário.</p>
+                    <div class="card-text-col">
+                      <h4>Status da Licença Vitalícia &amp; Arrendamento de 72 Horas</h4>
+                      <p>Autenticação criptográfica vinculada ao hardware (Node-Locking) com validação contínua a cada 72 horas.</p>
+                    </div>
+                    <span id="tab-license-badge-status" class="license-status-badge unlicensed">VERIFICANDO</span>
+                  </div>
+
+                  <div class="license-metadata-grid">
+                    <div class="license-meta-item">
+                      <small>PROPRIETÁRIO / CLIENTE</small>
+                      <span id="tab-license-client-name">Não Registrado</span>
+                    </div>
+                    <div class="license-meta-item">
+                      <small>DATA DE ATIVAÇÃO</small>
+                      <span id="tab-license-activated-at">-</span>
+                    </div>
+                    <div class="license-meta-item">
+                      <small>ÚLTIMA VALIDAÇÃO (LEASE 72H)</small>
+                      <span id="tab-license-last-checked">-</span>
                     </div>
                   </div>
 
-                  <div class="form-group" style="margin-top: 14px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                      <label class="form-label" style="margin: 0;">STATUS DO SISTEMA:</label>
-                      <span id="tab-license-badge-status" class="license-status-badge unlicensed">VERIFICANDO</span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
-                      <div>
-                        <small style="color: var(--text-muted); display: block; font-size: 10px;">PROPRIETÁRIO / CLIENTE:</small>
-                        <span id="tab-license-client-name" style="color: #fff; font-weight: 600; font-size: 12px;">Não Registrado</span>
-                      </div>
-                      <div>
-                        <small style="color: var(--text-muted); display: block; font-size: 10px;">DATA DE ATIVAÇÃO:</small>
-                        <span id="tab-license-activated-at" style="color: #fff; font-weight: 600; font-size: 12px;">-</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="form-group" style="margin-top: 14px;">
+                  <div class="form-group">
                     <label class="form-label">HARDWARE IDENTIFIER (HWID VINCULADO):</label>
-                    <div class="license-hwid-box" style="margin-top: 4px;">
+                    <div class="license-hwid-box">
                       <div class="hwid-value-row">
                         <code class="hwid-code" id="tab-license-hwid">HWID-CALCULANDO...</code>
-                        <button type="button" id="tab-btn-copy-hwid" class="btn-secondary-sm" style="font-size: 10px; padding: 4px 10px;">
+                        <button type="button" id="tab-btn-copy-hwid" class="btn-secondary-sm">
                           Copiar ID
                         </button>
                       </div>
                     </div>
-                    <small class="form-hint" style="margin-top: 6px;">
-                      A chave de licença é criptograficamente vinculada a esta placa-mãe e CPU.
+                    <small class="form-hint">
+                      Licença vitalícia com lease criptográfico assinado e janela de validação de 72 horas.
                     </small>
                   </div>
 
-                  <div class="form-group" style="margin-top: 14px;">
+                  <div class="form-group">
                     <label class="form-label" for="tab-license-key">CHAVE DE ATIVAÇÃO JASPER:</label>
-                    <div style="display: flex; gap: 8px; margin-top: 4px;">
-                      <input type="text" id="tab-license-key" class="license-input" placeholder="JASPER-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XX" style="flex: 1;" />
-                      <button type="button" id="tab-btn-activate-key" class="btn-primary" style="white-space: nowrap; padding: 0 16px;">
+                    <div class="license-activate-row">
+                      <input type="text" id="tab-license-key" class="license-input" placeholder="JASPER-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XX" autocomplete="off" spellcheck="false" />
+                      <button type="button" id="tab-btn-activate-key" class="btn-primary">
                         Ativar Chave
                       </button>
                     </div>
-                    <div id="tab-license-feedback" class="license-feedback" style="display: none; margin-top: 10px;"></div>
+                    <div id="tab-license-feedback" class="license-feedback" aria-live="polite"></div>
                   </div>
                 </div>
               </div>
@@ -767,96 +764,18 @@
 
             <!-- Fixed Modal Footer -->
             <div class="modal-footer">
-              <div class="modal-status" id="settings-status"></div>
+              <div class="modal-status" id="settings-status" aria-live="polite"></div>
               <div class="modal-actions">
                 <button type="button" id="btn-cancel-settings" class="btn-secondary">Cancelar</button>
-                <button type="button" id="btn-save-settings" class="btn-primary">Salvar &amp; Conectar</button>
+                <button type="button" id="btn-save-settings" class="btn-primary">Salvar Alterações</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Module Detailed Explanation Modal -->
-      <div id="modal-module-detail" class="module-detail-backdrop hidden">
-        <div class="module-detail-card">
-          <!-- Modal Header -->
-          <div class="modal-header">
-            <div class="modal-title-wrap">
-              <div class="module-detail-icon" id="module-detail-icon">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              </div>
-              <div>
-                <h3 id="module-detail-title">Nome do Módulo</h3>
-                <span class="modal-subtitle" id="module-detail-subtitle">Serviço de Autonomia do Jasper AI</span>
-              </div>
-            </div>
-            <button id="btn-close-module-detail" class="modal-close" title="Fechar">&times;</button>
-          </div>
-
-          <!-- Modal Body -->
-          <div class="module-detail-body">
-            <!-- Section 1: Overview -->
-            <div class="detail-section">
-              <h5 class="detail-section-title">
-                <span class="section-icon">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                </span>
-                O Que Este Módulo Faz
-              </h5>
-              <p id="module-detail-overview" class="detail-text"></p>
-            </div>
-
-            <!-- Section 2: How It Works -->
-            <div class="detail-section">
-              <h5 class="detail-section-title">
-                <span class="section-icon">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                </span>
-                Como Funciona nos Bastidores
-              </h5>
-              <p id="module-detail-how" class="detail-text"></p>
-            </div>
-
-            <!-- Section 3: Voice Command Examples -->
-            <div class="detail-section">
-              <h5 class="detail-section-title">
-                <span class="section-icon">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                </span>
-                Exemplos Práticos de Comandos de Voz
-              </h5>
-              <ul id="module-detail-examples" class="detail-examples-list"></ul>
-            </div>
-
-            <!-- Section 4: External Requirements -->
-            <div class="detail-section">
-              <h5 class="detail-section-title">
-                <span class="section-icon">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 8v6M8 8H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h4m8-8h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4"/></svg>
-                </span>
-                Softwares &amp; Requisitos Externos
-              </h5>
-              <p id="module-detail-requirements" class="detail-text"></p>
-            </div>
-
-            <!-- Section 5: Badges -->
-            <div class="detail-badge-footer">
-              <span class="detail-badge-pill"><span class="dot-live"></span> 100% Gratuito &amp; Local</span>
-              <span class="detail-badge-pill" id="module-detail-badge">Disparo sob demanda • Sem gravação em disco</span>
-            </div>
-          </div>
-
-          <!-- Modal Footer -->
-          <div class="modal-footer">
-            <div></div>
-            <button type="button" id="btn-ack-module-detail" class="btn-primary" style="padding: 8px 24px; font-size: 11px;">Entendido</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mandatory License & Gemini Activation Modal -->
-      <div id="modal-license-activation" class="modal-backdrop hidden" style="z-index: 99999; display: none;">
+      <!-- Mandatory License & Provider Onboarding Modal -->
+      <div id="modal-license-activation" class="modal-backdrop hidden">
         <div class="modal-card license-activation-dialog">
           <!-- Modal Header -->
           <div class="modal-header">
@@ -867,32 +786,29 @@
                 <span id="license-modal-subtitle" class="modal-subtitle">Jasper AI Desktop - Licenciamento Vitalício &amp; Node-Locking</span>
               </div>
             </div>
-            <button id="btn-close-license-modal" class="modal-close" title="Fechar" style="display: none;">&times;</button>
+            <button id="btn-close-license-modal" class="modal-close hidden" title="Fechar">&times;</button>
           </div>
 
           <!-- STEP 1: Ativação da Licença Jasper -->
           <div id="step-license-activation" class="wizard-step">
-            <!-- Modal Body -->
-            <div class="modal-body" style="padding: 20px 24px;">
-              <div style="margin-bottom: 16px;">
-                <p style="font-size: 12px; color: #d4d4d8; line-height: 1.5; margin: 0 0 12px 0;">
-                  Bem-vindo ao <strong>Jasper AI</strong>. Para desbloquear a estação de trabalho, o assistente neural 3D e a autonomia do sistema, insira sua chave de licença vitalícia fornecida na aquisição.
-                </p>
-              </div>
+            <div class="modal-body wizard-modal-body">
+              <p class="wizard-intro-copy">
+                Bem-vindo ao <strong>Jasper AI</strong>. Para desbloquear a estação de trabalho, o assistente neural 3D e a autonomia do sistema, insira sua chave de licença vitalícia fornecida na aquisição.
+              </p>
 
               <!-- Hardware ID Box -->
-              <div class="license-hwid-box" style="margin-bottom: 18px;">
+              <div class="license-hwid-box">
                 <span class="hwid-label">HARDWARE IDENTIFIER (HWID DESTE DISPOSITIVO)</span>
                 <div class="hwid-value-row">
                   <code class="hwid-code" id="license-hwid-display">IDENTIFICANDO HARDWARE...</code>
-                  <button type="button" id="btn-copy-hwid" class="btn-secondary-sm" style="font-size: 10px; padding: 5px 12px;">
+                  <button type="button" id="btn-copy-hwid" class="btn-secondary-sm">
                     Copiar HWID
                   </button>
                 </div>
               </div>
 
               <!-- License Key Input -->
-              <div class="form-group" style="margin-bottom: 16px;">
+              <div class="form-group">
                 <label class="license-input-label" for="input-license-key">INFORME SUA CHAVE DE ATIVAÇÃO JASPER:</label>
                 <input
                   type="text"
@@ -902,80 +818,79 @@
                   autocomplete="off"
                   spellcheck="false"
                 />
-                <small class="form-hint" style="margin-top: 6px;">
-                    A chave é exclusiva e vinculada a este computador com validação contínua a cada 72 horas.
+                <small class="form-hint">
+                  A chave é exclusiva e vinculada a este computador com validação contínua a cada 72 horas.
                 </small>
               </div>
 
               <!-- Feedback Message -->
-              <div id="license-feedback-message" class="license-feedback" style="display: none; margin-bottom: 10px;"></div>
+              <div id="license-feedback-message" class="license-feedback" aria-live="polite"></div>
             </div>
 
             <!-- Modal Footer Step 1 -->
-            <div class="modal-footer" style="padding: 10px;">
-              <div style="font-size: 11px; color: var(--text-muted);">
+            <div class="modal-footer wizard-modal-footer">
+              <div class="wizard-footer-note">
                 Proteção Criptográfica Node-Locking 2026
               </div>
               <div class="modal-actions">
-                <button type="button" id="btn-activate-license" class="btn-primary" style="padding: 10px 24px;">
+                <button type="button" id="btn-activate-license" class="btn-primary">
                   ATIVAR LICENÇA
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- STEP 2: Onboarding Chave do Google Gemini AI -->
-          <div id="step-gemini-onboarding" class="wizard-step" style="display: none;">
-            <div class="modal-body" style="padding: 20px 24px;">
-              <div style="margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 8px #ffffff;"></span>
-                  <span style="font-size: 12px; font-weight: 700; color: #ffffff; letter-spacing: 0.05em;">LICENÇA VALIDADA COM SUCESSO</span>
-                </div>
-                <p style="font-size: 12px; color: #d4d4d8; line-height: 1.5; margin: 0 0 10px 0;">
-                  Para que o Jasper possa raciocinar, conversar em tempo real por voz e interagir com seu computador, informe sua <strong>chave pessoal da API do Google Gemini</strong>.
-                </p>
-                <div style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; padding: 10px 12px; font-size: 11px; color: #e4e4e7; line-height: 1.4;">
-                  💡 <strong>100% Gratuito:</strong> Você pode gerar sua chave gratuitamente no Google AI Studio em menos de 1 minuto sem cartão de crédito.
-                </div>
+          <!-- STEP 2: Onboarding de Provedor de IA do Jasper -->
+          <div id="step-gemini-onboarding" class="wizard-step hidden">
+            <div class="modal-body wizard-modal-body">
+              <div class="onboarding-status-banner">
+                <span class="glow-dot-white"></span>
+                <span>LICENÇA VALIDADA COM SUCESSO</span>
+              </div>
+              <p class="wizard-intro-copy">
+                Escolha o provedor de IA inicial do <strong>Jasper</strong>. As chaves do Google Gemini e da Groq são armazenadas separadamente com criptografia local, enquanto o Ollama roda localmente sem chave.
+              </p>
+
+              <div class="form-group">
+                <label class="license-input-label" for="select-onboarding-provider">PROVEDOR DE IA INICIAL:</label>
+                <select id="select-onboarding-provider">
+                  <option value="gemini" selected>Google Gemini (gemini/gemini-2.5-flash)</option>
+                  <option value="groq">Groq Cloud (groq/llama-3.3-70b-versatile)</option>
+                  <option value="ollama">Ollama Local (ollama/qwen2.5:3b — Sem chave)</option>
+                </select>
               </div>
 
-              <div style="margin-bottom: 14px;">
-                <button type="button" id="btn-open-google-ai-studio" class="btn-secondary" style="width: 100%; justify-content: center; padding: 8px 12px; font-size: 11px;">
-                  Abrir Google AI Studio para Obter Chave Gratuita ↗
-                </button>
-              </div>
-
-              <!-- Gemini API Key Input -->
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label class="license-input-label" for="input-onboarding-gemini-key">SUA GOOGLE_API_KEY DO GEMINI:</label>
+              <div id="onboarding-provider-key-group" class="form-group">
+                <label id="label-onboarding-provider-key" class="license-input-label" for="input-onboarding-provider-key">CHAVE DE API DO PROVEDOR:</label>
                 <div class="input-password-wrap">
                   <input
                     type="password"
-                    id="input-onboarding-gemini-key"
+                    id="input-onboarding-provider-key"
                     class="license-input"
-                    placeholder="AIzaSy..."
+                    placeholder="Cole sua chave de API..."
                     autocomplete="off"
                     spellcheck="false"
                   />
                   <button id="btn-toggle-onboarding-key" type="button" class="btn-toggle">Mostrar</button>
                 </div>
-                <small class="form-hint" style="margin-top: 6px;">
-                  Sua chave é criptografada localmente via safeStorage do Windows e nunca é compartilhada.
+                <small class="form-hint">
+                  Sua credencial é criptografada localmente via safeStorage do Windows e nunca é exposta em texto aberto.
                 </small>
+                <button type="button" id="btn-open-google-ai-studio" class="btn-secondary onboarding-portal-btn">
+                  Abrir Portal do Provedor para Obter Chave &nearr;
+                </button>
               </div>
 
-              <!-- Gemini Feedback Message -->
-              <div id="gemini-onboarding-feedback" class="license-feedback" style="display: none; margin-bottom: 10px;"></div>
+              <div id="onboarding-provider-feedback" class="license-feedback" aria-live="polite"></div>
             </div>
 
             <!-- Modal Footer Step 2 -->
-            <div class="modal-footer">
-              <div style="font-size: 11px; color: var(--text-muted);">
-                Google Gemini Multimodal Live API
+            <div class="modal-footer wizard-modal-footer">
+              <div class="wizard-footer-note">
+                Arquitetura BYOK Segura • Jasper AI
               </div>
               <div class="modal-actions">
-                <button type="button" id="btn-save-onboarding-gemini" class="btn-primary" style="padding: 10px 24px;">
+                <button type="button" id="btn-save-onboarding-gemini" class="btn-primary">
                   SALVAR E INICIAR JASPER
                 </button>
               </div>

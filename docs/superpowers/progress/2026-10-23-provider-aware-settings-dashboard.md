@@ -3,7 +3,7 @@
 **Spec:** `docs/superpowers/specs/2026-10-23-settings-provider-credentials-design.md`  
 **Plan:** `docs/superpowers/plans/2026-10-23-provider-aware-settings-dashboard.md`  
 **Branch:** `main`  
-**Status:** Execution in progress — Task 5 verified; Task 6 is next
+**Status:** Execution in progress — Task 6 verified; Task 7 is next
 
 ## Completed
 
@@ -22,7 +22,7 @@
 - [x] Task 3 — Credential-safe IPC and preload boundary
 - [x] Task 4 — Active provider sidecar synchronization
 - [x] Task 5 — Python provider routing and actionable errors
-- [ ] Task 6 — Truthful dashboard structure and styling
+- [x] Task 6 — Truthful dashboard structure and styling
 - [ ] Task 7 — Renderer draft, provider UX, and onboarding
 - [ ] Task 8 — Full verification and handoff
 
@@ -66,10 +66,18 @@ Do not stage or commit the pre-existing Task 7 release/signing changes in `.gith
 
 ## Task 5 Verification
 
+- Commit: `a7d3594` (`feat: route supported AI providers in sidecar`).
 - `npm.cmd run test:python` — 26 tests, 0 failures.
 - `npm.cmd test -- backend-framing` — 15 tests, 0 failures.
 - Verified explicit provider/model allow-list validation in Python, required keys for Gemini/Groq, keyless local Ollama routing (`http://127.0.0.1:11434`), and sanitized provider-specific error messages that never leak submitted credentials.
 - Next: Task 6 — truthful dashboard structure and styling.
+
+## Task 6 Verification
+
+- `npm.cmd test -- settings-dashboard` — 5 tests, 0 failures.
+- `npm.cmd test -- product-surface` — 8 tests, 0 failures.
+- Verified sole sidebar navigation for `general`, `ai-voice`, `system`, `memory`, and `license`, Jasper product branding, separate Gemini/Groq credential cards, keyless Ollama card, read-only system capability list, 72-hour lease copy, and provider-aware onboarding markup.
+- Next: Task 7 — renderer draft, provider UX, and onboarding.
 
 ## Resume Instructions
 

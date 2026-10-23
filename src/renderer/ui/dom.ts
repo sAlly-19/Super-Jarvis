@@ -35,7 +35,7 @@ export const DOM = {
   btnMaximize: document.getElementById('btn-maximize') as HTMLButtonElement | null,
   btnClose: document.getElementById('btn-close') as HTMLButtonElement | null,
 
-  // Settings Modal Elements
+  // Settings Modal Shell & Dynamic Header Elements
   btnSettings: document.getElementById('btn-settings') as HTMLButtonElement,
   btnSettingsFullscreen: document.getElementById('btn-settings-fullscreen') as HTMLButtonElement | null,
   settingsModal: document.getElementById('settings-modal') as HTMLElement,
@@ -43,21 +43,34 @@ export const DOM = {
   btnCancelSettings: document.getElementById('btn-cancel-settings') as HTMLButtonElement | null,
   btnSaveSettings: document.getElementById('btn-save-settings') as HTMLButtonElement,
   settingsStatus: document.getElementById('settings-status') as HTMLElement,
+  settingsSectionTitle: document.getElementById('settings-section-title') as HTMLElement | null,
+  settingsSectionDescription: document.getElementById('settings-section-description') as HTMLElement | null,
+  settingsConnectionStatus: document.getElementById('settings-connection-status') as HTMLElement | null,
+  settingsConnectionDetail: document.getElementById('settings-connection-detail') as HTMLElement | null,
   agentNamePreview: document.getElementById('agent-name-preview') as HTMLElement | null,
 
-  // Settings Form Inputs
+  // Settings Form Inputs & Provider Controls
   inputAgentName: document.getElementById('input-agent-name') as HTMLInputElement | null,
-  inputApiKey: document.getElementById('input-api-key') as HTMLInputElement,
-  btnToggleKey: document.getElementById('btn-toggle-key') as HTMLButtonElement,
-  btnRemoveKey: document.getElementById('btn-remove-key') as HTMLButtonElement | null,
+  selectAiProvider: document.getElementById('select-ai-provider') as HTMLSelectElement,
+  inputGeminiKey: document.getElementById('input-gemini-key') as HTMLInputElement,
+  btnToggleGeminiKey: document.getElementById('btn-toggle-gemini-key') as HTMLButtonElement | null,
+  btnRemoveGeminiKey: document.getElementById('btn-remove-gemini-key') as HTMLButtonElement | null,
+  geminiCredentialStatus: document.getElementById('gemini-credential-status') as HTMLElement | null,
+  inputGroqKey: document.getElementById('input-groq-key') as HTMLInputElement,
+  btnToggleGroqKey: document.getElementById('btn-toggle-groq-key') as HTMLButtonElement | null,
+  btnRemoveGroqKey: document.getElementById('btn-remove-groq-key') as HTMLButtonElement | null,
+  groqCredentialStatus: document.getElementById('groq-credential-status') as HTMLElement | null,
+  ollamaProviderStatus: document.getElementById('ollama-provider-status') as HTMLElement | null,
   selectVoice: document.getElementById('select-voice') as HTMLSelectElement,
   selectModel: document.getElementById('select-model') as HTMLSelectElement,
   checkWakeWord: document.getElementById('check-wake-word') as HTMLInputElement | null,
   checkBloom: document.getElementById('check-bloom') as HTMLInputElement | null,
   checkNeuralBg: document.getElementById('check-neural-bg') as HTMLInputElement | null,
   checkEyeTracking: document.getElementById('check-eye-tracking') as HTMLInputElement | null,
-  // Screen context
+
+  // System & Automation Controls
   checkScreenAwareness: document.getElementById('check-screen-awareness') as HTMLInputElement | null,
+  operationalConsentStatus: document.getElementById('operational-consent-status') as HTMLElement | null,
 
   // Toast Container
   hudToastContainer: document.getElementById('hud-toast-container') as HTMLElement | null,
@@ -90,19 +103,20 @@ export const DOM = {
   tabLicenseBadgeStatus: document.getElementById('tab-license-badge-status') as HTMLElement | null,
   tabLicenseClientName: document.getElementById('tab-license-client-name') as HTMLElement | null,
   tabLicenseActivatedAt: document.getElementById('tab-license-activated-at') as HTMLElement | null,
+  tabLicenseLastChecked: document.getElementById('tab-license-last-checked') as HTMLElement | null,
   tabLicenseFeedback: document.getElementById('tab-license-feedback') as HTMLElement | null,
 
-  // Gemini Settings & Onboarding
-  geminiKeyMaskedDisplay: document.getElementById('gemini-key-masked-display') as HTMLElement | null,
+  // License Activation & Provider Onboarding Modal
   modalLicenseActivation: document.getElementById('modal-license-activation') as HTMLElement | null,
   licenseModalTitle: document.getElementById('license-modal-title') as HTMLElement | null,
   licenseModalSubtitle: document.getElementById('license-modal-subtitle') as HTMLElement | null,
   stepLicenseActivation: document.getElementById('step-license-activation') as HTMLElement | null,
   stepGeminiOnboarding: document.getElementById('step-gemini-onboarding') as HTMLElement | null,
-  inputOnboardingGeminiKey: document.getElementById('input-onboarding-gemini-key') as HTMLInputElement | null,
+  selectOnboardingProvider: document.getElementById('select-onboarding-provider') as HTMLSelectElement | null,
+  onboardingProviderKeyGroup: document.getElementById('onboarding-provider-key-group') as HTMLElement | null,
+  inputOnboardingProviderKey: document.getElementById('input-onboarding-provider-key') as HTMLInputElement | null,
   btnToggleOnboardingKey: document.getElementById('btn-toggle-onboarding-key') as HTMLButtonElement | null,
   btnOpenGoogleAiStudio: document.getElementById('btn-open-google-ai-studio') as HTMLButtonElement | null,
   btnSaveOnboardingGemini: document.getElementById('btn-save-onboarding-gemini') as HTMLButtonElement | null,
-  geminiOnboardingFeedback: document.getElementById('gemini-onboarding-feedback') as HTMLElement | null
+  onboardingProviderFeedback: document.getElementById('onboarding-provider-feedback') as HTMLElement | null
 }
-
