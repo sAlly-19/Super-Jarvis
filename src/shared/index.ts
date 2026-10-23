@@ -1,4 +1,5 @@
 export * from './types/config'
+export * from './ai/provider-catalog'
 export type * from './types/license'
 export type * from './types/memory'
 export type * from './types/gemini'

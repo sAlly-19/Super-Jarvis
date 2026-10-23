@@ -1,5 +1,9 @@
+import type { AIProvider } from '../ai/provider-catalog'
+
 export const PUBLIC_CONFIG_KEYS = [
-  'apiKey',
+  'aiProvider',
+  'geminiApiKey',
+  'groqApiKey',
   'voiceName',
   'model',
   'agentName',
@@ -33,7 +37,9 @@ export type InternalConfigKey = (typeof INTERNAL_CONFIG_KEYS)[number]
 export type LicenseConfigStatus = 'active' | 'disabled' | 'revoked' | 'unlicensed'
 
 export interface JasperConfig {
-  apiKey: string
+  aiProvider: AIProvider
+  geminiApiKey: string
+  groqApiKey: string
   voiceName: string
   model: string
   agentName: string
@@ -62,8 +68,24 @@ export interface JasperConfig {
 export type UpdateConfigPayload = Partial<Pick<JasperConfig, PublicConfigKey>>
 export type InternalConfigUpdatePayload = Partial<Pick<JasperConfig, InternalConfigKey>>
 
-export interface ConfigSummary extends Pick<JasperConfig, Exclude<PublicConfigKey, 'apiKey'>> {
-  apiKey: string
-  hasFullKey: boolean
+export interface CredentialSummary {
+  configured: boolean
+  masked: string
+}
+
+export interface ConfigSummary
+  extends Pick<JasperConfig, Exclude<PublicConfigKey, 'geminiApiKey' | 'groqApiKey'>> {
+  credentials: {
+    gemini: CredentialSummary
+    groq: CredentialSummary
+  }
   isConnected: boolean
+}
+
+export type ConfigRuntimeStatus = 'synced' | 'offline' | 'missing-credential'
+
+export interface ConfigSaveResult {
+  success: boolean
+  runtimeStatus: ConfigRuntimeStatus
+  message: string
 }

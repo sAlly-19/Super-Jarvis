@@ -9,7 +9,9 @@ import { LicenseGate } from '../src/main/services/license-gate'
 
 describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
   const supportedPublicConfigKeys = [
-    'apiKey',
+    'aiProvider',
+    'geminiApiKey',
+    'groqApiKey',
     'voiceName',
     'model',
     'agentName',
