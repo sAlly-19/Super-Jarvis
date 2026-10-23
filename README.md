@@ -30,6 +30,8 @@ npm ci
 npm run dev
 ```
 
+`npm run dev` localiza somente instalações determinísticas do Python 3.11, valida a versão e fornece o caminho absoluto ao processo Electron. Para usar outra instalação, defina `JASPER_PYTHON_EXECUTABLE` com o caminho absoluto de um executável Python 3.11. O aplicativo comercial empacotado usa o sidecar incluído e não exige Python instalado na máquina do cliente.
+
 ### Bateria de Verificação e Testes
 ```powershell
 npm run verify           # Executa typecheck, testes reais TS e compilação electron-vite

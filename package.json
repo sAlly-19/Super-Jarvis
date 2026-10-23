@@ -12,7 +12,7 @@
     "predev": "node scripts/setup-speech-assets.mjs",
     "prebuild": "node scripts/setup-speech-assets.mjs",
     "predist:win": "node scripts/setup-speech-assets.mjs",
-    "dev": "electron-vite dev",
+    "dev": "node scripts/run-development.mjs",
     "build": "electron-vite build",
     "dist": "electron-builder",
     "dist:win": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-python-backend.ps1 && node scripts/generate-backend-manifest.mjs && electron-vite build && electron-builder --win",
