@@ -1,0 +1,79 @@
+name: Commercial Signed Windows Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-sign:
+    name: Build, Sign and Publish Windows Release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup Python 3.11.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scan secrets
+        run: npm run scan:secrets
+
+      - name: Verify typecheck and tests
+        run: npm run verify
+
+      - name: Run Python unit tests
+        run: npm run test:python
+
+      - name: Audit runtime dependencies
+        run: npm run audit:runtime
+
+      - name: Audit Python locked dependencies
+        run: npm run audit:python
+
+      - name: Build isolated Python sidecar
+        run: npm run build:python
+
+      - name: Generate sidecar integrity manifest
+        run: npm run generate:backend-manifest
+
+      - name: Compile and sign Windows distribution
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run dist:win
+
+      - name: Verify Authenticode signatures and timestamps
+        run: |
+          $binaries = Get-ChildItem -Path "release" -Filter "*.exe" -Recurse | Select-Object -ExpandProperty FullName
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-authenticode.ps1 -Paths $binaries
+
+      - name: Generate SBOMs
+        run: |
+          npm run sbom:runtime > build/npm-sbom.json
+          npm run sbom:python
+
+      - name: Upload Release Artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
+            build/npm-sbom.json
+            build/python-sbom.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

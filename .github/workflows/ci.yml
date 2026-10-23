@@ -1,0 +1,60 @@
+name: CI Quality & Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify-and-test:
+    name: Verify, Test and Package
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup Python 3.11.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.9'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scan secrets
+        run: npm run scan:secrets
+
+      - name: Verify code and tests
+        run: npm run verify
+
+      - name: Run Python unit tests
+        run: npm run test:python
+
+      - name: Audit runtime dependencies
+        run: npm run audit:runtime
+
+      - name: Audit Python locked dependencies
+        run: npm run audit:python
+
+      - name: Build Python sidecar executable
+        run: npm run build:python
+
+      - name: Package application directory
+        run: npm run package:dir
+
+      - name: Verify package integrity and fuses
+        run: npm run verify:package
+
+      - name: Run clean-machine smoke test
+        run: npm run smoke:packaged
+
+      - name: Generate runtime SBOMs
+        run: |
+          npm run sbom:runtime
+          npm run sbom:python

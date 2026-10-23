@@ -122,5 +122,52 @@ describe('Reproducible Python Packaging & Build Verification (Task 1)', () => {
     assert.equal(response.type, 'hello_ack')
     assert.equal(response.replyTo, 'test-handshake-1')
   })
+
+  test('CI workflow (.github/workflows/ci.yml) enforces quality gates without signing secrets', () => {
+    const ciPath = path.join(root, '.github', 'workflows', 'ci.yml')
+    assert.ok(fs.existsSync(ciPath), '.github/workflows/ci.yml must exist')
+    const content = fs.readFileSync(ciPath, 'utf-8')
+
+    assert.match(content, /node-version:\s*['"]?24/, 'CI must target Node 24')
+    assert.match(content, /python-version:\s*['"]?3\.11/, 'CI must target Python 3.11')
+    assert.match(content, /npm ci/, 'CI must use npm ci')
+    assert.match(content, /npm run verify|npm run test/, 'CI must run verification and tests')
+    assert.match(content, /npm run test:python/, 'CI must run Python tests')
+    assert.match(content, /npm run scan:secrets/, 'CI must run secret scanning')
+    assert.match(content, /npm run audit:runtime/, 'CI must run runtime audit')
+    assert.match(content, /npm run audit:python/, 'CI must run python audit')
+    assert.match(content, /npm run build:python/, 'CI must build python sidecar')
+    assert.match(content, /npm run package:dir/, 'CI must package directory')
+    assert.match(content, /npm run verify:package/, 'CI must verify package')
+    assert.match(content, /npm run smoke:packaged/, 'CI must run clean-machine smoke')
+
+    // PR / regular CI must NOT touch signing secrets
+    assert.doesNotMatch(content, /CSC_LINK/, 'PR CI must never touch CSC_LINK secret')
+    assert.doesNotMatch(content, /CSC_KEY_PASSWORD/, 'PR CI must never touch CSC_KEY_PASSWORD secret')
+  })
+
+  test('Release workflow (.github/workflows/release.yml) enforces Authenticode and SBOM uploads on tag push', () => {
+    const releasePath = path.join(root, '.github', 'workflows', 'release.yml')
+    assert.ok(fs.existsSync(releasePath), '.github/workflows/release.yml must exist')
+    const content = fs.readFileSync(releasePath, 'utf-8')
+
+    assert.match(content, /tags:\s*-\s*['"]?v\*/, 'Release must trigger on tags v*')
+    assert.match(content, /CSC_LINK/, 'Release must configure CSC_LINK for signing')
+    assert.match(content, /CSC_KEY_PASSWORD/, 'Release must configure CSC_KEY_PASSWORD')
+    assert.match(content, /verify-authenticode\.ps1/, 'Release must run Authenticode verification')
+    assert.match(content, /sbom:runtime/, 'Release must generate runtime npm SBOM')
+    assert.match(content, /sbom:python/, 'Release must generate Python SBOM')
+  })
+
+  test('package.json defines audit:python and sbom:python scripts', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'))
+    assert.ok(pkg.scripts['audit:python'], 'package.json must define audit:python')
+    assert.ok(pkg.scripts['sbom:python'], 'package.json must define sbom:python')
+  })
+
+  test('scripts/python-audit.ps1 and scripts/generate-python-sbom.ps1 exist', () => {
+    assert.ok(fs.existsSync(path.join(root, 'scripts', 'python-audit.ps1')), 'python-audit.ps1 must exist')
+    assert.ok(fs.existsSync(path.join(root, 'scripts', 'generate-python-sbom.ps1')), 'generate-python-sbom.ps1 must exist')
+  })
 })
 
