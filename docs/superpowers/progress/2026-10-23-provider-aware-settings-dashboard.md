@@ -3,7 +3,7 @@
 **Spec:** `docs/superpowers/specs/2026-10-23-settings-provider-credentials-design.md`  
 **Plan:** `docs/superpowers/plans/2026-10-23-provider-aware-settings-dashboard.md`  
 **Branch:** `main`  
-**Status:** Execution in progress — Task 6 verified; Task 7 is next
+**Status:** Execution in progress — Task 7 verified; Task 8 is next
 
 ## Completed
 
@@ -23,7 +23,7 @@
 - [x] Task 4 — Active provider sidecar synchronization
 - [x] Task 5 — Python provider routing and actionable errors
 - [x] Task 6 — Truthful dashboard structure and styling
-- [ ] Task 7 — Renderer draft, provider UX, and onboarding
+- [x] Task 7 — Renderer draft, provider UX, and onboarding
 - [ ] Task 8 — Full verification and handoff
 
 ## Working Tree Constraint
@@ -74,10 +74,21 @@ Do not stage or commit the pre-existing Task 7 release/signing changes in `.gith
 
 ## Task 6 Verification
 
+- Commit: `1fea69b` (`feat: align settings dashboard with Jasper capabilities`).
 - `npm.cmd test -- settings-dashboard` — 5 tests, 0 failures.
 - `npm.cmd test -- product-surface` — 8 tests, 0 failures.
 - Verified sole sidebar navigation for `general`, `ai-voice`, `system`, `memory`, and `license`, Jasper product branding, separate Gemini/Groq credential cards, keyless Ollama card, read-only system capability list, 72-hour lease copy, and provider-aware onboarding markup.
 - Next: Task 7 — renderer draft, provider UX, and onboarding.
+
+## Task 7 Verification
+
+- `npm.cmd test -- settings-draft` — 4 tests, 0 failures.
+- `npm.cmd test -- settings-dashboard` — 6 tests, 0 failures.
+- `npm.cmd test -- preload-contract` — 2 tests, 0 failures.
+- `npm.cmd test -- renderer-license-shell` — 3 tests, 0 failures.
+- `npm.cmd run typecheck` — passed with 0 errors.
+- Verified pure `SettingsDraft` helpers, provider switching, dirty tracking, rollback on Cancel/X/Escape/outside click, selective backend sync vs visual-only save, immediate credential removal via `removeProviderCredential`, and provider-aware onboarding in `license-modal.ts`.
+- Next: Task 8 — full verification and handoff.
 
 ## Resume Instructions
 

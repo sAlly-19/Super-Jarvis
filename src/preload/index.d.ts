@@ -32,6 +32,7 @@ export interface ElectronAPI {
   onToolResult: (callback: (result: ToolResultPayload) => void) => () => void
   onTurnComplete: (callback: () => void) => () => void
   onInterrupted: (callback: () => void) => () => void
+  onAgentError: (callback: (error: { message: string }) => void) => () => void
 
   // Configuration
   getConfig: () => Promise<ConfigSummary>
@@ -71,7 +72,6 @@ export interface ElectronAPI {
 
   // Dialog
   selectDirectory: () => Promise<string | null>
-
 }
 
 declare global {

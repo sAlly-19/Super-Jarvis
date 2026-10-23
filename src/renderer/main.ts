@@ -44,8 +44,8 @@ let wakeWordManager: WakeWordManager
 let controlConsentModal: ControlConsentModal
 
 export function syncDashboardConnectionIndicators(connected: boolean, subtitle?: string): void {
-  const widgetTitle = document.querySelector('.widget-status-title')
-  const widgetSub = document.querySelector('.widget-status-sub')
+  const widgetTitle = DOM.settingsConnectionStatus || document.querySelector('.widget-status-title')
+  const widgetSub = DOM.settingsConnectionDetail || document.querySelector('.widget-status-sub')
   const sidebarHeadline = document.querySelector('.sidebar-status-headline')
   const sidebarCaption = document.querySelector('.sidebar-status-caption')
 
@@ -61,7 +61,7 @@ export function syncDashboardConnectionIndicators(connected: boolean, subtitle?:
       : 'Aguardando <strong>Jasper Core</strong>'
   }
   if (sidebarCaption) {
-    sidebarCaption.textContent = connected ? 'IA pronta para interagir' : 'Aguardando inicialização do agente'
+    sidebarCaption.textContent = subtitle || (connected ? 'IA pronta para interagir' : 'Aguardando inicialização do agente')
   }
 }
 
@@ -203,8 +203,17 @@ const handleStatusChange = (statusPayload: AgentStatusPayload | string, message?
     updateStatusBadge('disconnected', msg || 'Desconectado')
   } else if (status === 'error') {
     isConnected = false
+    syncDashboardConnectionIndicators(false, msg || 'Erro no Agente')
     updateStatusBadge('error', msg || 'Erro no Agente')
   }
+}
+
+const handleAgentError = ({ message }: { message: string }): void => {
+  syncDashboardConnectionIndicators(false, message)
+  if (DOM.settingsStatus) {
+    DOM.settingsStatus.textContent = message
+  }
+  updateStatusBadge('error', message)
 }
 
 export async function mountAgentRuntime(): Promise<() => void> {
@@ -230,14 +239,17 @@ export async function mountAgentRuntime(): Promise<() => void> {
       DOM.transcriptBox.classList.remove('hidden')
     })
   )
-  cleanups.push(window.electronAPI.onToolExecution(({ tool, args }) => {
-    const argPreview = Object.keys(args || {}).length > 0 ? JSON.stringify(args).slice(0, 90) : 'executando'
-    updateStatusBadge('connecting', `${getCurrentAgentName()}: ${tool}`)
-    showHudToast(`Ferramenta: ${tool}`, argPreview, 'info', 3500)
-  }))
+  cleanups.push(
+    window.electronAPI.onToolExecution(({ tool, args }) => {
+      const argPreview = Object.keys(args || {}).length > 0 ? JSON.stringify(args).slice(0, 90) : 'executando'
+      updateStatusBadge('connecting', `${getCurrentAgentName()}: ${tool}`)
+      showHudToast(`Ferramenta: ${tool}`, argPreview, 'info', 3500)
+    })
+  )
   cleanups.push(window.electronAPI.onTurnComplete(handleTurnComplete))
   cleanups.push(window.electronAPI.onInterrupted(handleInterrupted))
   cleanups.push(window.electronAPI.onAgentStatus(handleStatusChange))
+  cleanups.push(window.electronAPI.onAgentError(handleAgentError))
 
   // Connect microphone stream to secure IPC
   micRecorder.onAudioLevel = (level) => {
@@ -520,19 +532,19 @@ async function init(): Promise<void> {
   const initialCheckGeneration = operationalBootstrapGeneration
   const lic = await licenseModal.checkOnStartup()
   if (initialCheckGeneration !== operationalBootstrapGeneration) return
-  const initialSnapshot = lic.gateSnapshot ?? (lic.isLicensed
-    ? { state: 'unlocked' as const, message: 'Licença ativa', expiresAt: lic.expiresAt }
-    : { state: 'locked' as const, message: 'Ativação Obrigatória' })
-  currentLicenseState = initialSnapshot.state
+
+  const initialSnapshot: LicenseGateSnapshot = lic.gateSnapshot ?? {
+    state: lic.isLicensed ? 'unlocked' : 'locked',
+    message: lic.isLicensed ? 'Licença válida' : 'Estação sem licença ativa',
+    expiresAt: lic.expiresAt
+  }
+
   if (initialSnapshot.state === 'unlocked') {
     await loadOperationalConfig()
-    if (initialCheckGeneration !== operationalBootstrapGeneration || currentLicenseState !== 'unlocked') return
-    applyLicenseSnapshot(initialSnapshot, { configurationLoaded: true })
-  } else {
-    applyLicenseSnapshot(initialSnapshot)
+    if (initialCheckGeneration !== operationalBootstrapGeneration) return
   }
+
+  applyLicenseSnapshot(initialSnapshot, { configurationLoaded: true })
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  init().catch(console.error)
-})
+window.addEventListener('DOMContentLoaded', init)

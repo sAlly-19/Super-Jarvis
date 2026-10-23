@@ -8,6 +8,8 @@ describe('Truthful Jasper Settings Dashboard Surface', () => {
   const htmlPath = path.join(root, 'src/renderer/index.html')
   const domTsPath = path.join(root, 'src/renderer/ui/dom.ts')
   const modalCssPath = path.join(root, 'src/renderer/styles/modal.css')
+  const settingsModalPath = path.join(root, 'src/renderer/ui/settings-modal.ts')
+  const licenseModalPath = path.join(root, 'src/renderer/ui/license-modal.ts')
 
   test('renders a single sidebar navigation for the five truthful sections without duplicate top tabs', () => {
     const html = fs.readFileSync(htmlPath, 'utf8')
@@ -87,5 +89,18 @@ describe('Truthful Jasper Settings Dashboard Surface', () => {
 
     assert.match(css, /\.provider-credentials-grid/)
     assert.match(css, /\.provider-credential-card/)
+  })
+
+  test('settings-modal and license-modal share rollbackAndClose, clear transient credential inputs, and use removeProviderCredential', () => {
+    const settingsModal = fs.readFileSync(settingsModalPath, 'utf8')
+    const licenseModal = fs.readFileSync(licenseModalPath, 'utf8')
+
+    assert.match(settingsModal, /rollbackAndClose/)
+    assert.match(settingsModal, /btnCloseSettings\.addEventListener\('click',\s*rollbackAndClose\)/)
+    assert.match(settingsModal, /btnCancelSettings\?\.addEventListener\('click',\s*rollbackAndClose\)/)
+    assert.match(settingsModal, /clearCredentialInputs\(\)/)
+    assert.match(settingsModal, /removeProviderCredential/)
+    assert.doesNotMatch(settingsModal, /hasFullKey/)
+    assert.doesNotMatch(licenseModal, /hasFullKey/)
   })
 })

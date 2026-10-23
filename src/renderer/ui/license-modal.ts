@@ -1,6 +1,12 @@
 import { showHudToast } from './toast'
 import { updateStatusBadge } from './status-badge'
-import type { LicenseInfo } from '@shared'
+import {
+  defaultModelForProvider,
+  isAIProvider,
+  type AIProvider,
+  type LicenseInfo,
+  type UpdateConfigPayload
+} from '@shared'
 
 export class LicenseModal {
   private modalEl: HTMLElement | null = null
@@ -16,13 +22,16 @@ export class LicenseModal {
   private hwidTextEl: HTMLElement | null = null
   private feedbackEl: HTMLElement | null = null
 
-  // Step 2: Gemini API Key Onboarding
-  private stepGeminiEl: HTMLElement | null = null
-  private inputGeminiKeyEl: HTMLInputElement | null = null
-  private btnToggleGeminiKeyEl: HTMLButtonElement | null = null
-  private btnOpenAiStudioEl: HTMLButtonElement | null = null
-  private btnSaveGeminiEl: HTMLButtonElement | null = null
-  private geminiFeedbackEl: HTMLElement | null = null
+  // Step 2: Provider Onboarding
+  private stepOnboardingEl: HTMLElement | null = null
+  private selectProviderEl: HTMLSelectElement | null = null
+  private keyGroupEl: HTMLElement | null = null
+  private keyLabelEl: HTMLElement | null = null
+  private inputProviderKeyEl: HTMLInputElement | null = null
+  private btnToggleKeyEl: HTMLButtonElement | null = null
+  private btnOpenPortalEl: HTMLButtonElement | null = null
+  private btnSaveProviderEl: HTMLButtonElement | null = null
+  private providerFeedbackEl: HTMLElement | null = null
 
   private isMandatory = false
   private currentHwid = ''
@@ -42,31 +51,33 @@ export class LicenseModal {
     this.feedbackEl = document.getElementById('license-feedback-message')
 
     // Step 2 elements
-    this.stepGeminiEl = document.getElementById('step-gemini-onboarding')
-    this.inputGeminiKeyEl = document.getElementById('input-onboarding-gemini-key') as HTMLInputElement | null
-    this.btnToggleGeminiKeyEl = document.getElementById('btn-toggle-onboarding-key') as HTMLButtonElement | null
-    this.btnOpenAiStudioEl = document.getElementById('btn-open-google-ai-studio') as HTMLButtonElement | null
-    this.btnSaveGeminiEl = document.getElementById('btn-save-onboarding-gemini') as HTMLButtonElement | null
-    this.geminiFeedbackEl = document.getElementById('gemini-onboarding-feedback')
+    this.stepOnboardingEl = document.getElementById('step-gemini-onboarding')
+    this.selectProviderEl = document.getElementById('select-onboarding-provider') as HTMLSelectElement | null
+    this.keyGroupEl = document.getElementById('onboarding-provider-key-group')
+    this.keyLabelEl = document.getElementById('label-onboarding-provider-key')
+    this.inputProviderKeyEl = document.getElementById('input-onboarding-provider-key') as HTMLInputElement | null
+    this.btnToggleKeyEl = document.getElementById('btn-toggle-onboarding-key') as HTMLButtonElement | null
+    this.btnOpenPortalEl = document.getElementById('btn-open-google-ai-studio') as HTMLButtonElement | null
+    this.btnSaveProviderEl = document.getElementById('btn-save-onboarding-gemini') as HTMLButtonElement | null
+    this.providerFeedbackEl = document.getElementById('onboarding-provider-feedback')
 
     if (!this.modalEl) return
 
-    // Preenche o HWID da máquina
-    window.electronAPI.getHwid().then((hw) => {
-      this.currentHwid = hw.machineId
-      if (this.hwidTextEl) {
-        this.hwidTextEl.textContent = hw.machineId
-      }
-    }).catch(() => {})
+    window.electronAPI
+      .getHwid()
+      .then((hw) => {
+        this.currentHwid = hw.machineId
+        if (this.hwidTextEl) {
+          this.hwidTextEl.textContent = hw.machineId
+        }
+      })
+      .catch(() => {})
 
-    // Normaliza a chave no formato atual com checksum de digitação.
     this.inputKeyEl?.addEventListener('input', (e) => {
       const target = e.target as HTMLInputElement
-      let val = target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
-      target.value = val
+      target.value = target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
     })
 
-    // Botão de copiar HWID
     this.btnCopyHwidEl?.addEventListener('click', () => {
       if (this.currentHwid) {
         navigator.clipboard.writeText(this.currentHwid)
@@ -74,69 +85,122 @@ export class LicenseModal {
       }
     })
 
-    // Botão de ativar licença (Passo 1)
     this.btnActivateEl?.addEventListener('click', () => {
-      this.handleActivate()
+      void this.handleActivate()
     })
 
-    // Submissão com Enter no input da licença
     this.inputKeyEl?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault()
-        this.handleActivate()
+        void this.handleActivate()
       }
     })
 
-    // Step 2: Toggle visibilidade da chave Gemini
-    this.btnToggleGeminiKeyEl?.addEventListener('click', () => {
-      if (!this.inputGeminiKeyEl) return
-      const isPassword = this.inputGeminiKeyEl.type === 'password'
-      this.inputGeminiKeyEl.type = isPassword ? 'text' : 'password'
-      if (this.btnToggleGeminiKeyEl) {
-        this.btnToggleGeminiKeyEl.textContent = isPassword ? 'Ocultar' : 'Mostrar'
+    this.selectProviderEl?.addEventListener('change', () => {
+      this.syncOnboardingProviderUI()
+    })
+
+    this.btnToggleKeyEl?.addEventListener('click', () => {
+      if (!this.inputProviderKeyEl) return
+      const isPassword = this.inputProviderKeyEl.type === 'password'
+      this.inputProviderKeyEl.type = isPassword ? 'text' : 'password'
+      if (this.btnToggleKeyEl) {
+        this.btnToggleKeyEl.textContent = isPassword ? 'Ocultar' : 'Mostrar'
       }
     })
 
-    // Step 2: Abrir Google AI Studio
-    this.btnOpenAiStudioEl?.addEventListener('click', () => {
-      window.open('https://aistudio.google.com/app/apikey', '_blank')
+    this.btnOpenPortalEl?.addEventListener('click', () => {
+      const provider = this.getSelectedProvider()
+      const url =
+        provider === 'groq'
+          ? 'https://console.groq.com/keys'
+          : 'https://aistudio.google.com/app/apikey'
+      window.open(url, '_blank')
     })
 
-    // Step 2: Salvar Chave Gemini e Iniciar
-    this.btnSaveGeminiEl?.addEventListener('click', () => {
-      this.handleSaveGeminiKey()
+    this.btnSaveProviderEl?.addEventListener('click', () => {
+      void this.handleSaveProviderOnboarding()
     })
 
-    this.inputGeminiKeyEl?.addEventListener('keydown', (e) => {
+    this.inputProviderKeyEl?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault()
-        this.handleSaveGeminiKey()
+        void this.handleSaveProviderOnboarding()
       }
     })
 
-    // Fechar modal (apenas se não for obrigatório)
     this.btnCloseEl?.addEventListener('click', () => {
       if (!this.isMandatory) {
+        this.clearOnboardingSecret()
         this.hide()
       }
     })
 
+    this.syncOnboardingProviderUI()
+  }
+
+  private getSelectedProvider(): AIProvider {
+    const raw = this.selectProviderEl?.value
+    return isAIProvider(raw) ? raw : 'gemini'
+  }
+
+  private clearOnboardingSecret(): void {
+    if (this.inputProviderKeyEl) {
+      this.inputProviderKeyEl.value = ''
+      this.inputProviderKeyEl.type = 'password'
+    }
+    if (this.btnToggleKeyEl) {
+      this.btnToggleKeyEl.textContent = 'Mostrar'
+    }
+  }
+
+  private syncOnboardingProviderUI(): void {
+    const provider = this.getSelectedProvider()
+    this.clearOnboardingSecret()
+    if (this.providerFeedbackEl) {
+      this.providerFeedbackEl.style.display = 'none'
+    }
+
+    if (provider === 'ollama') {
+      this.keyGroupEl?.classList.add('hidden')
+      return
+    }
+
+    this.keyGroupEl?.classList.remove('hidden')
+    if (this.keyLabelEl) {
+      this.keyLabelEl.textContent =
+        provider === 'groq' ? 'SUA CHAVE DE API DA GROQ:' : 'SUA CHAVE DE API DO GOOGLE GEMINI:'
+    }
+    if (this.inputProviderKeyEl) {
+      this.inputProviderKeyEl.placeholder =
+        provider === 'groq' ? 'gsk_...' : 'AIzaSy...'
+    }
+    if (this.btnOpenPortalEl) {
+      this.btnOpenPortalEl.textContent =
+        provider === 'groq'
+          ? 'Abrir Groq Console para Obter Chave ↗'
+          : 'Abrir Google AI Studio para Obter Chave ↗'
+    }
   }
 
   public goToStep1(): void {
-    if (this.stepLicenseEl) this.stepLicenseEl.style.display = 'block'
-    if (this.stepGeminiEl) this.stepGeminiEl.style.display = 'none'
+    this.stepLicenseEl?.classList.remove('hidden')
+    this.stepOnboardingEl?.classList.add('hidden')
     if (this.titleEl) this.titleEl.textContent = 'AUTENTICAÇÃO DE SEGURANÇA // ATIVAÇÃO'
     if (this.subtitleEl) this.subtitleEl.textContent = 'Jasper AI Desktop - Licenciamento Vitalício & Node-Locking'
     this.inputKeyEl?.focus()
   }
 
-  public goToStep2(): void {
-    if (this.stepLicenseEl) this.stepLicenseEl.style.display = 'none'
-    if (this.stepGeminiEl) this.stepGeminiEl.style.display = 'block'
-    if (this.titleEl) this.titleEl.textContent = 'PASSO 2: CONFIGURAÇÃO DO GOOGLE GEMINI AI'
-    if (this.subtitleEl) this.subtitleEl.textContent = 'Chave Pessoal para Inteligência Artificial & Voz em Tempo Real'
-    this.inputGeminiKeyEl?.focus()
+  public goToStep2(provider: AIProvider = 'gemini'): void {
+    this.stepLicenseEl?.classList.add('hidden')
+    this.stepOnboardingEl?.classList.remove('hidden')
+    if (this.selectProviderEl) {
+      this.selectProviderEl.value = provider
+    }
+    this.syncOnboardingProviderUI()
+    if (this.titleEl) this.titleEl.textContent = 'PASSO 2: PROVEDOR DE IA DO JASPER'
+    if (this.subtitleEl) this.subtitleEl.textContent = 'Configure Gemini, Groq ou Ollama Local'
+    this.inputProviderKeyEl?.focus()
   }
 
   private async handleActivate(): Promise<void> {
@@ -152,7 +216,7 @@ export class LicenseModal {
       this.btnActivateEl.textContent = 'VALIDANDO LICENÇA...'
     }
 
-    this.showFeedback('Conectando ao Firestore seguro de autenticação...', 'info')
+    this.showFeedback('Conectando ao servidor seguro de licenciamento...', 'info')
 
     try {
       const result = await window.electronAPI.activateLicense(rawKey)
@@ -162,14 +226,13 @@ export class LicenseModal {
         showHudToast('Licença Ativada', 'Estação Jasper Desbloqueada com Sucesso!', 'info', 5000)
         updateStatusBadge('online', 'Licença Válida')
 
-        // Sempre avança para o Passo 2 para solicitar a chave de API pessoal do Google Gemini do usuário
         setTimeout(() => {
-          this.goToStep2()
+          this.goToStep2('gemini')
         }, 800)
       } else {
         this.showFeedback(result.snapshot.message || result.validation.message || 'Falha ao ativar licença.', 'error')
       }
-    } catch (err: any) {
+    } catch {
       this.showFeedback('Erro de rede: Não foi possível conectar ao servidor de validação.', 'error')
     } finally {
       if (this.btnActivateEl) {
@@ -179,53 +242,65 @@ export class LicenseModal {
     }
   }
 
-  private async handleSaveGeminiKey(): Promise<void> {
-    const rawGeminiKey = this.inputGeminiKeyEl?.value.trim() || ''
+  private async handleSaveProviderOnboarding(): Promise<void> {
+    const provider = this.getSelectedProvider()
+    const rawKey = this.inputProviderKeyEl?.value.trim() || ''
 
-    if (!rawGeminiKey) {
-      this.showGeminiFeedback('Por favor, informe sua GOOGLE_API_KEY do Gemini.', 'error')
-      return
+    const payload: UpdateConfigPayload = {
+      aiProvider: provider,
+      model: defaultModelForProvider(provider)
     }
 
-    if (!rawGeminiKey.startsWith('AIza') || rawGeminiKey.length < 20) {
-      this.showGeminiFeedback('A chave do Gemini normalmente inicia com "AIzaSy" e possui ~39 caracteres.', 'error')
-      return
+    if (provider === 'gemini') {
+      if (!rawKey) {
+        this.showProviderFeedback('Informe sua chave de API do Google Gemini.', 'error')
+        return
+      }
+      payload.geminiApiKey = rawKey
+    } else if (provider === 'groq') {
+      if (!rawKey) {
+        this.showProviderFeedback('Informe sua chave de API da Groq.', 'error')
+        return
+      }
+      payload.groqApiKey = rawKey
     }
 
-    if (this.btnSaveGeminiEl) {
-      this.btnSaveGeminiEl.disabled = true
-      this.btnSaveGeminiEl.textContent = 'CONECTANDO AO GEMINI...'
+    if (this.btnSaveProviderEl) {
+      this.btnSaveProviderEl.disabled = true
+      this.btnSaveProviderEl.textContent = 'CONECTANDO AO JASPER...'
     }
 
-    this.showGeminiFeedback('Salvando chave criptografada e conectando...', 'info')
+    this.showProviderFeedback('Salvando configuração criptografada e iniciando o agente...', 'info')
 
     try {
-      await window.electronAPI.saveConfig({ apiKey: rawGeminiKey })
+      await window.electronAPI.saveConfig(payload)
+      this.clearOnboardingSecret()
 
-      const connResult = await window.electronAPI.connectAgent({ apiKey: rawGeminiKey })
+      const connResult = await window.electronAPI.connectAgent()
       if (connResult.success) {
-        this.showGeminiFeedback('Gemini conectado com sucesso! Bem-vindo ao Jasper.', 'success')
-        showHudToast('Jasper Online', 'Assistente conectado com sua chave própria do Gemini!', 'info', 5000)
+        this.showProviderFeedback('Provedor configurado com sucesso! Bem-vindo ao Jasper.', 'success')
+        showHudToast('Jasper Online', 'Assistente iniciado com o provedor selecionado.', 'info', 5000)
         updateStatusBadge('online', 'Jasper Pronto')
 
         setTimeout(() => {
           this.hide()
-        }, 1200)
+        }, 1000)
       } else {
-        this.showGeminiFeedback(
-          `Chave salva, porém a conexão retornou aviso: ${connResult.error || 'Verifique se a chave está ativa no Google AI Studio.'}`,
+        this.showProviderFeedback(
+          `Configuração salva, porém a conexão retornou aviso: ${connResult.error || 'Verifique o serviço do provedor.'}`,
           'info'
         )
         setTimeout(() => {
           this.hide()
-        }, 2000)
+        }, 1800)
       }
-    } catch (err: any) {
-      this.showGeminiFeedback(`Falha ao conectar: ${err.message || 'Erro de rede'}`, 'error')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar configuração'
+      this.showProviderFeedback(`Falha ao configurar provedor: ${msg}`, 'error')
     } finally {
-      if (this.btnSaveGeminiEl) {
-        this.btnSaveGeminiEl.disabled = false
-        this.btnSaveGeminiEl.textContent = 'SALVAR E INICIAR JASPER'
+      if (this.btnSaveProviderEl) {
+        this.btnSaveProviderEl.disabled = false
+        this.btnSaveProviderEl.textContent = 'SALVAR E INICIAR JASPER'
       }
     }
   }
@@ -237,35 +312,28 @@ export class LicenseModal {
     this.feedbackEl.style.display = 'block'
   }
 
-  private showGeminiFeedback(msg: string, type: 'error' | 'success' | 'info'): void {
-    if (!this.geminiFeedbackEl) return
-    this.geminiFeedbackEl.textContent = msg
-    this.geminiFeedbackEl.className = `license-feedback ${type}`
-    this.geminiFeedbackEl.style.display = 'block'
+  private showProviderFeedback(msg: string, type: 'error' | 'success' | 'info'): void {
+    if (!this.providerFeedbackEl) return
+    this.providerFeedbackEl.textContent = msg
+    this.providerFeedbackEl.className = `license-feedback ${type}`
+    this.providerFeedbackEl.style.display = 'block'
   }
 
   public show(mandatory = false): void {
     this.isMandatory = mandatory
     if (!this.modalEl) return
 
-    if (this.btnCloseEl) {
-      this.btnCloseEl.style.display = mandatory ? 'none' : 'block'
-    }
-
+    this.btnCloseEl?.classList.toggle('hidden', mandatory)
     this.modalEl.classList.remove('hidden')
-    this.modalEl.style.display = 'flex'
     this.inputKeyEl?.focus()
   }
 
   public hide(): void {
     if (!this.modalEl) return
+    this.clearOnboardingSecret()
     this.modalEl.classList.add('hidden')
-    this.modalEl.style.display = 'none'
   }
 
-  /**
-   * Verifica o status da licença na inicialização do aplicativo
-   */
   public async checkOnStartup(): Promise<LicenseInfo> {
     try {
       const info = await window.electronAPI.getLicenseStatus()
@@ -280,13 +348,14 @@ export class LicenseModal {
         this.goToStep1()
         this.show(true)
       } else {
-        console.log('[LicenseModal] Estação licenciada.')
-        // Se a licença estiver ativa, mas o usuário não tem a chave Gemini configurada
         const cfg = await window.electronAPI.getConfig()
-        if (!cfg.hasFullKey) {
-          console.warn('[LicenseModal] Licença ativa, mas chave do Gemini ausente. Solicitando ao usuário.')
-          updateStatusBadge('disconnected', 'Configure a API Key')
-          this.goToStep2()
+        const needsRemoteKey =
+          (cfg.aiProvider === 'gemini' && !cfg.credentials.gemini.configured) ||
+          (cfg.aiProvider === 'groq' && !cfg.credentials.groq.configured)
+
+        if (needsRemoteKey) {
+          updateStatusBadge('disconnected', 'Configure o Provedor de IA')
+          this.goToStep2(cfg.aiProvider)
           this.show(true)
         }
       }

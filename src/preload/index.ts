@@ -94,6 +94,15 @@ const electronAPI = {
       ipcRenderer.removeListener(IPC_CHANNELS.AGENT_INTERRUPTED, handler)
     }
   },
+  onAgentError: (callback: (error: { message: string }) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, error: { message?: string }): void => {
+      callback({ message: String(error?.message || 'Erro no processamento do agente.') })
+    }
+    ipcRenderer.on(IPC_CHANNELS.AGENT_ERROR, handler)
+    return (): void => {
+      ipcRenderer.removeListener(IPC_CHANNELS.AGENT_ERROR, handler)
+    }
+  },
 
   // Configuration
   getConfig: (): Promise<ConfigSummary> => {
