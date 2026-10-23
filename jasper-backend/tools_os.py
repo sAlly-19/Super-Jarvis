@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import os
 import subprocess
 from typing import Any, Callable, Dict, List, Optional
 
@@ -11,6 +12,40 @@ try:
     pyautogui.PAUSE = 0.05
 except Exception:
     pyautogui = None
+
+
+def _minimal_subprocess_env() -> Dict[str, str]:
+    allowed_names = (
+        "SystemRoot",
+        "SYSTEMROOT",
+        "WINDIR",
+        "ComSpec",
+        "TEMP",
+        "TMP",
+        "USERPROFILE",
+        "APPDATA",
+        "LOCALAPPDATA",
+    )
+    return {name: os.environ[name] for name in allowed_names if os.environ.get(name)}
+
+
+def _powershell_executable() -> str:
+    system_root = os.environ.get("SystemRoot") or os.environ.get("SYSTEMROOT") or r"C:\Windows"
+    return os.path.join(system_root, "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+
+
+def _terminate_process_tree(pid: int) -> None:
+    creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+    subprocess.run(
+        ["taskkill.exe", "/PID", str(pid), "/T", "/F"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        env=_minimal_subprocess_env(),
+        creationflags=creation_flags,
+        timeout=5,
+        check=False,
+    )
 
 
 def run_powershell(command: str) -> str:
@@ -27,9 +62,9 @@ def run_powershell(command: str) -> str:
     try:
         creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
         wrapped_cmd = f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"
-        completed = subprocess.run(
+        process = subprocess.Popen(
             [
-                "powershell",
+                _powershell_executable(),
                 "-NoProfile",
                 "-NonInteractive",
                 "-ExecutionPolicy",
@@ -37,15 +72,26 @@ def run_powershell(command: str) -> str:
                 "-Command",
                 wrapped_cmd,
             ],
-            capture_output=True,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             encoding="utf-8",
             errors="replace",
             creationflags=creation_flags,
-            timeout=15,
+            env=_minimal_subprocess_env(),
         )
-        stdout = (completed.stdout or "").strip()
-        stderr = (completed.stderr or "").strip()
+        try:
+            process_stdout, process_stderr = process.communicate(timeout=15)
+        except subprocess.TimeoutExpired:
+            _terminate_process_tree(process.pid)
+            return json.dumps(
+                {"status": "error", "error": "Timeout de 15 segundos atingido ao executar o comando PowerShell."},
+                ensure_ascii=False,
+            )
+
+        stdout = (process_stdout or "").strip()
+        stderr = (process_stderr or "").strip()
         if len(stdout) > 4000:
             stdout = stdout[:4000] + "\n...[saída truncada]"
         if len(stderr) > 2000:
@@ -53,16 +99,11 @@ def run_powershell(command: str) -> str:
 
         return json.dumps(
             {
-                "status": "ok" if completed.returncode == 0 else "error",
-                "returncode": completed.returncode,
+                "status": "ok" if process.returncode == 0 else "error",
+                "returncode": process.returncode,
                 "stdout": stdout,
                 "stderr": stderr,
             },
-            ensure_ascii=False,
-        )
-    except subprocess.TimeoutExpired:
-        return json.dumps(
-            {"status": "error", "error": "Timeout de 15 segundos atingido ao executar o comando PowerShell."},
             ensure_ascii=False,
         )
     except Exception as exc:

@@ -129,26 +129,26 @@
 - Test: test/python-backend-manager.test.ts
 - Create: jasper-backend/tests/test_tools_os.py
 
-- [ ] Add a failing manager test proving revoke/stop rejects pending requests before process termination completes.
-- [ ] Add a failing Windows integration fixture that starts a child and grandchild process and verifies both PIDs disappear after stop.
-- [ ] Add failing tests proving provider keys and JARVIS secrets are absent from the sidecar spawn environment and tool subprocess environments.
-- [ ] Add a failing development test proving startup fails unless JASPER_PYTHON_EXECUTABLE points to an executable and the backend entrypoint is inside repository/app resources.
-- [ ] Run focused Node and Python tests and confirm red:
+- [x] Add a failing manager test proving revoke/stop rejects pending requests before process termination completes.
+- [x] Add a failing Windows integration fixture that starts a child and grandchild process and verifies both PIDs disappear after stop.
+- [x] Add failing tests proving provider keys and JARVIS secrets are absent from the sidecar spawn environment and tool subprocess environments.
+- [x] Add a failing development test proving startup fails unless JASPER_PYTHON_EXECUTABLE points to an executable and the backend entrypoint is inside repository/app resources.
+- [x] Run focused Node and Python tests and confirm red:
       npx.cmd --yes node@24 scripts/run-tests.mjs process-tree
       npx.cmd --yes node@24 scripts/run-tests.mjs python-backend-manager
       python -m unittest discover -s jasper-backend/tests -v
-- [ ] Implement a Windows process-tree terminator using argument-array spawn of taskkill.exe /PID pid /T /F; expose an injectable interface for tests.
-- [ ] Stop sequence: block requests, detach output, reject pending work, request graceful shutdown with a bounded timeout, terminate the tree and await exit.
-- [ ] Give Python tool commands bounded tree termination on timeout.
-- [ ] Remove provider keys from the sidecar spawn environment. Send them only in the post-handshake configuration frame.
-- [ ] Build an explicit minimal environment for tool subprocesses excluding provider keys, license material and internal secrets.
-- [ ] Remove discovery via PATH, .venv, venv and personal hardcoded paths. Development uses only validated JASPER_PYTHON_EXECUTABLE; packaged mode uses the bundled sidecar.
-- [ ] Run affected tests and verify no orphan PID remains:
+- [x] Implement a Windows process-tree terminator using argument-array spawn of taskkill.exe /PID pid /T /F; expose an injectable interface for tests.
+- [x] Stop sequence: block requests, detach output, reject pending work, request graceful shutdown with a bounded timeout, terminate the tree and await exit.
+- [x] Give Python tool commands bounded tree termination on timeout.
+- [x] Remove provider keys from the sidecar spawn environment. Send them only in the post-handshake configuration frame.
+- [x] Build an explicit minimal environment for tool subprocesses excluding provider keys, license material and internal secrets.
+- [x] Remove discovery via PATH, .venv, venv and personal hardcoded paths. Development uses only validated JASPER_PYTHON_EXECUTABLE; packaged mode uses the bundled sidecar.
+- [x] Run affected tests and verify no orphan PID remains:
       npx.cmd --yes node@24 scripts/run-tests.mjs process-tree
       npx.cmd --yes node@24 scripts/run-tests.mjs python-backend-manager
       python -m unittest discover -s jasper-backend/tests -v
       npm.cmd run typecheck
-- [ ] Commit:
+- [x] Commit:
       git add src/main/services/process-tree.ts src/main/services/python-backend.ts jasper-backend/tools_os.py test/process-tree.test.ts test/python-backend-manager.test.ts jasper-backend/tests/test_tools_os.py
       git commit -m "fix: contain backend process trees and secrets"
 

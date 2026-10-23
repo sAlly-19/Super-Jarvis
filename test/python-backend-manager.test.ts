@@ -1,6 +1,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
@@ -16,6 +17,7 @@ import {
 import type { BackendManifest } from '../src/main/generated/backend-manifest'
 import { encodeFrame, FrameDecoder } from '../src/main/services/backend-framing'
 import type { BackendEnvelope } from '../src/shared/types/backend-protocol'
+import { configStore } from '../src/main/config/config-store'
 
 function createMockProcess(): {
   proc: ChildProcess
@@ -169,6 +171,20 @@ describe('Backend Integrity Verification (backend-integrity.ts)', () => {
 })
 
 describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
+  const originalPythonExecutable = process.env.JASPER_PYTHON_EXECUTABLE
+
+  beforeEach(() => {
+    process.env.JASPER_PYTHON_EXECUTABLE = process.execPath
+  })
+
+  afterEach(() => {
+    if (originalPythonExecutable === undefined) {
+      delete process.env.JASPER_PYTHON_EXECUTABLE
+    } else {
+      process.env.JASPER_PYTHON_EXECUTABLE = originalPythonExecutable
+    }
+  })
+
   test('initial state is stopped and rejects operational requests', async () => {
     const manager = new PythonBackendManager({
       isExecutionAllowed: () => true
@@ -347,5 +363,132 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
     await new Promise((r) => setTimeout(r, 50))
     assert.equal(manager.getState(), 'stopped')
     assert.equal(spawnCount, 1, 'Should not restart when license is not allowed')
+  })
+
+  test('rejects pending requests before process-tree termination completes', async () => {
+    const mock = createMockProcess()
+    let releaseTermination!: () => void
+    let terminationStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      terminationStarted = resolve
+    })
+    const blockedTermination = new Promise<void>((resolve) => {
+      releaseTermination = resolve
+    })
+    const manager = new PythonBackendManager({
+      isExecutionAllowed: () => true,
+      spawnFn: () => mock.proc,
+      shutdownGraceMs: 1,
+      terminateProcessTreeFn: async (pid) => {
+        assert.equal(pid, 99999)
+        terminationStarted()
+        await blockedTermination
+      }
+    })
+
+    const startPromise = manager.start()
+    mock.stdin.once('data', (chunk) => {
+      const [hello] = new FrameDecoder().push(chunk)
+      mock.simulateStdoutFrame({
+        version: 1,
+        id: 'resp-stop-order',
+        replyTo: hello.id,
+        type: 'hello_ack',
+        payload: { service: 'jasper-backend', protocolVersion: 1 }
+      })
+    })
+    await startPromise
+
+    const pending = manager
+      .request('chat', { text: 'still running' }, 10_000)
+      .then(
+        () => null,
+        (error: Error) => error
+      )
+    const stopPromise = manager.stop('license_revoked')
+    await started
+
+    const rejection = await pending
+    assert.match(rejection?.message || '', /license_revoked/i)
+    assert.equal(manager.getState(), 'stopped')
+
+    releaseTermination()
+    await stopPromise
+  })
+
+  test('does not expose provider or Jasper secrets in the sidecar environment', async () => {
+    const mock = createMockProcess()
+    let spawnedEnvironment: NodeJS.ProcessEnv | undefined
+    process.env.GEMINI_API_KEY = 'gemini-secret'
+    process.env.GOOGLE_API_KEY = 'google-secret'
+    process.env.GROQ_API_KEY = 'groq-secret'
+    process.env.JASPER_LICENSE_KEY = 'license-secret'
+    const originalGetConfig = configStore.getConfig
+    configStore.getConfig = () => ({
+      ...originalGetConfig.call(configStore),
+      apiKey: 'gsk_config-store-secret'
+    })
+
+    const manager = new PythonBackendManager({
+      isExecutionAllowed: () => true,
+      spawnFn: (_command, _args, options) => {
+        spawnedEnvironment = options.env
+        return mock.proc
+      },
+      terminateProcessTreeFn: async () => {}
+    })
+
+    try {
+      const startPromise = manager.start()
+      mock.stdin.once('data', (chunk) => {
+        const [hello] = new FrameDecoder().push(chunk)
+        mock.simulateStdoutFrame({
+          version: 1,
+          id: 'resp-env',
+          replyTo: hello.id,
+          type: 'hello_ack',
+          payload: { service: 'jasper-backend', protocolVersion: 1 }
+        })
+      })
+      await startPromise
+
+      assert.ok(spawnedEnvironment)
+      assert.equal(spawnedEnvironment.GEMINI_API_KEY, undefined)
+      assert.equal(spawnedEnvironment.GOOGLE_API_KEY, undefined)
+      assert.equal(spawnedEnvironment.GROQ_API_KEY, undefined)
+      assert.equal(spawnedEnvironment.JASPER_LICENSE_KEY, undefined)
+      assert.equal(spawnedEnvironment.PYTHONUNBUFFERED, '1')
+      await manager.stop()
+    } finally {
+      configStore.getConfig = originalGetConfig
+      delete process.env.GEMINI_API_KEY
+      delete process.env.GOOGLE_API_KEY
+      delete process.env.GROQ_API_KEY
+      delete process.env.JASPER_LICENSE_KEY
+    }
+  })
+
+  test('requires an explicit valid Python executable in development', async () => {
+    delete process.env.JASPER_PYTHON_EXECUTABLE
+    const manager = new PythonBackendManager({ isExecutionAllowed: () => true })
+    await assert.rejects(() => manager.start(), /JASPER_PYTHON_EXECUTABLE/i)
+
+    process.env.JASPER_PYTHON_EXECUTABLE = path.join(process.cwd(), 'missing-python.exe')
+    await assert.rejects(() => manager.start(), /does not exist/i)
+  })
+
+  test('refuses development startup when the backend entrypoint is absent from app resources', async () => {
+    const isolatedAppRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jasper-untrusted-cwd-'))
+    try {
+      fs.mkdirSync(path.join(isolatedAppRoot, 'jasper-backend'))
+      const manager = new PythonBackendManager({
+        isExecutionAllowed: () => true,
+        applicationRoot: isolatedAppRoot
+      })
+
+      await assert.rejects(() => manager.start(), /backend entrypoint does not exist/i)
+    } finally {
+      fs.rmSync(isolatedAppRoot, { recursive: true, force: true })
+    }
   })
 })

@@ -1,13 +1,13 @@
 import { spawn, type ChildProcess } from 'child_process'
-import { existsSync } from 'fs'
-import { join, resolve } from 'path'
+import { existsSync, realpathSync, statSync } from 'fs'
+import { isAbsolute, join, relative, resolve } from 'path'
 import { app } from 'electron'
 import type { JasperConfig } from '@shared'
-import { configStore } from '../config/config-store'
 import { encodeFrame, FrameDecoder } from './backend-framing'
 import { verifyBackendIntegrity } from './backend-integrity'
 import { DEFAULT_BACKEND_MANIFEST, type BackendManifest } from '../generated/backend-manifest'
 import type { BackendEnvelope, BackendMessageType } from '@shared'
+import { terminateProcessTree } from './process-tree'
 
 export type BackendState =
   | 'stopped'
@@ -29,6 +29,9 @@ export interface PythonBackendOptions {
   manifest?: BackendManifest
   spawnFn?: (command: string, args: string[], options: any) => ChildProcess
   backoffBaseMs?: number
+  shutdownGraceMs?: number
+  terminateProcessTreeFn?: (pid: number) => Promise<void>
+  applicationRoot?: string
 }
 
 export class PythonBackendManager {
@@ -45,12 +48,18 @@ export class PythonBackendManager {
   private readonly manifest: BackendManifest
   private readonly spawnFn: (command: string, args: string[], options: any) => ChildProcess
   private readonly backoffBaseMs: number
+  private readonly shutdownGraceMs: number
+  private readonly terminateProcessTreeFn: (pid: number) => Promise<void>
+  private readonly applicationRoot?: string
 
   constructor(options: PythonBackendOptions = {}) {
     this.isExecutionAllowed = options.isExecutionAllowed || (() => true)
     this.manifest = options.manifest || DEFAULT_BACKEND_MANIFEST
     this.spawnFn = options.spawnFn || spawn
     this.backoffBaseMs = options.backoffBaseMs ?? 500
+    this.shutdownGraceMs = options.shutdownGraceMs ?? 1500
+    this.terminateProcessTreeFn = options.terminateProcessTreeFn || terminateProcessTree
+    this.applicationRoot = options.applicationRoot
   }
 
   public setExecutionAllowed(fn: () => boolean): void {
@@ -73,39 +82,35 @@ export class PythonBackendManager {
   }
 
   public getBackendDir(): string {
-    const dirName = typeof __dirname !== 'undefined' ? __dirname : process.cwd()
-    const candidates = [
-      resolve(process.cwd(), 'jasper-backend'),
-      resolve(dirName, '../../jasper-backend'),
-      resolve(dirName, '../../../jasper-backend'),
-      app?.isPackaged ? join(process.resourcesPath, 'jasper-backend') : ''
-    ].filter(Boolean)
+    const applicationRoot = this.applicationRoot ?? (app?.isPackaged ? process.resourcesPath : app.getAppPath())
+    const backendDir = resolve(applicationRoot, 'jasper-backend')
+    const expectedEntryPoint = app?.isPackaged
+      ? resolve(backendDir, this.manifest.executable)
+      : resolve(backendDir, 'main.py')
 
-    for (const dir of candidates) {
-      if (existsSync(join(dir, 'main.py'))) {
-        return dir
-      }
+    this.assertPathInside(backendDir, expectedEntryPoint)
+    if (!existsSync(expectedEntryPoint) || !statSync(expectedEntryPoint).isFile()) {
+      throw new Error(`Backend entrypoint does not exist: ${expectedEntryPoint}`)
     }
-    return resolve(process.cwd(), 'jasper-backend')
+
+    const canonicalRoot = realpathSync(backendDir)
+    const canonicalEntryPoint = realpathSync(expectedEntryPoint)
+    this.assertPathInside(canonicalRoot, canonicalEntryPoint)
+    return canonicalRoot
   }
 
   public resolvePythonExecutable(backendDir: string): string {
-    if (process.env.JASPER_PYTHON_EXECUTABLE && existsSync(process.env.JASPER_PYTHON_EXECUTABLE)) {
-      return process.env.JASPER_PYTHON_EXECUTABLE
+    const configured = process.env.JASPER_PYTHON_EXECUTABLE?.trim()
+    if (!configured) {
+      throw new Error('JASPER_PYTHON_EXECUTABLE must point to an explicit Python executable in development.')
     }
-    const venvPythonWin = join(backendDir, 'venv', 'Scripts', 'python.exe')
-    if (existsSync(venvPythonWin)) {
-      return venvPythonWin
+    if (!isAbsolute(configured)) {
+      throw new Error('JASPER_PYTHON_EXECUTABLE must be an absolute path.')
     }
-    const venvDotWin = join(backendDir, '.venv', 'Scripts', 'python.exe')
-    if (existsSync(venvDotWin)) {
-      return venvDotWin
+    if (!existsSync(configured) || !statSync(configured).isFile()) {
+      throw new Error(`JASPER_PYTHON_EXECUTABLE does not exist: ${configured}`)
     }
-    const uvCandidate = 'C:\\Users\\aliss\\AppData\\Roaming\\uv\\python\\cpython-3.11.15-windows-x86_64-none\\python.exe'
-    if (existsSync(uvCandidate)) {
-      return uvCandidate
-    }
-    return 'python'
+    return realpathSync(configured)
   }
 
   public async start(): Promise<void> {
@@ -126,9 +131,10 @@ export class PythonBackendManager {
     let cwd: string
 
     if (app?.isPackaged) {
-      const root = join(process.resourcesPath, 'jasper-backend')
+      const root = this.getBackendDir()
       await verifyBackendIntegrity(root, this.manifest)
-      command = join(root, this.manifest.executable)
+      command = resolve(root, this.manifest.executable)
+      this.assertPathInside(root, command)
       args = []
       cwd = root
     } else {
@@ -138,29 +144,18 @@ export class PythonBackendManager {
       args = ['-u', mainScript]
     }
 
-    const cfg = configStore?.getConfig ? configStore.getConfig() : ({} as any)
     const env: NodeJS.ProcessEnv = {
-      PATH: process.env.PATH,
       SYSTEMROOT: process.env.SYSTEMROOT,
+      SystemRoot: process.env.SystemRoot,
+      WINDIR: process.env.WINDIR,
+      ComSpec: process.env.ComSpec,
       TEMP: process.env.TEMP,
       TMP: process.env.TMP,
       APPDATA: process.env.APPDATA,
       LOCALAPPDATA: process.env.LOCALAPPDATA,
       USERPROFILE: process.env.USERPROFILE,
       PYTHONUNBUFFERED: '1',
-      PYTHONIOENCODING: 'utf-8',
-      JASPER_AGENT_NAME: cfg.agentName || 'Jasper',
-      JASPER_MODEL: cfg.model || 'gemini/gemini-2.5-flash',
-      JASPER_VOICE: cfg.voiceName || 'pt-BR-AntonioNeural'
-    }
-
-    if (cfg.apiKey) {
-      if (cfg.apiKey.startsWith('gsk_')) {
-        env.GROQ_API_KEY = cfg.apiKey
-      } else {
-        env.GEMINI_API_KEY = cfg.apiKey
-        env.GOOGLE_API_KEY = cfg.apiKey
-      }
+      PYTHONIOENCODING: 'utf-8'
     }
 
     const child = this.spawnFn(command, args, {
@@ -178,7 +173,7 @@ export class PythonBackendManager {
         frames = this.decoder.push(chunk)
       } catch (err) {
         console.error('[PythonBackend] Frame decoding error:', err)
-        child.kill()
+        if (child.pid) void this.terminateProcessTreeFn(child.pid).catch(() => child.kill())
         return
       }
 
@@ -221,7 +216,11 @@ export class PythonBackendManager {
       }, 5000)
     } catch (err) {
       this.state = 'error'
-      child.kill()
+      if (child.pid) {
+        await this.terminateProcessTreeFn(child.pid).catch(() => child.kill())
+      } else {
+        child.kill()
+      }
       throw err
     }
   }
@@ -229,21 +228,46 @@ export class PythonBackendManager {
   public async stop(reason?: string): Promise<void> {
     this.isShuttingDown = true
     if (this.healthyTimer) clearTimeout(this.healthyTimer)
-
-    if (this.process) {
-      const proc = this.process
-      try {
-        if (this.state === 'ready' && proc.stdin && proc.stdin.writable) {
-          await this.request('shutdown', { reason: reason || 'app_stop' }, 1500).catch(() => {})
-        }
-      } finally {
-        proc.kill()
-        this.process = null
-      }
-    }
-
+    const proc = this.process
+    const wasReady = this.state === 'ready'
+    this.process = null
     this.state = 'stopped'
     this.rejectAllPending(new Error(`Sidecar stopped: ${reason || 'normal shutdown'}`))
+
+    if (!proc) return
+
+    proc.stdout?.removeAllListeners('data')
+    proc.stderr?.removeAllListeners('data')
+
+    if (wasReady && proc.stdin?.writable) {
+      const shutdownEnvelope: BackendEnvelope = {
+        version: 1,
+        id: `shutdown-${Date.now()}`,
+        type: 'shutdown',
+        payload: { reason: reason || 'app_stop' }
+      }
+      try {
+        proc.stdin.write(encodeFrame(shutdownEnvelope))
+      } catch {
+        // Tree termination below remains authoritative.
+      }
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, this.shutdownGraceMs)
+        proc.once('exit', () => {
+          clearTimeout(timer)
+          resolve()
+        })
+      })
+    }
+
+    if (proc.pid) {
+      await this.terminateProcessTreeFn(proc.pid).catch((error) => {
+        console.error(`[PythonBackend] Failed to terminate process tree ${proc.pid}:`, error)
+        proc.kill()
+      })
+    } else {
+      proc.kill()
+    }
   }
 
   public async request<T = unknown>(
@@ -391,6 +415,13 @@ export class PythonBackendManager {
       req.reject(reason)
     }
     this.pendingRequests.clear()
+  }
+
+  private assertPathInside(root: string, candidate: string): void {
+    const pathFromRoot = relative(resolve(root), resolve(candidate))
+    if (pathFromRoot.startsWith('..') || isAbsolute(pathFromRoot)) {
+      throw new Error(`Backend entrypoint must remain inside application resources: ${candidate}`)
+    }
   }
 }
 
