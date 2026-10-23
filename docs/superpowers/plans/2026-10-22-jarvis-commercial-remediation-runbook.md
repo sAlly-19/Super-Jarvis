@@ -12,8 +12,8 @@ Este arquivo é o ponto de retomada para qualquer agente que continuar a correç
 ## Ordem de execução
 
 - [x] Fase 1 — `2026-10-22-01-license-gated-runtime.md`
-- [ ] Fase 2 — `2026-10-22-02-private-sidecar-protocol.md`
-- [ ] Fase 3 — `2026-10-22-03-renderer-ipc-memory-cleanup.md`
+- [x] Fase 2 — `2026-10-22-02-private-sidecar-protocol.md`
+- [x] Fase 3 — `2026-10-22-03-renderer-ipc-memory-cleanup.md`
 - [ ] Fase 4 — `2026-10-22-04-commercial-packaging-release.md`
 
 Não iniciar uma fase enquanto os testes e o commit final da anterior não estiverem verificados. Cada plano possui contratos `Produces` consumidos pelo plano seguinte.
@@ -52,11 +52,11 @@ Não iniciar uma fase enquanto os testes e o commit final da anterior não estiv
 
 Atualize esta seção ao terminar cada sessão:
 
-- **Fase atual:** Fase 2 concluída; Fase 3 pronta para execução.
-- **Última tarefa concluída:** Fase 2 concluída (Private Sidecar Protocol, framed stdio runtime, integrity verification, supervision & recovery).
-- **Último commit verificado:** `f4aa395`.
-- **Falhas conhecidas:** nenhuma nas Fases 1 e 2 (63 TS tests pass, 14 Python tests pass, 122 files clean in scan:secrets).
-- **Próxima ação:** executar a Tarefa 1 da Fase 3 (`2026-10-22-03-renderer-ipc-memory-cleanup.md`) usando `superpowers:executing-plans` e `superpowers:test-driven-development`.
+- **Fase atual:** Fase 3 concluída; Fase 4 pronta para execução.
+- **Última tarefa concluída:** Fase 3 concluída (Renderer IPC broker, locked activation shell, 30-day single synchronized memory, redacted audit log, commercial control consent, and elimination of fake/obsolete product surfaces).
+- **Último commit verificado:** `a36380b`.
+- **Falhas conhecidas:** nenhuma (87 TS tests pass, 14 Python tests pass, build exits 0, 129 files clean in scan:secrets, 0 forbidden legacy symbols).
+- **Próxima ação:** executar a Fase 4 (`2026-10-22-04-commercial-packaging-release.md`) usando `superpowers:executing-plans` e `superpowers:test-driven-development`.
 
 ## Verificação global final
 

@@ -46,24 +46,24 @@
 - Produces preload methods `connectAgent`, `disconnectAgent`, `sendText`, `sendAudio`, `interruptAgent`, `getAgentStatus`, `getMemory`, `clearMemory`.
 - Produces events `onAgentStatus`, `onAgentText`, `onUserTranscript`, `onAgentAudio`, `onToolExecution`, `onTurnComplete`, `onInterrupted`, `onLicenseState`.
 
-- [ ] **Step 1: Write failing IPC tests**
+- [x] **Step 1: Write failing IPC tests**
 
 Test trusted main frame acceptance, iframe/untrusted rejection, locked-state rejection for every operational channel, text/audio boundaries, backend error propagation and listener disposal.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because high-level channels do not exist and current chat/audio handlers are no-ops.
 
-- [ ] **Step 3: Define typed channel contracts**
+- [x] **Step 3: Define typed channel contracts**
 
 Replace `GEMINI_*` with `AGENT_*`; keep license, update and window channels. Remove `AUTONOMY_*` placeholders. Define discriminated payloads for status, text, audio, tool execution and errors.
 
-- [ ] **Step 4: Implement Main broker and preload facade**
+- [x] **Step 4: Implement Main broker and preload facade**
 
 Translate IPC to sidecar messages in Main only. Clone/copy binary audio before validation, enforce limits, attach one listener per backend event, and return unsubscribe functions from preload event registrations.
 
-- [ ] **Step 5: Verify GREEN and commit**
+- [x] **Step 5: Verify GREEN and commit**
 
 Run: `npm.cmd run typecheck`, then `npm.cmd test`.
 Expected: PASS.
@@ -88,29 +88,29 @@ git commit -m "feat: broker agent traffic through main IPC"
 - Consumes: high-level `window.electronAPI` from Task 1.
 - Produces: `applyLicenseSnapshot(snapshot: LicenseGateSnapshot): void` and `mountAgentRuntime(): Promise<() => void>`.
 
-- [ ] **Step 1: Write failing renderer tests**
+- [x] **Step 1: Write failing renderer tests**
 
 Assert no `WebSocket`, `ws://`, port 8765 or `jasperSocket` remains; locked boot does not construct mic, wake word, audio runtime or operational listeners; unlocked transition mounts once; revoke transition disposes and returns to activation.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL while the renderer auto-connects the WebSocket.
 
-- [ ] **Step 3: Replace direct socket usage**
+- [x] **Step 3: Replace direct socket usage**
 
 Map existing callbacks and microphone output to the preload API. Centralize all cleanup returned by `mountAgentRuntime()`. Ignore late events unless the current license snapshot remains `unlocked`.
 
-- [ ] **Step 4: Implement activation-only shell**
+- [x] **Step 4: Implement activation-only shell**
 
 At locked boot, mount license modal plus minimize/maximize/close only. Remove operational controls from the DOM or keep templates inert until unlock; hiding with CSS alone is insufficient.
 
-- [ ] **Step 5: Remove legacy client and verify**
+- [x] **Step 5: Remove legacy client and verify**
 
 Run: `npm.cmd run typecheck`, then `npm.cmd test`.
 Expected: PASS and `git grep -n "jasperSocket\|new WebSocket\|8765" -- src` returns no matches.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add -A src/renderer test/security-hardening.test.ts test/renderer-license-shell.test.ts
@@ -131,24 +131,24 @@ git commit -m "refactor: route renderer through licensed preload API"
 - Produces: `MemoryStore.load(now?: number): JasperMemory`, `upsert(event: MemoryUpsert): JasperMemory`, `clear(): JasperMemory`, `snapshot(): JasperMemory`.
 - Consumes/emits sidecar messages `memory_snapshot`, `memory_upsert`, `memory_clear`.
 
-- [ ] **Step 1: Write failing retention and synchronization tests**
+- [x] **Step 1: Write failing retention and synchronization tests**
 
 Cover atomic persistence, deduplication, 30-day pruning, invalid timestamps, installation binding, snapshot on sidecar ready, upsert persistence and clear in both directions.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`, then `npm.cmd run test:python`.
 Expected: FAIL because current memory stores string facts without event synchronization.
 
-- [ ] **Step 3: Implement `MemoryStore`**
+- [x] **Step 3: Implement `MemoryStore`**
 
 Inject file path, installation ID and clock. Normalize every item to stable ID, text, created/updated timestamps; prune at `30 * 24 * 60 * 60 * 1000`; write atomically using the existing utility.
 
-- [ ] **Step 4: Wire sidecar synchronization**
+- [x] **Step 4: Wire sidecar synchronization**
 
 Send snapshot after handshake/config. Persist sidecar upserts/clear before notifying renderer. Clearing through IPC updates disk and sidecar in one serialized operation.
 
-- [ ] **Step 5: Verify GREEN and commit**
+- [x] **Step 5: Verify GREEN and commit**
 
 Run: `npm.cmd run typecheck`, `npm.cmd test`, then `npm.cmd run test:python`.
 Expected: PASS.
@@ -180,28 +180,28 @@ git commit -m "feat: persist one synchronized agent memory"
 - Produces: `OperationalAccess.requireAgentAccess(): void`, requiring both `LicenseGate` state `unlocked` and installation-bound consent.
 - Produces: `acceptControlConsent(): Promise<void>` preload operation available only after a valid license.
 
-- [ ] **Step 1: Write failing audit/consent/cleanup tests**
+- [x] **Step 1: Write failing audit/consent/cleanup tests**
 
 Assert redaction of API keys, JWTs, authorization headers, passwords and device secrets; no command text/audio/screenshot persistence; consent is installation-bound; legacy confirmation mode, botão/atalho de emergência, fake autonomy fields/channels and fake success handlers are absent.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run: `npm.cmd test`
 Expected: FAIL because audit log and consent do not exist and obsolete fields remain.
 
-- [ ] **Step 3: Implement redacted local audit log**
+- [x] **Step 3: Implement redacted local audit log**
 
 Write JSONL under `userData/logs`, cap each file at 5 MiB and retain five files. Record timestamp, event, tool name, duration and summarized outcome only. Never log raw command, recognized text, audio, screenshot or full model response.
 
-- [ ] **Step 4: Implement one-time commercial consent**
+- [x] **Step 4: Implement one-time commercial consent**
 
 After license unlock and before mounting runtime, require explicit acceptance of the exact capabilities listed in the spec. Persist acceptance for the same installation; do not add per-action confirmations. Every agent/chat/audio/memory mutation handler calls `OperationalAccess.requireAgentAccess()` so a renderer adulterado cannot bypass the modal.
 
-- [ ] **Step 5: Remove obsolete configuration and UI**
+- [x] **Step 5: Remove obsolete configuration and UI**
 
 Delete `ConfirmationMode`, `confirmationMode`, removed autonomy toggles and their settings markup/handlers. Remove fake smart-home/webhook/reflexion IPC success responses and module cards that no longer have implementations.
 
-- [ ] **Step 6: Verify GREEN and commit**
+- [x] **Step 6: Verify GREEN and commit**
 
 Run: `npm.cmd run typecheck`, `npm.cmd test`, then `npm.cmd run scan:secrets`.
 Expected: PASS.
@@ -220,17 +220,17 @@ git commit -m "feat: add consent logs and remove fake surfaces"
 **Interfaces:**
 - Produces: product runtime and UI ready for packaging in Phase 4.
 
-- [ ] **Step 1: Run the full application verification under Node 24**
+- [x] **Step 1: Run the full application verification under Node 24**
 
 Run: `npm.cmd run typecheck`, `npm.cmd test`, `npm.cmd run test:python`, `npm.cmd run build`, then `npm.cmd run scan:secrets`.
 Expected: all commands exit `0`; renderer bundle completes without the Node 26 memory failure.
 
-- [ ] **Step 2: Inspect forbidden legacy references**
+- [x] **Step 2: Inspect forbidden legacy references**
 
 Run: `git grep -n -E "jasperSocket|FastAPI|AUTONOMY_|confirmationMode|licensePublicJwk" -- src jasper-backend test`
 Expected: no runtime matches (exit code `1`). Run `git diff --check` afterward.
 
-- [ ] **Step 3: Update runbook and commit**
+- [x] **Step 3: Update runbook and commit**
 
 ```powershell
 git add docs/superpowers/plans/2026-10-22-03-renderer-ipc-memory-cleanup.md docs/superpowers/plans/2026-10-22-jarvis-commercial-remediation-runbook.md
