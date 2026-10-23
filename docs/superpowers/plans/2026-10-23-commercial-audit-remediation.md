@@ -109,6 +109,7 @@
 - [x] Inject clock and timer functions into LicenseGate so tests never sleep.
 - [x] Schedule a one-shot lock at signed expiry and reschedule after each accepted lease. Clear the timer on shutdown/revocation.
 - [x] Keep the 72-hour server revalidation independent from local expiry enforcement.
+- [x] Post-audit hotfix: align the compiled production `kid` with the live server public-key contract (`jasper-lease-1`) while retaining `prod-2026-01` only as an alias for the same Ed25519 public key.
 - [x] Run focused tests and type checking:
       npx.cmd --yes node@24 scripts/run-tests.mjs license-manager
       npx.cmd --yes node@24 scripts/run-tests.mjs lease-verifier

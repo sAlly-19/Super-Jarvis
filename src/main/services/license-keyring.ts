@@ -1,14 +1,18 @@
 import { app } from 'electron'
 import { BUILD_FLAVOR, SMOKE_KEY_ID, SMOKE_PUBLIC_KEY } from '../generated/build-flavor'
 
-export const PRODUCTION_KEY_ID = 'prod-2026-01'
+export const PRODUCTION_KEY_ID = 'jasper-lease-1'
+export const LEGACY_PRODUCTION_KEY_ID = 'prod-2026-01'
+
+const PRODUCTION_PUBLIC_KEY = Object.freeze({
+  kty: 'OKP',
+  crv: 'Ed25519',
+  x: 'P_BiXYVYZ7nJ7Awagp-Q-qQBGEJ5w_4wJEr5qZ1JVCs'
+})
 
 export const LICENSE_KEYRING: Readonly<Record<string, JsonWebKey>> = Object.freeze({
-  [PRODUCTION_KEY_ID]: Object.freeze({
-    kty: 'OKP',
-    crv: 'Ed25519',
-    x: 'P_BiXYVYZ7nJ7Awagp-Q-qQBGEJ5w_4wJEr5qZ1JVCs'
-  }),
+  [PRODUCTION_KEY_ID]: PRODUCTION_PUBLIC_KEY,
+  [LEGACY_PRODUCTION_KEY_ID]: PRODUCTION_PUBLIC_KEY,
   // Chave pública de desenvolvimento local ativa apenas fora de pacote comercial assinado
   'dev-test-2026': Object.freeze({
     kty: 'OKP',
@@ -33,8 +37,8 @@ export function resolveKeyForId(
     if (BUILD_FLAVOR === 'smoke' && kid === SMOKE_KEY_ID && SMOKE_PUBLIC_KEY) {
       return SMOKE_PUBLIC_KEY
     }
-    if (kid === PRODUCTION_KEY_ID) {
-      return LICENSE_KEYRING[PRODUCTION_KEY_ID]
+    if (kid === PRODUCTION_KEY_ID || kid === LEGACY_PRODUCTION_KEY_ID) {
+      return LICENSE_KEYRING[kid]
     }
     return null
   }

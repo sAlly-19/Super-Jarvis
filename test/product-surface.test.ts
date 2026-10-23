@@ -172,4 +172,10 @@ describe('Commercial Operational Access & Obsolete Surface Elimination', () => {
       }
     }
   })
+
+  test('activation UI states the signed 72-hour license validation window', () => {
+    const html = fs.readFileSync(path.join(process.cwd(), 'src/renderer/index.html'), 'utf8')
+    assert.match(html, /validação contínua a cada 72 horas/i)
+    assert.doesNotMatch(html, /validação contínua a cada 24 horas/i)
+  })
 })

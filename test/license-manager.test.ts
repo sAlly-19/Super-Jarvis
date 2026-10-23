@@ -5,7 +5,7 @@ import path from 'node:path'
 import { webcrypto } from 'node:crypto'
 import type { LicenseState, LicenseGateSnapshot, LeaseClaims, LicenseValidationResult, LicenseInfo } from '@shared'
 // @ts-ignore - will be implemented in Step 3
-import { LICENSE_KEYRING } from '../src/main/services/license-keyring'
+import { LICENSE_KEYRING, PRODUCTION_KEY_ID } from '../src/main/services/license-keyring'
 // @ts-ignore - will be implemented in Step 3
 import { verifySignedLease, type LeaseVerificationContext } from '../src/main/services/lease-verifier'
 
@@ -102,6 +102,20 @@ describe('Compiled Ed25519 keyring and strict lease verifier', () => {
       LICENSE_KEYRING['prod-2026-01'].x,
       'P_BiXYVYZ7nJ7Awagp-Q-qQBGEJ5w_4wJEr5qZ1JVCs',
       'Coordenada pública da chave de produção deve ser exata'
+    )
+  })
+
+  test('production keyring recognizes the live server kid with the compiled production key', () => {
+    assert.equal(PRODUCTION_KEY_ID, 'jasper-lease-1')
+    assert.deepEqual(LICENSE_KEYRING['jasper-lease-1'], {
+      kty: 'OKP',
+      crv: 'Ed25519',
+      x: 'P_BiXYVYZ7nJ7Awagp-Q-qQBGEJ5w_4wJEr5qZ1JVCs'
+    })
+    assert.equal(
+      LICENSE_KEYRING['prod-2026-01'].x,
+      LICENSE_KEYRING['jasper-lease-1'].x,
+      'the previous kid remains a compatibility alias for the same public key'
     )
   })
 
