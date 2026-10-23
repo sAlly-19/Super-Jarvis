@@ -11,7 +11,7 @@ import {
   type BackendEnvelope
 } from '@shared'
 import { configStore } from '../config/config-store'
-import { loadMemory, saveMemory } from '../memory'
+import { memoryStore, loadMemory, clearMemory } from '../memory'
 import {
   getMainWindow,
   togglePipMode,
@@ -138,7 +138,25 @@ function wireBackendForwarding(): void {
   pythonBackend.onMessage((envelope: BackendEnvelope) => {
     switch (envelope.type) {
       case 'status':
+        if ((envelope.payload as any)?.status === 'connected' || (envelope.payload as any)?.status === 'ready') {
+          try {
+            const currentMem = memoryStore.load()
+            pythonBackend.notify('memory_snapshot', {
+              facts: currentMem.facts.map((f) => ({ id: f.id, fact: f.fact, createdAt: f.createdAt }))
+            })
+          } catch (err) {
+            console.warn('[IPC] Failed to push memory snapshot to sidecar:', err)
+          }
+        }
         safeSend(IPC_CHANNELS.AGENT_STATUS, envelope.payload)
+        break
+      case 'memory_upsert':
+        if (envelope.payload && Array.isArray((envelope.payload as any).facts)) {
+          memoryStore.upsertFacts((envelope.payload as any).facts)
+        }
+        break
+      case 'memory_clear':
+        memoryStore.clear()
         break
       case 'response':
         safeSend(IPC_CHANNELS.AGENT_TEXT, (envelope.payload as any)?.text ?? '')
@@ -261,7 +279,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.MEMORY_CLEAR, (event) => {
     assertTrustedSender(event)
     licenseGate.requireUnlocked()
-    saveMemory({ userName: '', userPreferences: [], facts: [] })
+    clearMemory()
     pythonBackend.notify('memory_clear', {})
     return true
   })

@@ -5,8 +5,9 @@ export interface MemoryItem {
 }
 
 export interface JasperMemory {
+  installationId?: string
+  updatedAt?: string
   userName: string
   userPreferences: string[]
   facts: MemoryItem[]
 }
-

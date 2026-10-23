@@ -194,13 +194,16 @@ class JasperRuntime:
         self.history.clear()
         self.facts.clear()
 
-    def maybe_memorize_fact(self, user_text: str) -> None:
+    def maybe_memorize_fact(self, user_text: str) -> Optional[Dict[str, str]]:
         lower = user_text.lower()
         triggers = ("meu nome é", "eu gosto de", "prefiro ", "trabalho com", "lembre que", "memorize que")
         if any(t in lower for t in triggers):
             clean_fact = user_text.strip()
-            if clean_fact and not any(f["fact"] == clean_fact for f in self.facts):
-                self.facts.append({"fact": clean_fact})
+            if clean_fact and not any(f.get("fact") == clean_fact for f in self.facts):
+                item = {"fact": clean_fact}
+                self.facts.append(item)
+                return item
+        return None
 
     async def _run_agent_turn(
         self,
@@ -208,7 +211,15 @@ class JasperRuntime:
         user_text: str,
         force_vision: bool = False,
     ) -> AsyncIterator[Dict[str, Any]]:
-        self.maybe_memorize_fact(user_text)
+        new_fact = self.maybe_memorize_fact(user_text)
+        if new_fact:
+            yield {
+                "version": 1,
+                "id": str(uuid.uuid4()),
+                "replyTo": req_id,
+                "type": "memory_upsert",
+                "payload": {"facts": [new_fact]},
+            }
 
         needs_vision = force_vision or self.config["vision_enabled"] or bool(VISION_KEYWORDS_RE.search(user_text))
         user_message_content: Any = user_text
@@ -455,6 +466,14 @@ class JasperRuntime:
             return
 
         if msg_type == "memory_snapshot":
+            incoming_facts = payload.get("facts", [])
+            if incoming_facts:
+                self.facts.clear()
+                for item in incoming_facts:
+                    if isinstance(item, dict) and "fact" in item:
+                        self.facts.append({"fact": str(item["fact"])})
+                    elif isinstance(item, str):
+                        self.facts.append({"fact": item})
             yield {
                 "version": 1,
                 "id": str(uuid.uuid4()),
