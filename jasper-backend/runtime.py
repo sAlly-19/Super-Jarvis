@@ -8,6 +8,11 @@ import sys
 import uuid
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
+from provider_adapters import (
+    OLLAMA_LOCAL_API_BASE,
+    ProviderAdapterError,
+    create_provider_adapter,
+)
 from tools_os import (
     AVAILABLE_FUNCTIONS,
     TOOLS_SCHEMA,
@@ -44,8 +49,6 @@ PROVIDER_LABELS: Dict[str, str] = {
     "groq": "Groq",
     "ollama": "Ollama",
 }
-
-OLLAMA_LOCAL_API_BASE = "http://127.0.0.1:11434"
 
 CREDENTIAL_REDACT_RE = re.compile(r"(AIza[0-9A-Za-z_-]{10,}|gsk_[0-9A-Za-z_-]{10,})")
 
@@ -155,21 +158,28 @@ async def generate_tts_base64(text: str, voice: str = "pt-BR-AntonioNeural") -> 
 def _transcribe_wav_sync(wav_bytes: bytes, api_key: str = "", provider: str = "") -> str:
     groq_key = api_key if (provider == "groq" and api_key) else ""
     if groq_key:
+        client = None
         try:
-            import litellm
+            from groq import Groq
 
+            client = Groq(api_key=groq_key)
             file_tuple = ("speech.wav", io.BytesIO(wav_bytes), "audio/wav")
-            resp = litellm.transcription(
-                model="groq/whisper-large-v3-turbo",
+            resp = client.audio.transcriptions.create(
+                model="whisper-large-v3-turbo",
                 file=file_tuple,
                 language="pt",
-                api_key=groq_key,
             )
             text = getattr(resp, "text", None) or (resp.get("text") if isinstance(resp, dict) else "")
             if text and str(text).strip():
                 return str(text).strip()
         except Exception as exc:
             print(f"[STT] Groq Whisper fallback: {_redact_secrets(str(exc), groq_key)}", file=sys.stderr)
+        finally:
+            if client is not None:
+                try:
+                    client.close()
+                except Exception:
+                    pass
 
     try:
         import speech_recognition as sr
@@ -215,6 +225,7 @@ class JasperRuntime:
         self.history: List[Dict[str, Any]] = []
         self.facts: List[Dict[str, str]] = []
         self.current_task: Optional[asyncio.Task[Any]] = None
+        self.provider_adapter: Any = None
 
     def build_system_prompt(self) -> str:
         agent_name = self.config["agent_name"]
@@ -270,6 +281,33 @@ class JasperRuntime:
             val = data.get("vision") if "vision" in data else data.get("enableScreenAwareness")
             if isinstance(val, bool):
                 self.config["vision_enabled"] = val
+
+    async def configure_provider(self, data: Dict[str, Any]) -> None:
+        previous_config = dict(self.config)
+        candidate_adapter: Any = None
+        try:
+            self.update_config(data)
+            candidate_adapter = create_provider_adapter(
+                str(self.config["provider"]),
+                str(self.config.get("api_key") or ""),
+            )
+            await candidate_adapter.validate_model(str(self.config["model"]))
+        except Exception:
+            self.config = previous_config
+            if candidate_adapter is not None:
+                try:
+                    await candidate_adapter.aclose()
+                except Exception:
+                    pass
+            raise
+
+        previous_adapter = self.provider_adapter
+        self.provider_adapter = candidate_adapter
+        if previous_adapter is not None and previous_adapter is not candidate_adapter:
+            try:
+                await previous_adapter.aclose()
+            except Exception:
+                pass
 
     def clear_memory(self) -> None:
         self.history.clear()
@@ -362,56 +400,30 @@ class JasperRuntime:
         max_iterations = 5
 
         try:
-            import litellm
-
-            litellm.drop_params = True
-            litellm.suppress_debug_info = True
+            adapter = self.provider_adapter
+            if adapter is None:
+                adapter = create_provider_adapter(provider, active_key)
+                await adapter.validate_model(validated_model)
+                self.provider_adapter = adapter
 
             for _iteration in range(max_iterations):
-                completion_kwargs: Dict[str, Any] = {
-                    "model": validated_model,
-                    "messages": messages,
-                    "tools": TOOLS_SCHEMA,
-                    "tool_choice": "auto",
-                    "temperature": 0.4,
-                }
-                if provider == "ollama":
-                    completion_kwargs["api_base"] = OLLAMA_LOCAL_API_BASE
-                else:
-                    completion_kwargs["api_key"] = active_key
-
-                response = await litellm.acompletion(**completion_kwargs)
-                choice_msg = response.choices[0].message
-                tool_calls = getattr(choice_msg, "tool_calls", None)
+                response = await adapter.complete(
+                    validated_model,
+                    messages,
+                    TOOLS_SCHEMA,
+                    0.4,
+                )
+                tool_calls = response.tool_calls
 
                 if not tool_calls:
-                    final_text = (getattr(choice_msg, "content", None) or "").strip()
+                    final_text = response.content.strip()
                     break
 
-                assistant_msg_dict: Dict[str, Any] = {
-                    "role": "assistant",
-                    "content": getattr(choice_msg, "content", None) or "",
-                    "tool_calls": [
-                        {
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments,
-                            },
-                        }
-                        for tc in tool_calls
-                    ],
-                }
-                messages.append(assistant_msg_dict)
+                messages.append(response.assistant_message)
 
                 for tc in tool_calls:
-                    fn_name = tc.function.name
-                    raw_args = tc.function.arguments or "{}"
-                    try:
-                        fn_args = json.loads(raw_args) if isinstance(raw_args, str) else dict(raw_args)
-                    except Exception:
-                        fn_args = {}
+                    fn_name = tc.name
+                    fn_args = dict(tc.arguments)
 
                     yield {
                         "version": 1,
@@ -470,21 +482,17 @@ class JasperRuntime:
                     )
 
             if not final_text:
-                completion_kwargs = {
-                    "model": validated_model,
-                    "messages": messages,
-                    "temperature": 0.4,
-                }
-                if provider == "ollama":
-                    completion_kwargs["api_base"] = OLLAMA_LOCAL_API_BASE
-                else:
-                    completion_kwargs["api_key"] = active_key
+                synth_resp = await adapter.complete(
+                    validated_model,
+                    messages,
+                    [],
+                    0.4,
+                )
+                final_text = (synth_resp.content or "Ação concluída.").strip()
 
-                synth_resp = await litellm.acompletion(**completion_kwargs)
-                final_text = (getattr(synth_resp.choices[0].message, "content", None) or "Ação concluída.").strip()
-
-        except ImportError:
-            final_text = f"[{self.config['agent_name']}] Mensagem recebida: {user_text}"
+        except ProviderAdapterError as exc:
+            print(f"[AgentLoop] Provider error ({provider}/{exc.category})", file=sys.stderr)
+            final_text = exc.user_message
         except Exception as exc:
             print(f"[AgentLoop] LLM error ({provider}): {type(exc).__name__}", file=sys.stderr)
             final_text = format_provider_error(provider)
@@ -547,6 +555,11 @@ class JasperRuntime:
             return
 
         if msg_type == "shutdown":
+            if self.provider_adapter is not None:
+                try:
+                    await self.provider_adapter.aclose()
+                finally:
+                    self.provider_adapter = None
             yield {
                 "version": 1,
                 "id": str(uuid.uuid4()),
@@ -558,14 +571,15 @@ class JasperRuntime:
 
         if msg_type == "config":
             try:
-                self.update_config(payload)
-            except ValueError as exc:
+                await self.configure_provider(payload)
+            except (ValueError, ProviderAdapterError) as exc:
+                message = exc.user_message if isinstance(exc, ProviderAdapterError) else str(exc)
                 yield {
                     "version": 1,
                     "id": str(uuid.uuid4()),
                     "replyTo": msg_id,
                     "type": "error",
-                    "payload": {"message": _redact_secrets(str(exc), str(payload.get("apiKey") or payload.get("api_key") or ""))},
+                    "payload": {"message": _redact_secrets(message, str(payload.get("apiKey") or payload.get("api_key") or ""))},
                 }
                 return
 

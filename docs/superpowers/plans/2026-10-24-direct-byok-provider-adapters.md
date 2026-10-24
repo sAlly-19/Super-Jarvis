@@ -53,10 +53,10 @@
 - Consumes: interfaces produzidas pela Task 1.
 - Produces: loop de ferramentas independente de provedor, validação real no `config` e Groq Whisper direto.
 
-- [ ] Alterar primeiro os testes do runtime para exigir adaptadores, validação e ausência de chamadas LiteLLM.
-- [ ] Executar os testes focados e confirmar falha esperada.
-- [ ] Migrar o loop, o fallback de síntese e a transcrição.
-- [ ] Reexecutar todos os testes Python e confirmar aprovação.
+- [x] Alterar primeiro os testes do runtime para exigir adaptadores, validação e ausência de chamadas LiteLLM.
+- [x] Executar os testes focados e confirmar cinco falhas esperadas no runtime antigo.
+- [x] Migrar o loop, o fallback de síntese, o ciclo de vida do adaptador e a transcrição.
+- [x] Reexecutar todos os testes Python e confirmar aprovação (36/36).
 
 ### Task 3: Supply chain, pacote comercial e documentação
 
