@@ -40,6 +40,8 @@ SUPPORTED_PROVIDER_MODELS: Dict[str, Tuple[str, ...]] = {
 }
 
 RETIRED_PROVIDER_MODELS: Dict[str, str] = {
+    "gemini-2.5-flash": "gemini/gemini-3.8-flash",
+    "gemini/gemini-2.5-flash": "gemini/gemini-3.8-flash",
     "llama-3.3-70b-versatile": "groq/openai/gpt-oss-120b",
     "groq/llama-3.3-70b-versatile": "groq/openai/gpt-oss-120b",
 }

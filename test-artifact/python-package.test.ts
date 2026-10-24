@@ -13,7 +13,9 @@ describe('Reproducible Python Packaging & Build Verification (Artifact Test)', (
     const content = fs.readFileSync(reqInPath, 'utf-8')
 
     // Must contain exact required pins
-    assert.ok(content.includes('litellm==1.106.2'), 'must pin litellm==1.106.2')
+    assert.ok(content.includes('google-genai==2.33.0'), 'must pin google-genai==2.33.0')
+    assert.ok(content.includes('groq==1.7.0'), 'must pin groq==1.7.0')
+    assert.ok(content.includes('httpx==0.28.1'), 'must pin httpx==0.28.1')
     assert.ok(content.includes('edge-tts==7.3.1'), 'must pin edge-tts==7.3.1')
     assert.ok(content.includes('psutil==7.2.2'), 'must pin psutil==7.2.2')
     assert.ok(content.includes('PyAutoGUI==0.9.54'), 'must pin PyAutoGUI==0.9.54')
@@ -27,6 +29,7 @@ describe('Reproducible Python Packaging & Build Verification (Artifact Test)', (
     assert.ok(!content.toLowerCase().includes('fastapi'), 'must not contain fastapi')
     assert.ok(!content.toLowerCase().includes('uvicorn'), 'must not contain uvicorn')
     assert.ok(!content.toLowerCase().includes('websockets'), 'must not contain websockets')
+    assert.ok(!content.toLowerCase().includes('litellm'), 'must not contain litellm')
   })
 
   test('requirements.lock exists and contains cryptographic SHA-256 hashes', () => {
@@ -34,6 +37,9 @@ describe('Reproducible Python Packaging & Build Verification (Artifact Test)', (
     assert.ok(fs.existsSync(lockPath), 'requirements.lock must exist')
     const content = fs.readFileSync(lockPath, 'utf-8')
     assert.ok(content.includes('--hash=sha256:'), 'requirements.lock must contain SHA-256 hashes')
+    assert.ok(content.includes('google-genai==2.33.0'), 'lock must contain google-genai')
+    assert.ok(content.includes('groq==1.7.0'), 'lock must contain groq')
+    assert.ok(!content.toLowerCase().includes('litellm'), 'lock must not contain litellm')
   })
 
   test('requirements-build.lock exists and locks PyInstaller and pip-tools with hashes', () => {
@@ -51,6 +57,10 @@ describe('Reproducible Python Packaging & Build Verification (Artifact Test)', (
     const content = fs.readFileSync(specPath, 'utf-8')
     assert.ok(content.includes('main.py'), 'spec must target main.py')
     assert.ok(content.includes('COLLECT'), 'spec must specify COLLECT for onedir layout')
+    assert.ok(content.includes("'provider_adapters'"), 'spec must bundle provider_adapters')
+    assert.ok(content.includes("'google.genai'"), 'spec must bundle google-genai')
+    assert.ok(content.includes("'groq'"), 'spec must bundle groq')
+    assert.ok(!content.toLowerCase().includes('litellm'), 'spec must not bundle litellm')
   })
 
   test('scripts/build-python-backend.ps1 validates Python 3.11 and outputs onedir sidecar', () => {

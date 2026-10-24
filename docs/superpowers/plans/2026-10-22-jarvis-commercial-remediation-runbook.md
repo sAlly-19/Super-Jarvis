@@ -17,6 +17,7 @@ Este arquivo é o ponto de retomada e registro oficial de evidências da remedia
 - [x] Fase 4 — `2026-10-22-04-commercial-packaging-release.md` (CONCLUÍDA)
 - [x] Remediação de Auditoria — `2026-10-23-commercial-audit-remediation.md` (Tasks 1 a 10 CONCLUÍDAS)
 - [x] Provider-Aware Settings — `2026-10-23-provider-aware-settings-dashboard.md` (Tasks 1 a 8 CONCLUÍDAS)
+- [x] Direct BYOK Adapters — `2026-10-24-direct-byok-provider-adapters.md` (Tasks 1 a 3 CONCLUÍDAS)
 
 ## Linha de base verificada (Clean Execution)
 
@@ -73,3 +74,18 @@ Os seguintes passos finais pertencem estritamente à esteira de publicação em 
 - Evidência online: o modelo antigo retornou HTTP 404 `model_not_found`, enquanto `openai/gpt-oss-120b` retornou HTTP 200 com a mesma credencial.
 - Evidência local: typecheck aprovado; 191 testes TypeScript em 37 suítes; 27 testes Python; build Electron aprovado.
 - Registro detalhado em `2026-10-24-groq-model-retirement-remediation.md`.
+
+## Migração Oficial — Adaptadores BYOK Diretos e Remoção de LiteLLM (24/10/2026)
+
+- LiteLLM foi completamente eliminado do runtime, supply chain e empacotamento PyInstaller.
+- Implementados adaptadores diretos oficiais via `google-genai==2.33.0`, `groq==1.7.0` e `httpx==0.28.1` em `jasper-backend/provider_adapters.py`.
+- O sidecar `jasper-backend.exe` foi recompilado com PyInstaller onedir, excluindo litellm e incluindo os módulos SDK oficiais.
+- Manifesto de integridade `src/main/generated/backend-manifest.ts` regenerado com 2.067 arquivos hasheados com SHA-256.
+- Evidência local:
+  - `npm.cmd run typecheck`: 0 erros.
+  - `npm.cmd test`: 191 testes TypeScript em 37 suítes, 0 falhas.
+  - `npm.cmd run test:python`: 36 testes Python unitários e de integração, 0 falhas.
+  - `npm.cmd run test:package`: 7 testes de artefato aprovados.
+  - `npm.cmd run audit:python`: 0 vulnerabilidades no supply chain Python (eliminadas as vulnerabilidades do LiteLLM).
+  - `npm.cmd run scan:secrets`: 181 arquivos verificados sem credenciais.
+- Registro detalhado em `docs/superpowers/plans/2026-10-24-direct-byok-provider-adapters.md`.

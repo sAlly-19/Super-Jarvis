@@ -4,13 +4,16 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 block_cipher = None
 
 datas = []
-datas += collect_data_files('litellm')
+datas += collect_data_files('google.genai')
 datas += collect_data_files('edge_tts')
 
 hiddenimports = [
     'protocol',
     'runtime',
-    'litellm',
+    'provider_adapters',
+    'google.genai',
+    'groq',
+    'httpx',
     'edge_tts',
     'psutil',
     'pyautogui',
@@ -20,7 +23,8 @@ hiddenimports = [
     'comtypes',
     'speech_recognition',
 ]
-hiddenimports += collect_submodules('litellm')
+hiddenimports += collect_submodules('google.genai')
+hiddenimports += collect_submodules('groq')
 
 a = Analysis(
     ['main.py'],

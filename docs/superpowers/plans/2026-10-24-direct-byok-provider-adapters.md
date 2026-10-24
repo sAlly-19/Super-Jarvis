@@ -75,9 +75,9 @@
 - Consumes: módulos e dependências finais das Tasks 1–2.
 - Produces: sidecar reproduzível sem LiteLLM e evidências de release.
 
-- [ ] Escrever/alterar primeiro o teste de artefato para exigir os SDKs oficiais e rejeitar LiteLLM.
-- [ ] Executar o teste focado e confirmar falha esperada.
-- [ ] Atualizar pins, lock com hashes e configuração PyInstaller.
-- [ ] Executar teste real sanitizado com as credenciais locais, sem imprimir segredos.
-- [ ] Executar typecheck, testes TypeScript, testes Python, build Electron, build sidecar, manifesto, testes do pacote e scan de segredos.
-- [ ] Atualizar este plano e o runbook com resultados exatos e registrar commit atômico na `main`.
+- [x] Escrever/alterar primeiro o teste de artefato para exigir os SDKs oficiais e rejeitar LiteLLM.
+- [x] Executar o teste focado e confirmar falha esperada.
+- [x] Atualizar pins, lock com hashes e configuração PyInstaller.
+- [x] Executar teste real sanitizado com as credenciais locais, sem imprimir segredos.
+- [x] Executar typecheck, testes TypeScript, testes Python, build Electron, build sidecar, manifesto, testes do pacote e scan de segredos.
+- [x] Atualizar este plano e o runbook com resultados exatos e registrar commit atômico na `main`.

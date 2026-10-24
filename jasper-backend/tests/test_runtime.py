@@ -88,6 +88,14 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
             normalize_model_name("groq/llama-3.3-70b-versatile"),
             "groq/openai/gpt-oss-120b",
         )
+        self.assertEqual(
+            normalize_model_name("gemini/gemini-2.5-flash"),
+            "gemini/gemini-3.8-flash",
+        )
+        self.assertEqual(
+            normalize_model_name("gemini-2.5-flash"),
+            "gemini/gemini-3.8-flash",
+        )
 
     async def test_config_updates_and_emits_status_for_each_provider(self):
         cases = [
