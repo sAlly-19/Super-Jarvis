@@ -81,20 +81,10 @@ export const DOM = {
   memoryFactsList: document.getElementById('memory-facts-list') as HTMLElement | null,
   btnClearMemory: document.getElementById('btn-clear-memory') as HTMLButtonElement | null,
 
-  // Voice Trainer Elements
-  badgeModelState: document.getElementById('badge-model-state') as HTMLElement | null,
+  // Local clap activation status
   wakeStatusTitle: document.getElementById('wake-status-title') as HTMLElement | null,
   wakeStatusDesc: document.getElementById('wake-status-desc') as HTMLElement | null,
   wakeStatusIcon: document.getElementById('wake-status-icon') as HTMLElement | null,
-  countNameSamples: document.getElementById('count-name-samples') as HTMLElement | null,
-  countNoiseSamples: document.getElementById('count-noise-samples') as HTMLElement | null,
-  countOtherSamples: document.getElementById('count-other-samples') as HTMLElement | null,
-  btnSampleName: document.getElementById('btn-sample-name') as HTMLButtonElement | null,
-  btnSampleNoise: document.getElementById('btn-sample-noise') as HTMLButtonElement | null,
-  btnSampleOther: document.getElementById('btn-sample-other') as HTMLButtonElement | null,
-  btnTrainCustomModel: document.getElementById('btn-train-custom-model') as HTMLButtonElement | null,
-  btnResetCustomModel: document.getElementById('btn-reset-custom-model') as HTMLButtonElement | null,
-  trainerFeedback: document.getElementById('trainer-feedback-msg') as HTMLElement | null,
 
   // License Tab Elements
   tabLicenseHwid: document.getElementById('tab-license-hwid') as HTMLElement | null,

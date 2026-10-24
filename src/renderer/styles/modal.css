@@ -1368,6 +1368,110 @@ select:focus,
   gap: 12px;
 }
 
+/* Keep chat selection separate from the real-time voice explanation. */
+#tab-ai-voice {
+  container-type: inline-size;
+}
+
+.ai-runtime-settings .form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.ai-runtime-settings .form-group:last-child {
+  grid-column: 1 / -1;
+}
+
+.ai-runtime-settings select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  text-overflow: ellipsis;
+}
+
+.ai-call-note {
+  padding: 12px 14px;
+  margin-top: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 2px solid rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.ai-call-note-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #dedee3;
+}
+
+.ai-call-note p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #a6a6ae;
+}
+
+#tab-ai-voice .provider-card-top {
+  flex-direction: column;
+  gap: 10px;
+}
+
+#tab-ai-voice .provider-card-top > div {
+  min-width: 0;
+  width: 100%;
+}
+
+#tab-ai-voice .provider-card-top p {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#tab-ai-voice .credential-status-pill {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  box-sizing: border-box;
+  line-height: 1.4;
+  align-self: flex-start;
+}
+
+#tab-ai-voice .input-password-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+#tab-ai-voice .input-password-wrap input {
+  box-sizing: border-box;
+  min-height: 40px;
+}
+
+#tab-ai-voice .input-password-wrap .btn-toggle {
+  min-height: 40px;
+}
+
+#tab-ai-voice .input-password-wrap .btn-remove-credential {
+  grid-column: 1 / -1;
+  justify-self: start;
+  min-height: 30px;
+  padding: 4px 10px;
+}
+
+#tab-ai-voice [data-provider-card="ollama"] {
+  grid-column: 1 / -1;
+}
+
+@container (max-width: 560px) {
+  .ai-runtime-settings .form-row,
+  .provider-credentials-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .provider-credential-card {
   justify-content: space-between;
   min-width: 0;

@@ -10,7 +10,6 @@ import { AudioVisualizer } from './audio/audio-visualizer'
 import { OfflineHandler } from './offline/offline-handler'
 import { initChatDrawer } from './ui/chat-drawer'
 import { WakeWordManager } from './audio/wake-word-manager'
-import { WakeTrainerUI } from './ui/wake-trainer-ui'
 import { SettingsModal } from './ui/settings-modal'
 import { NeuralBackground } from './scene/neural-background'
 import { showHudToast } from './ui/toast'
@@ -38,10 +37,10 @@ let shouldEndCallAfterPlayback = false
 let activeRuntimeDisposer: (() => void) | null = null
 let currentLicenseState: string = 'locked'
 let operationalBootstrapGeneration = 0
+let voiceRuntimeAuthorized = false
 let loadOperationalConfig: () => Promise<void> = async () => {}
 
 // Forward declarations
-let wakeTrainerUI: WakeTrainerUI
 let wakeWordManager: WakeWordManager
 let controlConsentModal: ControlConsentModal
 
@@ -248,6 +247,7 @@ export async function mountAgentRuntime(): Promise<() => void> {
   }
 
   console.log('[Renderer] Montando runtime operacional do agente...')
+  voiceRuntimeAuthorized = true
 
   const cleanups: Array<() => void> = []
 
@@ -349,6 +349,7 @@ export async function mountAgentRuntime(): Promise<() => void> {
   }
 
   const disposer = () => {
+    voiceRuntimeAuthorized = false
     console.log('[Renderer] Desmontando runtime operacional do agente...')
     for (const cleanup of cleanups) {
       try {
@@ -397,6 +398,8 @@ export function applyLicenseSnapshot(
       console.error('[Renderer] Falha no bootstrap operacional:', error)
     })
   } else {
+    voiceRuntimeAuthorized = false
+    void wakeWordManager.pause()
     if (activeRuntimeDisposer) {
       activeRuntimeDisposer()
       activeRuntimeDisposer = null
@@ -408,18 +411,10 @@ export function applyLicenseSnapshot(
 }
 
 wakeWordManager = new WakeWordManager({
-  getAgentName: () => getCurrentAgentName(),
-  getIsWakeWordEnabled: () => isWakeWordEnabled,
+  getIsWakeWordEnabled: () => isWakeWordEnabled && voiceRuntimeAuthorized && currentLicenseState === 'unlocked' && !isCallMode,
   onWakeTriggered: () => {
     enterCallMode(true)
-  },
-  onTrainerUIUpdate: () => wakeTrainerUI?.updateUI()
-})
-
-wakeTrainerUI = new WakeTrainerUI({
-  getAgentName: () => getCurrentAgentName(),
-  wakeWordManager,
-  micRecorder
+  }
 })
 
 async function init(): Promise<void> {
@@ -501,14 +496,14 @@ async function init(): Promise<void> {
 
   new SettingsModal({
     getAgentName: () => getCurrentAgentName(),
-    setAgentName: (name) => applyAgentName(name, () => wakeTrainerUI.updateUI()),
+    setAgentName: (name) => applyAgentName(name),
     getAvatar: () => avatar,
     setBloomEnabled,
     setNeuralBgEnabled: (enabled) => neuralBackground.setVisible(enabled),
     setEyeTrackingEnabled: (enabled) => avatar?.setEyeTrackingEnabled(enabled),
     setIsWakeWordEnabled: (val) => { isWakeWordEnabled = val },
     reinitWakeWord: async () => { await wakeWordManager.init() },
-    wakeTrainerUI
+    refreshActivationStatus: () => wakeWordManager.updateUI()
   })
 
   licenseModal.init()
@@ -539,7 +534,7 @@ async function init(): Promise<void> {
     const initialConfig = await window.electronAPI.getConfig()
     if (currentLicenseState !== 'unlocked') return
     if (initialConfig.agentName) {
-      applyAgentName(initialConfig.agentName, () => wakeTrainerUI.updateUI())
+      applyAgentName(initialConfig.agentName)
     }
     isWakeWordEnabled = initialConfig.enableWakeWord !== false
     isBloomEnabled = initialConfig.enableBloom !== false
@@ -549,7 +544,7 @@ async function init(): Promise<void> {
   }
 
   window.electronAPI.onAgentNameUpdated((name) => {
-    applyAgentName(name, () => wakeTrainerUI.updateUI())
+    applyAgentName(name)
   })
   window.electronAPI.onPipChange((isPip) => {
     DOM.app?.classList.toggle('mini-hud', isPip)

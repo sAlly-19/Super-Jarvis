@@ -22,7 +22,7 @@
     "test": "node scripts/run-tests.mjs",
     "test:package": "node scripts/run-package-tests.mjs",
     "test:python": "node scripts/run-python-tests.mjs",
-    "test:wake": "node scripts/setup-speech-assets.mjs && node scripts/test-wake-lifecycle.mjs",
+    "test:wake": "node scripts/test-wake-lifecycle.mjs",
     "verify": "npm run typecheck && npm test && npm run build",
     "generate:backend-manifest": "node scripts/generate-backend-manifest.mjs",
     "verify:package": "node scripts/verify-package.mjs",

@@ -14,7 +14,7 @@ const assets = path.resolve(root, process.argv.includes('--packaged')
 const electron = createRequire(import.meta.url)('electron')
 try {
   await build({
-    entryPoints: [path.join(root, 'test/wake-lifecycle.browser.ts')],
+    entryPoints: [path.join(root, 'test/clap-lifecycle.browser.ts')],
     outfile: path.join(temporary, 'test.js'), bundle: true, platform: 'browser', external: ['fs'],
     alias: { util: path.join(root, 'src/renderer/util-polyfill.ts') }
   })

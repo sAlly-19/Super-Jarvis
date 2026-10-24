@@ -1,5 +1,11 @@
 # Jasper Commercial Remediation Runbook
 
+## Atualização — Ativação por palmas (24/10/2026)
+
+A ativação por nome e a calibração de voz foram retiradas do runtime e da tela. Duas palmas separadas por 180–800 ms iniciam a chamada existente, com processamento local enquanto o aplicativo aguarda. A chave `enableWakeWord` foi mantida por compatibilidade. Licença, consentimento e pausa durante chamadas continuam aplicados.
+
+Verificações: 196 testes TypeScript aprovados, typecheck e build aprovados; `test:wake` aprovado com captura WebAudio, PCM sintético e cancelamento de inicializações. Validação acústica no ambiente físico do cliente ainda necessária. Plano e evidências: [2026-10-24-clap-activation.md](2026-10-24-clap-activation.md).
+
 ## Gemini Live — chamada em tempo real (24/10/2026)
 
 - Microfone transmite PCM16 mono 16 kHz à sessão Gemini Live pelo Main/sidecar; áudio Google 24 kHz é reproduzido em blocos com lip-sync e interrupção do servidor.

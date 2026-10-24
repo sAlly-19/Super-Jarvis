@@ -1,6 +1,5 @@
 import { DOM } from './dom'
 import { AvatarController, MoodType } from '../scene/avatar'
-import { WakeTrainerUI } from './wake-trainer-ui'
 import { showHudToast } from './toast'
 import { updateStatusBadge } from './status-badge'
 import { controlConsentModal } from './control-consent-modal'
@@ -31,7 +30,7 @@ export interface SettingsModalOptions {
   setEyeTrackingEnabled: (enabled: boolean) => void
   setIsWakeWordEnabled: (enabled: boolean) => void
   reinitWakeWord: () => Promise<void>
-  wakeTrainerUI: WakeTrainerUI
+  refreshActivationStatus: () => void
 }
 
 const SECTION_META: Readonly<Record<string, { title: string; description: string }>> = {
@@ -376,7 +375,7 @@ export class SettingsModal {
       settingsStatus.textContent = config.isConnected ? 'Conectado ao agente.' : 'Agente desconectado.'
 
       await Promise.all([this.refreshMemoryUI(), this.refreshConsentUI(), this.refreshLicenseUI()])
-      this.options.wakeTrainerUI.updateUI()
+      this.options.refreshActivationStatus()
     })
 
     const rollbackAndClose = (): void => {

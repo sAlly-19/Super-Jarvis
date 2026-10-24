@@ -51,65 +51,6 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
     })
   })
 
-  describe('WakeWordManager & Chamada de Agente Exclusiva via TensorFlow', () => {
-    test('código fonte de wake-word-manager e speech-commands não possui referências a Web Speech API', () => {
-      const wakeWordManagerSrc = fs.readFileSync(
-        path.join(process.cwd(), 'src/renderer/audio/wake-word-manager.ts'),
-        'utf-8'
-      )
-      assert.equal(wakeWordManagerSrc.includes('SpeechRecognition'), false)
-      assert.equal(wakeWordManagerSrc.includes('webkitSpeechRecognition'), false)
-      assert.equal(wakeWordManagerSrc.includes('startPhoneticFallback'), false)
-      assert.equal(wakeWordManagerSrc.includes('isPhoneticFallbackActive'), false)
-
-      assert.ok(wakeWordManagerSrc.includes("mode: isCalibrated ? 'tensorflow' : 'disabled'"))
-      assert.ok(wakeWordManagerSrc.includes('syncRunningState'))
-      assert.ok(wakeWordManagerSrc.includes("import { SpeechCommandsWakeWord } from './speech-commands'"))
-      assert.ok(wakeWordManagerSrc.includes('new SpeechCommandsWakeWord({'))
-
-      const speechCommandsSrc = fs.readFileSync(
-        path.join(process.cwd(), 'src/renderer/audio/speech-commands.ts'),
-        'utf-8'
-      )
-      assert.equal(speechCommandsSrc.includes('tr.secondLastBaseDenseLayer = null'), false)
-      assert.ok(speechCommandsSrc.includes('./speech-model/model.json'))
-    })
-
-    test('speech-commands implementa modelo neural de 3 classes com amostras negativas e threshold de 0.90', () => {
-      const speechCommandsSrc = fs.readFileSync(
-        path.join(process.cwd(), 'src/renderer/audio/speech-commands.ts'),
-        'utf-8'
-      )
-      assert.ok(speechCommandsSrc.includes("detectedWord === '_other_'"))
-      assert.ok(speechCommandsSrc.includes("detectedWord === '_background_noise_'"))
-      assert.ok(speechCommandsSrc.includes('probabilityThreshold: options.probabilityThreshold ?? 0.90'))
-      assert.ok(speechCommandsSrc.includes('overlapFactor: 0.25'))
-      assert.ok(speechCommandsSrc.includes('hasNegativeSpeechSamples()'))
-      assert.ok(speechCommandsSrc.includes('isLegacyModel()'))
-      assert.ok(speechCommandsSrc.includes("labels.includes('_other_')"))
-    })
-
-    test('wake-trainer-ui e index.html exigem calibração de 3 classes (nome, silêncio e outras palavras)', () => {
-      const trainerUiSrc = fs.readFileSync(
-        path.join(process.cwd(), 'src/renderer/ui/wake-trainer-ui.ts'),
-        'utf-8'
-      )
-      const indexHtmlSrc = fs.readFileSync(
-        path.join(process.cwd(), 'src/renderer/index.html'),
-        'utf-8'
-      )
-
-      assert.ok(trainerUiSrc.includes('nameCount >= 3 && noiseCount >= 2 && otherCount >= 2'))
-      assert.ok(trainerUiSrc.includes("engine.collectCustomSample('_other_')"))
-      assert.ok(trainerUiSrc.includes('btnSampleOther'))
-      assert.ok(trainerUiSrc.includes('countOtherSamples'))
-
-      assert.ok(indexHtmlSrc.includes('id="btn-sample-other"'))
-      assert.ok(indexHtmlSrc.includes('id="count-other-samples"'))
-      assert.ok(indexHtmlSrc.includes('Gravar Outras Palavras'))
-    })
-  })
-
   describe('Modo Chamada Contínuo, Lip-Sync (facecap.glb) & Integração WebSocket', () => {
     test('MicRecorder possui suporte nativo a Modo Chamada Full-Duplex, WAV VAD e timeout de 30s', () => {
       const micRecorderSrc = fs.readFileSync(

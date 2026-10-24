@@ -435,19 +435,19 @@
               <!-- SECTION 2: IA & VOZ -->
               <div id="tab-ai-voice" class="settings-tab-pane">
                 <!-- Active Provider, Model & Voice Selector Card -->
-                <div class="settings-card">
+                <div class="settings-card ai-runtime-settings">
                   <div class="settings-card-header">
                     <span class="card-icon">
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
                     </span>
                     <div class="card-text-col">
-                      <h4>Provedor Ativo, Modelo e Síntese de Voz</h4>
-                      <p>Escolha o provedor de IA ativo para o Jasper. Somente a credencial do provedor selecionado é enviada ao runtime.</p>
+                      <h4>Inteligência e voz</h4>
+                      <p>Escolha a IA para o chat e a voz para suas conversas.</p>
                     </div>
                   </div>
                   <div class="form-row">
                     <div class="form-group flex-1">
-                      <label for="select-ai-provider">Provedor de IA Ativo:</label>
+                      <label for="select-ai-provider">Provedor do chat</label>
                       <select id="select-ai-provider">
                         <option value="gemini" selected>Gemini (Google AI)</option>
                         <option value="groq">Groq Cloud</option>
@@ -455,13 +455,13 @@
                       </select>
                     </div>
                     <div class="form-group flex-1">
-                      <label for="select-model">Modelo Permitido:</label>
+                      <label for="select-model">Modelo de IA</label>
                       <select id="select-model">
                         <option value="gemini/gemini-3.8-flash" selected>Gemini 3.8 Flash</option>
                       </select>
                     </div>
                     <div class="form-group flex-1">
-                      <label for="select-voice">Voz (Chamada Gemini Live / leitura):</label>
+                      <label for="select-voice">Voz do assistente</label>
                       <select id="select-voice">
                         <optgroup label="Google — chamada em tempo real">
                           <option value="Charon">Google Charon</option>
@@ -479,8 +479,11 @@
                         <option value="pt-BR-ThalitaNeural">Thalita Neural (Feminina Expressiva)</option>
                         </optgroup>
                       </select>
-                      <p class="hint-text">O microfone inicia Gemini Live com sua chave Google. O chat mantém o provedor selecionado.</p>
                     </div>
+                  </div>
+                  <div class="ai-call-note">
+                    <span class="ai-call-note-label">CHAMADA EM TEMPO REAL</span>
+                    <p>O microfone usa Gemini Live e sua chave Google. O chat usa o provedor selecionado acima.</p>
                   </div>
                 </div>
 
@@ -539,22 +542,22 @@
                   </div>
                 </div>
 
-                <!-- TensorFlow.js Speech Commands Engine Card (100% Local) -->
+                <!-- Local double-clap activation -->
                 <div class="settings-card">
                   <div class="settings-card-header">
                     <span class="card-icon">
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                     </span>
                     <div class="card-text-col">
-                      <h4>Ativação por Voz Local (TensorFlow.js)</h4>
-                      <p>Detecção neural local que abre o microfone ao ouvir o nome configurado do assistente.</p>
+                      <h4>Ativação por palmas</h4>
+                      <p>Duas palmas iniciam a chamada. Sem palavra de ativação ou treinamento por nome.</p>
                     </div>
                   </div>
 
                   <label class="hud-switch-item" for="check-wake-word">
                     <div class="hud-switch-text">
-                      <span class="hud-switch-title">Ativar Escuta por Voz</span>
-                      <span class="hud-switch-desc">Escuta continuamente de forma 100% local pelo nome definido.</span>
+                      <span class="hud-switch-title">Ativar com duas palmas</span>
+                      <span class="hud-switch-desc">Mantém o microfone em escuta local enquanto aguarda. O áudio só é enviado ao provedor quando a chamada começa.</span>
                     </div>
                     <div class="hud-toggle">
                       <input type="checkbox" id="check-wake-word" checked />
@@ -565,66 +568,11 @@
                   <div id="wake-word-status-box" class="wake-word-status-box">
                     <span id="wake-status-icon" class="wake-status-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
                     <div>
-                      <strong id="wake-status-title" class="wake-status-title">Calibração TensorFlow para: <span class="lbl-agent-target-name">Jasper</span></strong>
-                      <span id="wake-status-desc">Grave 3 amostras dizendo o nome do assistente, 2 de silêncio e 3 de outras palavras comuns para treinar a rede neural sem falsos positivos.</span>
+                      <strong id="wake-status-title" class="wake-status-title">Detecção de palmas pausada</strong>
+                      <span id="wake-status-desc">Bata duas palmas com intervalo de 0,2 a 0,8 segundo. Sem gravação persistida. Sons semelhantes também podem ativar; use o botão do microfone como alternativa.</span>
                     </div>
                   </div>
 
-                  <div class="voice-trainer-box">
-                    <div class="voice-trainer-header">
-                      <span class="voice-trainer-heading">
-                        Treinamento Neural TensorFlow (Voz Local - 3 Classes)
-                      </span>
-                      <span id="badge-model-state" class="badge-model-state">
-                        Não Calibrado
-                      </span>
-                    </div>
-
-                    <div class="trainer-counters-row">
-                      <div class="trainer-counter-pill">
-                        Nome (<span class="lbl-agent-target-name trainer-target-highlight">Jasper</span>):
-                        <strong id="count-name-samples">0</strong>/3
-                      </div>
-                      <div class="trainer-counter-pill">
-                        Ruído / Silêncio:
-                        <strong id="count-noise-samples">0</strong>/2
-                      </div>
-                      <div class="trainer-counter-pill">
-                        Outras Palavras:
-                        <strong id="count-other-samples">0</strong>/3
-                      </div>
-                    </div>
-
-                    <div class="trainer-buttons-row">
-                      <button type="button" id="btn-sample-name" class="btn-trainer btn-trainer-primary">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                        Gravar "<span class="lbl-agent-target-name">Jasper</span>"
-                      </button>
-                      <button type="button" id="btn-sample-noise" class="btn-trainer">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                        Gravar Silêncio
-                      </button>
-                      <button type="button" id="btn-sample-other" class="btn-trainer">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        Gravar Outras Palavras
-                      </button>
-                    </div>
-
-                    <div class="trainer-actions-row">
-                      <button type="button" id="btn-train-custom-model" class="btn-trainer btn-trainer-submit" disabled>
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        Treinar Modelo Neural (1s)
-                      </button>
-                      <button type="button" id="btn-reset-custom-model" class="btn-trainer btn-trainer-reset">
-                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        Resetar
-                      </button>
-                    </div>
-
-                    <div id="trainer-feedback-msg" class="trainer-feedback-msg" aria-live="polite">
-                      Clique em "Gravar" e pronuncie a amostra quando o sinal tocar.
-                    </div>
-                  </div>
                 </div>
               </div>
 
