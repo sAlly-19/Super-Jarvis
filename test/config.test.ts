@@ -62,6 +62,21 @@ describe('ConfigStore public boundary and migration', () => {
     assert.equal(persisted.controlConsentInstallationId, 'installation-1')
   })
 
+  test('migrates the retired Gemini 2.5 model to Gemini 3.8 and persists the replacement', () => {
+    fs.writeFileSync(configPath, JSON.stringify({
+      aiProvider: 'gemini',
+      model: 'gemini/gemini-2.5-flash',
+      agentName: 'Jasper'
+    }), 'utf8')
+
+    const loaded = new ConfigStore(configPath).initialize()
+    const persisted = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+    assert.equal(loaded.aiProvider, 'gemini')
+    assert.equal(loaded.model, 'gemini/gemini-3.8-flash')
+    assert.equal(persisted.model, 'gemini/gemini-3.8-flash')
+  })
+
   test('encryption failure aborts atomically without erasing the previous file', () => {
     const store = new ConfigStore(configPath)
     store.updateConfig({ agentName: 'Persistido' })
@@ -106,7 +121,7 @@ describe('ConfigStore public boundary and migration', () => {
     const store = new ConfigStore(configPath)
     store.updateConfig({
       aiProvider: 'gemini',
-      model: 'gemini/gemini-2.5-flash',
+      model: 'gemini/gemini-3.8-flash',
       geminiApiKey: 'google-secret-1234',
       groqApiKey: 'gsk_groq-secret-5678'
     })
@@ -141,7 +156,7 @@ describe('ConfigStore public boundary and migration', () => {
 
     assert.deepEqual(resolveActiveAIConfig(store.getConfig()), {
       provider: 'gemini',
-      model: 'gemini/gemini-2.5-flash',
+      model: 'gemini/gemini-3.8-flash',
       apiKey: 'gemini-active',
       ready: true
     })
@@ -199,14 +214,14 @@ describe('ConfigStore public boundary and migration', () => {
       {
         name: 'Gemini',
         key: 'legacy-google-key',
-        model: 'gemini/gemini-2.5-flash',
+        model: 'gemini/gemini-3.8-flash',
         provider: 'gemini',
         destination: 'geminiApiKey'
       },
       {
         name: 'Groq prefix',
         key: 'gsk_legacy-groq-key',
-        model: 'gemini/gemini-2.5-flash',
+        model: 'gemini/gemini-3.8-flash',
         provider: 'gemini',
         destination: 'groqApiKey'
       },

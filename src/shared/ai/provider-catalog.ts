@@ -18,7 +18,7 @@ export const AI_PROVIDER_CATALOG: Readonly<Record<AIProvider, AIProviderDefiniti
     id: 'gemini',
     label: 'Gemini',
     requiresApiKey: true,
-    models: [{ id: 'gemini/gemini-2.5-flash', label: 'Gemini 2.5 Flash' }]
+    models: [{ id: 'gemini/gemini-3.8-flash', label: 'Gemini 3.8 Flash' }]
   },
   groq: {
     id: 'groq',

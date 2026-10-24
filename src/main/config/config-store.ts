@@ -21,6 +21,8 @@ import {
 
 export const DEFAULT_LIVE_MODEL = defaultModelForProvider('gemini')
 export const RETIRED_LIVE_MODELS = new Set([
+  'gemini-2.5-flash',
+  'gemini/gemini-2.5-flash',
   'gemini-2.0-flash-exp',
   'gemini-2.0-flash-live-001',
   'gemini-live-2.5-flash-preview',
@@ -253,9 +255,9 @@ export class ConfigStore {
               continue
             }
           }
-          ;(this.config as unknown as Record<string, unknown>)[key] = key === 'model'
-            ? normalizeLiveModel(decoded)
-            : decoded
+          const normalizedValue = key === 'model' ? normalizeLiveModel(decoded) : decoded
+          if (normalizedValue !== decoded) needsMigration = true
+          ;(this.config as unknown as Record<string, unknown>)[key] = normalizedValue
         }
       }
 

@@ -214,7 +214,7 @@ describe('Agent High-Level IPC Channels Definition', () => {
       aiProvider: 'gemini',
       geminiApiKey: '',
       groqApiKey: 'gsk_inactive',
-      model: 'gemini/gemini-2.5-flash',
+      model: 'gemini/gemini-3.8-flash',
       voiceName: 'Charon',
       agentName: 'Jasper',
       checkUpdatesDaily: true,
@@ -247,7 +247,7 @@ describe('Agent High-Level IPC Channels Definition', () => {
 
       const missing = await handler(event, {
         aiProvider: 'gemini',
-        model: 'gemini/gemini-2.5-flash'
+        model: 'gemini/gemini-3.8-flash'
       })
       assert.equal(missing.runtimeStatus, 'missing-credential')
       assert.equal(syncCalls, 0)

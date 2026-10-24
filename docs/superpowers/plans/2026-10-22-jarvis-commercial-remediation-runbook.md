@@ -56,3 +56,11 @@ Este arquivo é o ponto de retomada e registro oficial de evidências da remedia
 Os seguintes passos finais pertencem estritamente à esteira de publicação em CI protegida e ao operador de release:
 1. **Assinatura Authenticode de Produção**: disparada via push de tag `v*` no GitHub Actions configurada com os segredos `CSC_LINK` e `CSC_KEY_PASSWORD`.
 2. **Teste em VM Windows Limpa**: verificação de instalação do `.exe` assinado e teste de atualização em feed oficial em máquina sem Python instalado (Responsável: Engenharia de Release / Publicação).
+
+## Hotfix — Retirada do Gemini 2.5 Flash (24/10/2026)
+
+- O erro de geração foi rastreado até a retirada de `models/gemini-2.5-flash` para novos usuários, apesar de a chave do cliente autenticar corretamente.
+- Catálogo, sidecar e interface foram atualizados para `gemini/gemini-3.8-flash`.
+- O `ConfigStore` migra e persiste automaticamente instalações ainda configuradas com `gemini/gemini-2.5-flash`.
+- Evidência local: typecheck aprovado; 189 testes TypeScript em 37 suítes; 26 testes Python; build Electron aprovado.
+- A sondagem online pós-correção ficou pendente porque o endpoint expirou por timeout durante a verificação. O histórico e os comandos estão em `2026-10-24-gemini-model-retirement-remediation.md`.

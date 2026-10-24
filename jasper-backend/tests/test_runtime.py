@@ -34,8 +34,8 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
 
     def test_validate_provider_model_enforces_allowlist(self):
         self.assertEqual(
-            validate_provider_model("gemini", "gemini/gemini-2.5-flash"),
-            ("gemini", "gemini/gemini-2.5-flash"),
+            validate_provider_model("gemini", "gemini/gemini-3.8-flash"),
+            ("gemini", "gemini/gemini-3.8-flash"),
         )
         self.assertEqual(
             validate_provider_model("groq", "groq/llama-3.3-70b-versatile"),
@@ -48,13 +48,15 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             validate_provider_model("gemini", "groq/llama-3.3-70b-versatile")
         with self.assertRaises(ValueError):
-            validate_provider_model("ollama", "gemini/gemini-2.5-flash")
+            validate_provider_model("gemini", "gemini/gemini-2.5-flash")
+        with self.assertRaises(ValueError):
+            validate_provider_model("ollama", "gemini/gemini-3.8-flash")
         with self.assertRaises(ValueError):
             validate_provider_model("openai", "openai/gpt-4o")
 
     async def test_config_updates_and_emits_status_for_each_provider(self):
         cases = [
-            ("gemini", "gemini/gemini-2.5-flash", "AIzaSyGeminiSecret123"),
+            ("gemini", "gemini/gemini-3.8-flash", "AIzaSyGeminiSecret123"),
             ("groq", "groq/llama-3.3-70b-versatile", "gsk_GroqSecret123"),
             ("ollama", "ollama/qwen2.5:3b", ""),
         ]
@@ -102,7 +104,7 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(bad_secret, json.dumps(replies))
 
         for provider, model, expected_label in (
-            ("gemini", "gemini/gemini-2.5-flash", "Gemini"),
+            ("gemini", "gemini/gemini-3.8-flash", "Gemini"),
             ("groq", "groq/llama-3.3-70b-versatile", "Groq"),
         ):
             missing_key_msg = {

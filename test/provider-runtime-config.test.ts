@@ -8,7 +8,7 @@ function config(overrides: Partial<JasperConfig> = {}): JasperConfig {
     aiProvider: 'gemini',
     geminiApiKey: 'gemini-secret-value',
     groqApiKey: 'groq-secret-value',
-    model: 'gemini/gemini-2.5-flash',
+    model: 'gemini/gemini-3.8-flash',
     voiceName: 'Charon',
     agentName: 'Jasper',
     checkUpdatesDaily: true,
@@ -42,7 +42,7 @@ describe('active provider sidecar configuration', () => {
     assert.equal(await manager.syncConfig(config()), true)
     assert.deepEqual(payloads, [{
       provider: 'gemini',
-      model: 'gemini/gemini-2.5-flash',
+      model: 'gemini/gemini-3.8-flash',
       apiKey: 'gemini-secret-value',
       agent_name: 'Jasper',
       voice: 'Charon',

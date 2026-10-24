@@ -13,7 +13,7 @@ import {
 function sampleSummary(overrides: Partial<ConfigSummary> = {}): ConfigSummary {
   return {
     aiProvider: 'gemini',
-    model: 'gemini/gemini-2.5-flash',
+    model: 'gemini/gemini-3.8-flash',
     voiceName: 'pt-BR-AntonioNeural',
     agentName: 'Jasper',
     checkUpdatesDaily: true,
@@ -35,7 +35,7 @@ describe('SettingsDraft pure helpers', () => {
   test('modelsForProvider and switchDraftProvider enforce legal provider models', () => {
     const initial = createSettingsDraft(sampleSummary())
     assert.equal(initial.aiProvider, 'gemini')
-    assert.equal(initial.model, 'gemini/gemini-2.5-flash')
+    assert.equal(initial.model, 'gemini/gemini-3.8-flash')
 
     assert.deepEqual(
       modelsForProvider('groq').map((m) => m.id),

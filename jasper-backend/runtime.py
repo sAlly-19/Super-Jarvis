@@ -29,7 +29,7 @@ VOICE_MAP: Dict[str, str] = {
 }
 
 SUPPORTED_PROVIDER_MODELS: Dict[str, Tuple[str, ...]] = {
-    "gemini": ("gemini/gemini-2.5-flash",),
+    "gemini": ("gemini/gemini-3.8-flash",),
     "groq": ("groq/llama-3.3-70b-versatile",),
     "ollama": ("ollama/qwen2.5:3b",),
 }
@@ -59,11 +59,11 @@ def _redact_secrets(text: str, active_key: str = "") -> str:
 
 
 def normalize_model_name(raw_model: Optional[str]) -> str:
-    model = (raw_model or os.getenv("JASPER_MODEL") or "gemini/gemini-2.5-flash").strip()
+    model = (raw_model or os.getenv("JASPER_MODEL") or "gemini/gemini-3.8-flash").strip()
     if not model:
-        return "gemini/gemini-2.5-flash"
+        return "gemini/gemini-3.8-flash"
     if "live" in model.lower() or "native-audio" in model.lower():
-        return "gemini/gemini-2.5-flash"
+        return "gemini/gemini-3.8-flash"
     if "/" in model:
         return model
     lower = model.lower()
@@ -188,7 +188,7 @@ async def transcribe_audio_base64(audio_b64: str, api_key: str = "", provider: s
 
 class JasperRuntime:
     def __init__(self) -> None:
-        initial_provider = infer_provider_from_model(os.getenv("JASPER_MODEL", "gemini/gemini-2.5-flash"))
+        initial_provider = infer_provider_from_model(os.getenv("JASPER_MODEL", "gemini/gemini-3.8-flash"))
         initial_model = SUPPORTED_PROVIDER_MODELS[initial_provider][0]
         if initial_provider == "gemini":
             initial_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""

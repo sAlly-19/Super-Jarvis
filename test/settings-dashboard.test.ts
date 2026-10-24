@@ -4,6 +4,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 describe('Truthful Jasper Settings Dashboard Surface', () => {
+  test('presents only the supported Gemini 3.8 Flash model', () => {
+    const html = fs.readFileSync(path.join(process.cwd(), 'src/renderer/index.html'), 'utf8')
+
+    assert.match(html, /gemini\/gemini-3\.8-flash/)
+    assert.doesNotMatch(html, /gemini\/gemini-2\.5-flash/)
+  })
+
   const root = process.cwd()
   const htmlPath = path.join(root, 'src/renderer/index.html')
   const domTsPath = path.join(root, 'src/renderer/ui/dom.ts')

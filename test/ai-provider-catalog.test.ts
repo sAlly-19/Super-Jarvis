@@ -13,7 +13,7 @@ describe('AI provider catalog', () => {
     assert.deepEqual(Object.keys(AI_PROVIDER_CATALOG), ['gemini', 'groq', 'ollama'])
     assert.deepEqual(
       AI_PROVIDER_CATALOG.gemini.models.map(({ id }) => id),
-      ['gemini/gemini-2.5-flash']
+      ['gemini/gemini-3.8-flash']
     )
     assert.deepEqual(
       AI_PROVIDER_CATALOG.groq.models.map(({ id }) => id),
@@ -37,13 +37,14 @@ describe('AI provider catalog', () => {
     assert.equal(isAIProvider('ollama'), true)
     assert.equal(isAIProvider('openai'), false)
     assert.equal(isAIProvider(null), false)
-    assert.equal(isSupportedProviderModel('gemini', 'gemini/gemini-2.5-flash'), true)
+    assert.equal(isSupportedProviderModel('gemini', 'gemini/gemini-3.8-flash'), true)
+    assert.equal(isSupportedProviderModel('gemini', 'gemini/gemini-2.5-flash'), false)
     assert.equal(isSupportedProviderModel('gemini', 'groq/llama-3.3-70b-versatile'), false)
     assert.equal(isSupportedProviderModel('ollama', 'unknown'), false)
   })
 
   test('returns defaults and infers providers only for catalog models', () => {
-    assert.equal(defaultModelForProvider('gemini'), 'gemini/gemini-2.5-flash')
+    assert.equal(defaultModelForProvider('gemini'), 'gemini/gemini-3.8-flash')
     assert.equal(defaultModelForProvider('groq'), 'groq/llama-3.3-70b-versatile')
     assert.equal(defaultModelForProvider('ollama'), 'ollama/qwen2.5:3b')
     assert.equal(providerForModel('ollama/qwen2.5:3b'), 'ollama')

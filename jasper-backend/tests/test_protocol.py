@@ -53,7 +53,7 @@ class TestBackendProtocol(unittest.TestCase):
             "config": {
                 "provider": "gemini",
                 "agent_name": "Jasper",
-                "model": "gemini/gemini-2.5-flash",
+                "model": "gemini/gemini-3.8-flash",
                 "voice": "pt-BR-AntonioNeural",
                 "apiKey": "AIzaSyTestKey",
                 "vision": False,
