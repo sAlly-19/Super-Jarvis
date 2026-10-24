@@ -20,6 +20,7 @@ extraResources:
 
 win:
   icon: assets/icon.ico
+  publisherName: "CN=Jasper Team, O=Jasper Team, L=Sao Paulo, C=BR"
   target:
     - target: nsis
       arch:

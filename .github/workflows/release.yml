@@ -57,9 +57,10 @@ jobs:
         run: npm run dist:win
 
       - name: Verify Authenticode signatures and timestamps
+        shell: pwsh
         run: |
           $binaries = Get-ChildItem -Path "release" -Filter "*.exe" -Recurse | Select-Object -ExpandProperty FullName
-          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-authenticode.ps1 -Paths $binaries
+          & .\scripts\verify-authenticode.ps1 -Paths $binaries -ExpectedPublisher "CN=Jasper Team, O=Jasper Team, L=Sao Paulo, C=BR"
 
       - name: Generate SBOMs
         run: |

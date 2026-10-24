@@ -289,25 +289,25 @@
 - Create: test/release-workflow.test.ts
 - Create: test/verify-authenticode.test.ps1
 
-- [ ] Add a failing test proving publisherName is mandatory and exactly matches the approved certificate subject.
-- [ ] Add failing PowerShell tests proving substring or partial subject matches are rejected.
-- [ ] Add a failing workflow test reproducing multiple executable paths and proving the script receives the complete array in one PowerShell process.
-- [ ] Add a failing updater test proving an update with a different signer is rejected before installation.
-- [ ] Run focused tests and confirm red:
+- [x] Add a failing test proving publisherName is mandatory and exactly matches the approved certificate subject.
+- [x] Add failing PowerShell tests proving substring or partial subject matches are rejected.
+- [x] Add a failing workflow test reproducing multiple executable paths and proving the script receives the complete array in one PowerShell process.
+- [x] Add a failing updater test proving an update with a different signer is rejected before installation.
+- [x] Run focused tests and confirm red:
       npx.cmd --yes node@24 scripts/run-tests.mjs update-policy
       npx.cmd --yes node@24 scripts/run-tests.mjs release-workflow
       pwsh -NoProfile -File test/verify-authenticode.test.ps1
-- [ ] Set publisherName from one documented commercial certificate subject and assert packaged app-update.yml contains it.
-- [ ] Pin updater owner, repository and channel. Reject runtime overrides from renderer, config or environment in commercial builds.
-- [ ] Compare Authenticode signer subject exactly after canonical whitespace normalization; require Status equal to Valid for every executable and installer.
-- [ ] Invoke verify-authenticode.ps1 with the call operator inside the existing release pwsh step so arrays remain arrays.
-- [ ] Verify installed binaries and the downloaded update before quitAndInstall.
-- [ ] Run focused tests and build:
+- [x] Set publisherName from one documented commercial certificate subject and assert packaged app-update.yml contains it.
+- [x] Pin updater owner, repository and channel. Reject runtime overrides from renderer, config or environment in commercial builds.
+- [x] Compare Authenticode signer subject exactly after canonical whitespace normalization; require Status equal to Valid for every executable and installer.
+- [x] Invoke verify-authenticode.ps1 with the call operator inside the existing release pwsh step so arrays remain arrays.
+- [x] Verify installed binaries and the downloaded update before quitAndInstall.
+- [x] Run focused tests and build:
       npx.cmd --yes node@24 scripts/run-tests.mjs update-policy
       npx.cmd --yes node@24 scripts/run-tests.mjs release-workflow
       pwsh -NoProfile -File test/verify-authenticode.test.ps1
       npm.cmd run build
-- [ ] Commit:
+- [x] Commit:
       git add electron-builder.yml src/main/services/update-manager.ts scripts/verify-authenticode.ps1 .github/workflows/release.yml test/update-policy.test.ts test/release-workflow.test.ts test/verify-authenticode.test.ps1
       git commit -m "fix: enforce signed update publisher identity"
 

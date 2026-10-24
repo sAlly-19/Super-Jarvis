@@ -1,12 +1,82 @@
 import { app } from 'electron'
 import { autoUpdater } from 'electron-updater'
+import { execFile } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+import { promisify } from 'node:util'
 import { IPC_CHANNELS, type UpdateState } from '@shared'
 import { configStore } from '../config/config-store'
 import { safeSend } from '../windows/main-window'
 
 const DAILY_INTERVAL_MS = 24 * 60 * 60 * 1000
+const execFileAsync = promisify(execFile)
 
-export const OFFICIAL_RELEASE_FEED_URL = 'https://github.com/sAlly-19/jasper-avatar-releases/releases/latest/download'
+export const OFFICIAL_RELEASE_OWNER = 'sAlly-19'
+export const OFFICIAL_RELEASE_REPO = 'jasper-avatar-releases'
+export const OFFICIAL_RELEASE_CHANNEL = 'latest'
+export const OFFICIAL_RELEASE_FEED_URL = `https://github.com/${OFFICIAL_RELEASE_OWNER}/${OFFICIAL_RELEASE_REPO}/releases/${OFFICIAL_RELEASE_CHANNEL}/download`
+export const APPROVED_WINDOWS_PUBLISHER = 'CN=Jasper Team, O=Jasper Team, L=Sao Paulo, C=BR'
+
+type SignatureVerifier = (paths: string[]) => Promise<void>
+
+interface AuthenticodeResult {
+  Status?: string
+  Subject?: string
+  HasTimestamp?: boolean
+}
+
+function normalizePublisherSubject(subject: string): string {
+  return subject
+    .split(',')
+    .map((part) => part.replace(/\s+/g, ' ').trim())
+    .join(',')
+}
+
+export async function verifyAuthenticodePublisher(
+  paths: string[],
+  expectedPublisher = APPROVED_WINDOWS_PUBLISHER
+): Promise<void> {
+  const normalizedExpected = normalizePublisherSubject(expectedPublisher)
+  if (!normalizedExpected) throw new Error('O publicador Authenticode esperado não foi configurado.')
+  if (process.platform !== 'win32') throw new Error('A verificação Authenticode requer Windows.')
+
+  for (const targetPath of paths) {
+    if (!targetPath || !fs.existsSync(targetPath)) {
+      throw new Error(`Binário obrigatório não encontrado para verificação Authenticode: ${targetPath || '(vazio)'}`)
+    }
+
+    const encodedPath = Buffer.from(targetPath, 'utf8').toString('base64')
+    const command = [
+      "$ErrorActionPreference = 'Stop'",
+      `$targetPath = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodedPath}'))`,
+      '$signature = Get-AuthenticodeSignature -FilePath $targetPath',
+      '[pscustomobject]@{',
+      '  Status = [string]$signature.Status',
+      "  Subject = if ($signature.SignerCertificate) { [string]$signature.SignerCertificate.Subject } else { '' }",
+      '  HasTimestamp = [bool]$signature.TimeStamperCertificate',
+      '} | ConvertTo-Json -Compress'
+    ].join('; ')
+    const encodedCommand = Buffer.from(command, 'utf16le').toString('base64')
+    const { stdout } = await execFileAsync(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encodedCommand],
+      { windowsHide: true, timeout: 15_000, maxBuffer: 1024 * 1024 }
+    )
+    const output = String(stdout).trim().split(/\r?\n/).filter(Boolean).at(-1) || '{}'
+    const signature = JSON.parse(output) as AuthenticodeResult
+    const normalizedSubject = normalizePublisherSubject(signature.Subject || '')
+
+    if (signature.Status !== 'Valid') {
+      throw new Error(`Assinatura Authenticode inválida para ${targetPath}: ${signature.Status || 'UnknownError'}`)
+    }
+    if (normalizedSubject !== normalizedExpected) {
+      throw new Error(`Publicador Authenticode divergente para ${targetPath}.`)
+    }
+    if (!signature.HasTimestamp) {
+      throw new Error(`Assinatura Authenticode sem timestamp para ${targetPath}.`)
+    }
+  }
+}
 
 export function assertValidUpdateFeedUrl(url: string): void {
   if (!url || typeof url !== 'string') {
@@ -28,11 +98,33 @@ export function assertValidUpdateFeedUrl(url: string): void {
   if (!allowedHosts.includes(parsed.hostname.toLowerCase())) {
     throw new Error(`Untrusted release origin: ${parsed.hostname}. Updates only allowed from official release origin.`)
   }
+  if (url.replace(/\/+$/, '') !== OFFICIAL_RELEASE_FEED_URL) {
+    throw new Error('Updates are restricted to the official release feed, owner, repository and channel.')
+  }
+}
+
+export function assertPackagedAppUpdateConfig(content: string): void {
+  if (!content || typeof content !== 'string') {
+    throw new Error('app-update.yml is empty or missing.')
+  }
+  const normalizedExpected = normalizePublisherSubject(APPROVED_WINDOWS_PUBLISHER)
+  const publisherMatch = content.match(/publisherName:\s*(?:\r?\n\s*-\s*)?["']?([^"'\r\n]+)["']?/)
+  const actualPublisher = publisherMatch ? normalizePublisherSubject(publisherMatch[1]) : ''
+  if (actualPublisher !== normalizedExpected) {
+    throw new Error(`app-update.yml publisherName mismatch: expected "${APPROVED_WINDOWS_PUBLISHER}".`)
+  }
+  const urlMatch = content.match(/url:\s*["']?([^"'\r\n]+)["']?/)
+  if (!urlMatch) {
+    throw new Error('app-update.yml is missing feed url.')
+  }
+  assertValidUpdateFeedUrl(urlMatch[1].trim())
 }
 
 class UpdateManager {
   private timer: NodeJS.Timeout | null = null
   private initialized = false
+  private downloadedUpdatePath: string | null = null
+  private signatureVerifier: SignatureVerifier = verifyAuthenticodePublisher
   private state: UpdateState = {
     phase: 'idle',
     currentVersion: typeof app !== 'undefined' && app?.getVersion ? app.getVersion() : '1.0.2',
@@ -40,16 +132,35 @@ class UpdateManager {
     portable: Boolean(process.env.PORTABLE_EXECUTABLE_FILE)
   }
 
-  public initialize(): void {
+  public initialize(runtimeOverrides?: Record<string, unknown>): void {
+    if (runtimeOverrides && Object.keys(runtimeOverrides).length > 0) {
+      throw new Error('Runtime update feed overrides are forbidden in commercial builds.')
+    }
+    const envOverride =
+      process.env.JASPER_UPDATE_FEED_URL ||
+      process.env.ELECTRON_UPDATER_FEED_URL ||
+      process.env.JASPER_UPDATE_CHANNEL
+    if (envOverride && typeof app !== 'undefined' && app?.isPackaged) {
+      throw new Error('Environment update feed overrides are forbidden in commercial builds.')
+    }
     if (this.initialized) return
     this.initialized = true
 
     assertValidUpdateFeedUrl(OFFICIAL_RELEASE_FEED_URL)
+    ;(autoUpdater as { channel?: string }).channel = OFFICIAL_RELEASE_CHANNEL
+    if (typeof autoUpdater.setFeedURL === 'function') {
+      autoUpdater.setFeedURL({
+        provider: 'generic',
+        url: OFFICIAL_RELEASE_FEED_URL,
+        channel: OFFICIAL_RELEASE_CHANNEL
+      })
+    }
     autoUpdater.autoDownload = false
     autoUpdater.autoInstallOnAppQuit = false
 
     autoUpdater.on('checking-for-update', () => this.updateState('checking', 'Verificando atualizações...'))
     autoUpdater.on('update-available', (info: { version: string }) => {
+      this.downloadedUpdatePath = null
       this.updateState('available', `Versão ${info.version} disponível.`, { availableVersion: info.version })
     })
     autoUpdater.on('update-not-available', () => this.updateState('not-available', 'O Jasper está atualizado.'))
@@ -58,7 +169,8 @@ class UpdateManager {
         progressPercent: progress.percent
       })
     })
-    autoUpdater.on('update-downloaded', (info: { version: string }) => {
+    autoUpdater.on('update-downloaded', (info: { version: string; downloadedFile?: string }) => {
+      this.downloadedUpdatePath = info.downloadedFile || null
       this.updateState('downloaded', `Versão ${info.version} pronta para instalar.`, { availableVersion: info.version })
     })
     autoUpdater.on('error', (error: unknown) => this.updateState('error', this.describeError(error)))
@@ -112,6 +224,23 @@ class UpdateManager {
   public async install(): Promise<{ success: boolean; message: string }> {
     if (this.state.phase !== 'downloaded') {
       return { success: false, message: 'Nenhuma atualização está pronta para instalar.' }
+    }
+    if (!this.downloadedUpdatePath) {
+      this.updateState('error', 'O pacote de atualização baixado não pôde ser localizado para validação.')
+      return { success: false, message: 'O pacote de atualização não pôde ser validado.' }
+    }
+    try {
+      const targets = [process.execPath]
+      const sidecarPath = typeof process.resourcesPath === 'string'
+        ? path.join(process.resourcesPath, 'jasper-backend', 'jasper-backend.exe')
+        : ''
+      if (sidecarPath && fs.existsSync(sidecarPath)) targets.push(sidecarPath)
+      targets.push(this.downloadedUpdatePath)
+      await this.signatureVerifier([...new Set(targets)])
+    } catch (error) {
+      console.warn('[UpdateManager] Atualização rejeitada por assinatura inválida:', error)
+      this.updateState('error', 'A assinatura ou o publicador da atualização não corresponde ao produto oficial.')
+      return { success: false, message: 'A assinatura ou o publicador da atualização é inválido.' }
     }
     setImmediate(() => autoUpdater.quitAndInstall(false, true))
     return { success: true, message: 'A instalação será iniciada.' }

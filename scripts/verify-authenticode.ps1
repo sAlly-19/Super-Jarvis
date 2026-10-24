@@ -12,6 +12,20 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Normalize-PublisherSubject {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Subject
+    )
+
+    return (($Subject -split ',' | ForEach-Object { ($_ -replace '\s+', ' ').Trim() }) -join ',')
+}
+
+$normalizedExpectedPublisher = Normalize-PublisherSubject -Subject $ExpectedPublisher
+if ([string]::IsNullOrWhiteSpace($normalizedExpectedPublisher)) {
+    throw "ExpectedPublisher must not be empty."
+}
+
 Write-Host "==> Verifying Authenticode signatures for $($Paths.Count) target(s)..." -ForegroundColor Cyan
 Write-Host "    Expected Publisher: $ExpectedPublisher" -ForegroundColor DarkGray
 
@@ -36,7 +50,8 @@ foreach ($target in $Paths) {
 
     $subject = $sig.SignerCertificate.Subject
     Write-Host "     Subject: $subject" -ForegroundColor DarkGray
-    if ($subject -notmatch [regex]::Escape($ExpectedPublisher) -and $subject -ne $ExpectedPublisher) {
+    $normalizedSubject = Normalize-PublisherSubject -Subject $subject
+    if (-not [StringComparer]::Ordinal.Equals($normalizedSubject, $normalizedExpectedPublisher)) {
         Write-Error "Publisher mismatch for $($target). Expected: $ExpectedPublisher, Got: $subject"
         $failed = $true
         continue
