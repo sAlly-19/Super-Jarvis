@@ -365,22 +365,22 @@
 - Create: test/package-verification.test.ts
 - Create: test/smoke-contract.test.ts
 
-- [ ] Add a failing test proving package verification reads fuse values from the generated Electron executable rather than trusting YAML.
-- [ ] Add failing smoke-contract tests requiring activation, sidecar PID, framed handshake, chat response, audio event, controlled PowerShell result, expiry/revocation lock and descendant cleanup.
-- [ ] Add a failing test proving smoke fixture keys and private material are absent from a normal commercial package.
-- [ ] Run focused tests and confirm red:
+- [x] Add a failing test proving package verification reads fuse values from the generated Electron executable rather than trusting YAML.
+- [x] Add failing smoke-contract tests requiring activation, sidecar PID, framed handshake, chat response, audio event, controlled PowerShell result, expiry/revocation lock and descendant cleanup.
+- [x] Add a failing test proving smoke fixture keys and private material are absent from a normal commercial package.
+- [x] Run focused tests and confirm red:
       npx.cmd --yes node@24 scripts/run-tests.mjs package-verification
       npx.cmd --yes node@24 scripts/run-tests.mjs smoke-contract
-- [ ] Use @electron/fuses APIs to read the packaged executable and assert exact required fuse values.
-- [ ] Add a smoke-only build flavor gated at build time. Generate an ephemeral keypair in CI and start a loopback-only fixture license service.
-- [ ] Drive the packaged app through its public surface: activate signed test lease, wait for sidecar, send chat, observe audio event, execute a harmless PowerShell nonce and record evidence.
-- [ ] Assert no listener on port 8765, Python is not resolved from PATH, then revoke/expire the lease and verify sidecar plus descendants exit.
-- [ ] Destroy ephemeral private material, rebuild the commercial artifact without the smoke flag, and scan it for fixture endpoints, keys and bypass markers.
-- [ ] Run local unsigned directory smoke, labeling signature checks as release-only:
+- [x] Use @electron/fuses APIs to read the packaged executable and assert exact required fuse values.
+- [x] Add a smoke-only build flavor gated at build time. Generate an ephemeral keypair in CI and start a loopback-only fixture license service.
+- [x] Drive the packaged app through its public surface: activate signed test lease, wait for sidecar, send chat, observe audio event, execute a harmless PowerShell nonce and record evidence.
+- [x] Assert no listener on port 8765, Python is not resolved from PATH, then revoke/expire the lease and verify sidecar plus descendants exit.
+- [x] Destroy ephemeral private material, rebuild the commercial artifact without the smoke flag, and scan it for fixture endpoints, keys and bypass markers.
+- [x] Run local unsigned directory smoke, labeling signature checks as release-only:
       npm.cmd run package:dir
       npm.cmd run verify:package
       npm.cmd run smoke:packaged
-- [ ] Commit:
+- [x] Commit:
       git add scripts/verify-package.mjs scripts/smoke-packaged.ps1 scripts/fixtures/license-server.mjs scripts/fixtures/smoke-license-keypair.mjs package.json .github/workflows/release.yml test/package-verification.test.ts test/smoke-contract.test.ts
       git commit -m "test: exercise packaged commercial runtime end to end"
 

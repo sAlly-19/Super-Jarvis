@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { FuseV1Options, getCurrentFuseWire } from '@electron/fuses'
 
 const root = process.cwd()
 
@@ -30,7 +31,7 @@ if (/target:\s*portable/i.test(builderConfigContent)) {
   process.exit(1)
 }
 
-// Must have ASAR integrity fuse and onlyLoadAppFromAsar
+// Must have ASAR integrity fuse and onlyLoadAppFromAsar in YAML
 if (!/enableEmbeddedAsarIntegrityValidation:\s*true/.test(builderConfigContent)) {
   console.error('FAIL: electron-builder.yml must have enableEmbeddedAsarIntegrityValidation: true.')
   process.exit(1)
@@ -50,6 +51,57 @@ if (!builderConfigContent.includes('jasper-backend')) {
 const releaseDir = path.join(root, 'release', 'win-unpacked')
 if (!fs.existsSync(releaseDir)) {
   console.error(`FAIL: Unpacked release directory not found at ${releaseDir}. Run package:dir first.`)
+  process.exit(1)
+}
+
+const appExe = path.join(releaseDir, 'Jasper AI.exe')
+if (!fs.existsSync(appExe)) {
+  console.error(`FAIL: Main executable missing at ${appExe}.`)
+  process.exit(1)
+}
+
+// 2b. Inspect binary fuses directly on the generated executable via @electron/fuses
+try {
+  const fuseWire = await getCurrentFuseWire(appExe)
+  if (!fuseWire) {
+    console.error('FAIL: Could not extract fuse wire from packaged executable.')
+    process.exit(1)
+  }
+
+  const isEnabled = (val) => val === 1 || val === 49
+  const isDisabled = (val) => val === 0 || val === 48
+
+  // Verify critical fuses
+  if (!isEnabled(fuseWire[FuseV1Options.OnlyLoadAppFromAsar])) {
+    console.error('FAIL: Binary fuse onlyLoadAppFromAsar is not enabled.')
+    process.exit(1)
+  }
+  if (!isEnabled(fuseWire[FuseV1Options.EnableEmbeddedAsarIntegrityValidation])) {
+    console.error('FAIL: Binary fuse enableEmbeddedAsarIntegrityValidation is not enabled.')
+    process.exit(1)
+  }
+  if (!isDisabled(fuseWire[FuseV1Options.RunAsNode])) {
+    console.error('FAIL: Binary fuse runAsNode is not disabled.')
+    process.exit(1)
+  }
+  if (!isEnabled(fuseWire[FuseV1Options.EnableCookieEncryption])) {
+    console.error('FAIL: Binary fuse enableCookieEncryption is not enabled.')
+    process.exit(1)
+  }
+  if (!isDisabled(fuseWire[FuseV1Options.EnableNodeOptionsEnvironmentVariable])) {
+    console.error('FAIL: Binary fuse enableNodeOptionsEnvironmentVariable is not disabled.')
+    process.exit(1)
+  }
+  if (!isDisabled(fuseWire[FuseV1Options.EnableNodeCliInspectArguments])) {
+    console.error('FAIL: Binary fuse enableNodeCliInspectArguments is not disabled.')
+    process.exit(1)
+  }
+  if (!isDisabled(fuseWire[FuseV1Options.GrantFileProtocolExtraPrivileges])) {
+    console.error('FAIL: Binary fuse grantFileProtocolExtraPrivileges is not disabled.')
+    process.exit(1)
+  }
+} catch (fuseErr) {
+  console.error(`FAIL: Error reading fuses from binary ${appExe}:`, fuseErr)
   process.exit(1)
 }
 

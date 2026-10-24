@@ -20,7 +20,6 @@ extraResources:
 
 win:
   icon: assets/icon.ico
-  publisherName: "CN=Jasper Team, O=Jasper Team, L=Sao Paulo, C=BR"
   target:
     - target: nsis
       arch:
@@ -41,6 +40,8 @@ nsis:
 publish:
   provider: generic
   url: https://github.com/sAlly-19/jasper-avatar-releases/releases/latest/download
+  publisherName:
+    - "CN=Jasper Team, O=Jasper Team, L=Sao Paulo, C=BR"
 
 electronFuses:
   runAsNode: false

@@ -123,7 +123,7 @@ describe('Commercial Update Policy & Authenticode Verification (Task 7)', () => 
     assert.match(content, /url:\s*https:\/\//, 'feed URL must use HTTPS')
     assert.match(
       content,
-      new RegExp(`publisherName:\\s*["']${approvedPublisher.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`),
+      new RegExp(`publisherName:\\s*(?:\\r?\\n\\s*-\\s*)?["']${approvedPublisher.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`),
       'publisherName must be mandatory and exactly match the approved certificate subject'
     )
     assert.doesNotMatch(content, /target:\s*portable/i, 'portable target must not exist')
