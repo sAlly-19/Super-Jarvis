@@ -11,6 +11,13 @@ describe('Truthful Jasper Settings Dashboard Surface', () => {
     assert.doesNotMatch(html, /gemini\/gemini-2\.5-flash/)
   })
 
+  test('presents only the supported Groq GPT-OSS 120B model', () => {
+    const html = fs.readFileSync(path.join(process.cwd(), 'src/renderer/index.html'), 'utf8')
+
+    assert.match(html, /groq\/openai\/gpt-oss-120b/)
+    assert.doesNotMatch(html, /groq\/llama-3\.3-70b-versatile/)
+  })
+
   const root = process.cwd()
   const htmlPath = path.join(root, 'src/renderer/index.html')
   const domTsPath = path.join(root, 'src/renderer/ui/dom.ts')

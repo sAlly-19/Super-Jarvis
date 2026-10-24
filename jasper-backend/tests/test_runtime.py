@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 # Add parent directory to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from runtime import JasperRuntime, validate_provider_model
+from runtime import JasperRuntime, normalize_model_name, validate_provider_model
 
 
 class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
@@ -38,26 +38,34 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
             ("gemini", "gemini/gemini-3.8-flash"),
         )
         self.assertEqual(
-            validate_provider_model("groq", "groq/llama-3.3-70b-versatile"),
-            ("groq", "groq/llama-3.3-70b-versatile"),
+            validate_provider_model("groq", "groq/openai/gpt-oss-120b"),
+            ("groq", "groq/openai/gpt-oss-120b"),
         )
         self.assertEqual(
             validate_provider_model("ollama", "ollama/qwen2.5:3b"),
             ("ollama", "ollama/qwen2.5:3b"),
         )
         with self.assertRaises(ValueError):
-            validate_provider_model("gemini", "groq/llama-3.3-70b-versatile")
+            validate_provider_model("gemini", "groq/openai/gpt-oss-120b")
         with self.assertRaises(ValueError):
             validate_provider_model("gemini", "gemini/gemini-2.5-flash")
+        with self.assertRaises(ValueError):
+            validate_provider_model("groq", "groq/llama-3.3-70b-versatile")
         with self.assertRaises(ValueError):
             validate_provider_model("ollama", "gemini/gemini-3.8-flash")
         with self.assertRaises(ValueError):
             validate_provider_model("openai", "openai/gpt-4o")
 
+    def test_normalize_model_name_migrates_retired_groq_model(self):
+        self.assertEqual(
+            normalize_model_name("groq/llama-3.3-70b-versatile"),
+            "groq/openai/gpt-oss-120b",
+        )
+
     async def test_config_updates_and_emits_status_for_each_provider(self):
         cases = [
             ("gemini", "gemini/gemini-3.8-flash", "AIzaSyGeminiSecret123"),
-            ("groq", "groq/llama-3.3-70b-versatile", "gsk_GroqSecret123"),
+            ("groq", "groq/openai/gpt-oss-120b", "gsk_GroqSecret123"),
             ("ollama", "ollama/qwen2.5:3b", ""),
         ]
         for provider, model, api_key in cases:
@@ -93,7 +101,7 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
             "payload": {
                 "provider": "gemini",
                 "agent_name": "Jasper",
-                "model": "groq/llama-3.3-70b-versatile",
+                "model": "groq/openai/gpt-oss-120b",
                 "voice": "pt-BR-AntonioNeural",
                 "apiKey": bad_secret,
             },
@@ -105,7 +113,7 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
 
         for provider, model, expected_label in (
             ("gemini", "gemini/gemini-3.8-flash", "Gemini"),
-            ("groq", "groq/llama-3.3-70b-versatile", "Groq"),
+            ("groq", "groq/openai/gpt-oss-120b", "Groq"),
         ):
             missing_key_msg = {
                 "version": 1,
@@ -164,7 +172,7 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
             {
                 "provider": "groq",
                 "agent_name": "Jasper",
-                "model": "groq/llama-3.3-70b-versatile",
+                "model": "groq/openai/gpt-oss-120b",
                 "voice": "pt-BR-AntonioNeural",
                 "apiKey": secret_key,
             }

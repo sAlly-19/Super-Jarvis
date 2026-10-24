@@ -39,7 +39,7 @@ describe('SettingsDraft pure helpers', () => {
 
     assert.deepEqual(
       modelsForProvider('groq').map((m) => m.id),
-      ['groq/llama-3.3-70b-versatile']
+      ['groq/openai/gpt-oss-120b']
     )
     assert.deepEqual(
       modelsForProvider('ollama').map((m) => m.id),
@@ -48,7 +48,7 @@ describe('SettingsDraft pure helpers', () => {
 
     const switchedGroq = switchDraftProvider(initial, 'groq')
     assert.equal(switchedGroq.aiProvider, 'groq')
-    assert.equal(switchedGroq.model, 'groq/llama-3.3-70b-versatile')
+    assert.equal(switchedGroq.model, 'groq/openai/gpt-oss-120b')
 
     const switchedOllama = switchDraftProvider(switchedGroq, 'ollama')
     assert.equal(switchedOllama.aiProvider, 'ollama')
@@ -81,7 +81,7 @@ describe('SettingsDraft pure helpers', () => {
     )
     assert.deepEqual(updateWithGroqKey, {
       aiProvider: 'groq',
-      model: 'groq/llama-3.3-70b-versatile',
+      model: 'groq/openai/gpt-oss-120b',
       groqApiKey: 'gsk_new_key_12345'
     })
   })

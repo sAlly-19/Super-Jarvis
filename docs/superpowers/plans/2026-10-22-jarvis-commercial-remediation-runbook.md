@@ -64,3 +64,12 @@ Os seguintes passos finais pertencem estritamente à esteira de publicação em 
 - O `ConfigStore` migra e persiste automaticamente instalações ainda configuradas com `gemini/gemini-2.5-flash`.
 - Evidência local: typecheck aprovado; 189 testes TypeScript em 37 suítes; 26 testes Python; build Electron aprovado.
 - A sondagem online pós-correção ficou pendente porque o endpoint expirou por timeout durante a verificação. O histórico e os comandos estão em `2026-10-24-gemini-model-retirement-remediation.md`.
+
+## Hotfix — Retirada do Groq Llama 3.3 70B (24/10/2026)
+
+- A credencial Groq foi validada com sucesso; o erro era causado pela retirada de `llama-3.3-70b-versatile` para contas Free e Developer.
+- Catálogo, sidecar e interface foram atualizados para `groq/openai/gpt-oss-120b`.
+- O `ConfigStore` migra e persiste automaticamente configurações antigas, sem solicitar novamente a chave do cliente.
+- Evidência online: o modelo antigo retornou HTTP 404 `model_not_found`, enquanto `openai/gpt-oss-120b` retornou HTTP 200 com a mesma credencial.
+- Evidência local: typecheck aprovado; 191 testes TypeScript em 37 suítes; 27 testes Python; build Electron aprovado.
+- Registro detalhado em `2026-10-24-groq-model-retirement-remediation.md`.

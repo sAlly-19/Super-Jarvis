@@ -24,7 +24,7 @@ export const AI_PROVIDER_CATALOG: Readonly<Record<AIProvider, AIProviderDefiniti
     id: 'groq',
     label: 'Groq',
     requiresApiKey: true,
-    models: [{ id: 'groq/llama-3.3-70b-versatile', label: 'Llama 3.3 70B Versatile' }]
+    models: [{ id: 'groq/openai/gpt-oss-120b', label: 'GPT-OSS 120B' }]
   },
   ollama: {
     id: 'ollama',

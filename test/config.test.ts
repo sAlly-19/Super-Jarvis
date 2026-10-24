@@ -77,6 +77,21 @@ describe('ConfigStore public boundary and migration', () => {
     assert.equal(persisted.model, 'gemini/gemini-3.8-flash')
   })
 
+  test('migrates the retired Groq Llama model to GPT-OSS 120B and persists the replacement', () => {
+    fs.writeFileSync(configPath, JSON.stringify({
+      aiProvider: 'groq',
+      model: 'groq/llama-3.3-70b-versatile',
+      agentName: 'Jasper'
+    }), 'utf8')
+
+    const loaded = new ConfigStore(configPath).initialize()
+    const persisted = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+    assert.equal(loaded.aiProvider, 'groq')
+    assert.equal(loaded.model, 'groq/openai/gpt-oss-120b')
+    assert.equal(persisted.model, 'groq/openai/gpt-oss-120b')
+  })
+
   test('encryption failure aborts atomically without erasing the previous file', () => {
     const store = new ConfigStore(configPath)
     store.updateConfig({ agentName: 'Persistido' })
@@ -161,10 +176,10 @@ describe('ConfigStore public boundary and migration', () => {
       ready: true
     })
 
-    const groq = store.updateConfig({ model: 'groq/llama-3.3-70b-versatile' })
+    const groq = store.updateConfig({ model: 'groq/openai/gpt-oss-120b' })
     assert.deepEqual(resolveActiveAIConfig(groq), {
       provider: 'groq',
-      model: 'groq/llama-3.3-70b-versatile',
+      model: 'groq/openai/gpt-oss-120b',
       apiKey: 'groq-inactive',
       ready: true
     })
@@ -196,7 +211,7 @@ describe('ConfigStore public boundary and migration', () => {
     assert.throws(
       () => store.updateConfig({
         aiProvider: 'gemini',
-        model: 'groq/llama-3.3-70b-versatile'
+        model: 'groq/openai/gpt-oss-120b'
       }),
       /modelo.*provedor/i
     )
@@ -228,7 +243,7 @@ describe('ConfigStore public boundary and migration', () => {
       {
         name: 'Groq model',
         key: 'legacy-without-prefix',
-        model: 'groq/llama-3.3-70b-versatile',
+        model: 'groq/openai/gpt-oss-120b',
         provider: 'groq',
         destination: 'groqApiKey'
       },
@@ -268,7 +283,7 @@ describe('ConfigStore public boundary and migration', () => {
   test('an undecryptable legacy key leaves the original file byte-for-byte unchanged', () => {
     const originalFile = JSON.stringify({
       apiKey: 'enc:not-decryptable-here',
-      model: 'groq/llama-3.3-70b-versatile',
+      model: 'groq/openai/gpt-oss-120b',
       enableSmartHome: true
     }, null, 2)
     fs.writeFileSync(configPath, originalFile, 'utf8')
@@ -288,14 +303,14 @@ describe('ConfigStore public boundary and migration', () => {
     const previousModel = process.env.JASPER_MODEL
     const previousGeminiKey = process.env.GEMINI_API_KEY
     const previousGroqKey = process.env.GROQ_API_KEY
-    process.env.JASPER_MODEL = 'groq/llama-3.3-70b-versatile'
+    process.env.JASPER_MODEL = 'groq/openai/gpt-oss-120b'
     process.env.GEMINI_API_KEY = 'gemini-env'
     process.env.GROQ_API_KEY = 'groq-env'
 
     try {
       const config = new ConfigStore(configPath).getConfig()
       assert.equal(config.aiProvider, 'groq')
-      assert.equal(config.model, 'groq/llama-3.3-70b-versatile')
+      assert.equal(config.model, 'groq/openai/gpt-oss-120b')
       assert.equal(config.geminiApiKey, 'gemini-env')
       assert.equal(config.groqApiKey, 'groq-env')
     } finally {

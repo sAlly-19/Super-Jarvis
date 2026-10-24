@@ -290,7 +290,7 @@ describe('Agent High-Level IPC Channels Definition', () => {
       aiProvider: 'groq',
       geminiApiKey: 'gemini-inactive',
       groqApiKey: '',
-      model: 'groq/llama-3.3-70b-versatile',
+      model: 'groq/openai/gpt-oss-120b',
       licenseStatus: 'active'
     } as any)
     pythonBackend.isHealthy = async () => { healthCalls++; return true }

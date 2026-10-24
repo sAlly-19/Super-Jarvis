@@ -152,10 +152,10 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
       assert.ok(audioPlayerSrc.includes('this.onPlaybackEnded?.()'))
     })
 
-    test('ConfigStore preserva modelos LiteLLM (Gemini 3.8 Flash, Groq Llama 3.3, Ollama Qwen 2.5) e aposenta modelos antigos', () => {
+    test('ConfigStore preserva modelos LiteLLM (Gemini 3.8 Flash, Groq GPT-OSS 120B, Ollama Qwen 2.5) e aposenta modelos antigos', () => {
       const previous = configStore.getConfig().model
       try {
-        for (const model of ['gemini/gemini-3.8-flash', 'groq/llama-3.3-70b-versatile', 'ollama/qwen2.5:3b']) {
+        for (const model of ['gemini/gemini-3.8-flash', 'groq/openai/gpt-oss-120b', 'ollama/qwen2.5:3b']) {
           assert.equal(configStore.updateConfig({ model }).model, model)
         }
         assert.equal(configStore.updateConfig({ model: 'gemini-2.0-flash-exp' }).model, 'gemini/gemini-3.8-flash')

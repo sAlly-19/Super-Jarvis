@@ -30,8 +30,13 @@ VOICE_MAP: Dict[str, str] = {
 
 SUPPORTED_PROVIDER_MODELS: Dict[str, Tuple[str, ...]] = {
     "gemini": ("gemini/gemini-3.8-flash",),
-    "groq": ("groq/llama-3.3-70b-versatile",),
+    "groq": ("groq/openai/gpt-oss-120b",),
     "ollama": ("ollama/qwen2.5:3b",),
+}
+
+RETIRED_PROVIDER_MODELS: Dict[str, str] = {
+    "llama-3.3-70b-versatile": "groq/openai/gpt-oss-120b",
+    "groq/llama-3.3-70b-versatile": "groq/openai/gpt-oss-120b",
 }
 
 PROVIDER_LABELS: Dict[str, str] = {
@@ -64,6 +69,8 @@ def normalize_model_name(raw_model: Optional[str]) -> str:
         return "gemini/gemini-3.8-flash"
     if "live" in model.lower() or "native-audio" in model.lower():
         return "gemini/gemini-3.8-flash"
+    if model in RETIRED_PROVIDER_MODELS:
+        return RETIRED_PROVIDER_MODELS[model]
     if "/" in model:
         return model
     lower = model.lower()

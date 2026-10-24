@@ -13,7 +13,7 @@ Aplicativo desktop comercial para Windows com avatar 3D interativo, voz em tempo
 - **Consentimento Operacional Comercial:** Termo de consentimento de controle autônomo vinculado à instalação (`controlConsentInstallationId`). Sem confirmações modais repetitivas por comando.
 - **Log de Auditoria Rotativo:** Registro de eventos em disco limitado a 5 MiB com rotação de até 5 arquivos históricos, com redação obrigatória de chaves de API, JWTs, senhas e credenciais.
 - **Memória Única Sincronizada:** Persistência em `userData/memory.json` sincronizada com o runtime do agente e poda automática de retenção a cada 30 dias.
-- **Provedores de IA e Credenciais Independentes (BYOK):** Suporte nativo a **Google Gemini** (`gemini/gemini-3.8-flash`), **Groq** (`groq/llama-3.3-70b-versatile`) com chaves de API independentes criptografadas localmente via Windows DPAPI (`safeStorage`), e **Ollama** (`ollama/qwen2.5:3b`) via execução local (`http://127.0.0.1:11434`) sem necessidade de chave de API. O processo Renderer recebe exclusivamente resumos mascarados e o sidecar Python recebe apenas a credencial do provedor ativo.
+- **Provedores de IA e Credenciais Independentes (BYOK):** Suporte nativo a **Google Gemini** (`gemini/gemini-3.8-flash`), **Groq** (`groq/openai/gpt-oss-120b`) com chaves de API independentes criptografadas localmente via Windows DPAPI (`safeStorage`), e **Ollama** (`ollama/qwen2.5:3b`) via execução local (`http://127.0.0.1:11434`) sem necessidade de chave de API. O processo Renderer recebe exclusivamente resumos mascarados e o sidecar Python recebe apenas a credencial do provedor ativo.
 
 ## Requisitos de Desenvolvimento
 

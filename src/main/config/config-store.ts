@@ -28,6 +28,10 @@ export const RETIRED_LIVE_MODELS = new Set([
   'gemini-live-2.5-flash-preview',
   'gemini-3.8-live'
 ])
+const RETIRED_PROVIDER_MODEL_REPLACEMENTS = new Map([
+  ['llama-3.3-70b-versatile', 'groq/openai/gpt-oss-120b'],
+  ['groq/llama-3.3-70b-versatile', 'groq/openai/gpt-oss-120b']
+])
 
 const PUBLIC_KEY_SET = new Set<string>(PUBLIC_CONFIG_KEYS)
 const INTERNAL_KEY_SET = new Set<string>(INTERNAL_CONFIG_KEYS)
@@ -57,7 +61,8 @@ export interface ActiveAIConfig {
 
 export function normalizeLiveModel(model?: string): string {
   const value = model?.trim()
-  return !value || RETIRED_LIVE_MODELS.has(value) ? DEFAULT_LIVE_MODEL : value
+  if (!value || RETIRED_LIVE_MODELS.has(value)) return DEFAULT_LIVE_MODEL
+  return RETIRED_PROVIDER_MODEL_REPLACEMENTS.get(value) || value
 }
 
 if (typeof app === 'undefined' || !app.isPackaged) dotenv.config()

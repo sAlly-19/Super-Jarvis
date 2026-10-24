@@ -55,11 +55,11 @@ describe('active provider sidecar configuration', () => {
     const { manager, payloads } = readyManager()
     assert.equal(await manager.syncConfig(config({
       aiProvider: 'groq',
-      model: 'groq/llama-3.3-70b-versatile'
+      model: 'groq/openai/gpt-oss-120b'
     })), true)
     assert.deepEqual(payloads, [{
       provider: 'groq',
-      model: 'groq/llama-3.3-70b-versatile',
+      model: 'groq/openai/gpt-oss-120b',
       apiKey: 'groq-secret-value',
       agent_name: 'Jasper',
       voice: 'Charon',
