@@ -38,10 +38,10 @@
 - Produces: `ProviderToolCall`, `ProviderResponse`, `ProviderAdapterError`, `create_provider_adapter(provider, api_key)` e adaptadores com `validate_model(model)` e `complete(model, messages, tools, temperature)`.
 - Consumes: esquema OpenAI-compatible atual de `TOOLS_SCHEMA` e histórico canônico de `runtime.py`.
 
-- [ ] Escrever testes de contrato, tradução de Gemini, Groq e Ollama, validação de modelos e categorização segura de erros.
-- [ ] Executar `python -m unittest jasper-backend/tests/test_provider_adapters.py -v` e confirmar falha por módulo ausente.
-- [ ] Implementar o módulo com imports preguiçosos dos SDKs e clientes injetáveis nos testes.
-- [ ] Reexecutar o teste focado e confirmar aprovação.
+- [x] Escrever testes de contrato, tradução de Gemini, Groq e Ollama, validação de modelos e categorização segura de erros.
+- [x] Executar `python -m unittest jasper-backend/tests/test_provider_adapters.py -v` e confirmar falha por módulo ausente.
+- [x] Implementar o módulo com imports preguiçosos dos SDKs e clientes injetáveis nos testes.
+- [x] Reexecutar o teste focado e confirmar aprovação (6/6).
 
 ### Task 2: Integrar runtime e transcrição sem LiteLLM
 
