@@ -13,6 +13,7 @@ import {
 import { licenseGate } from '../src/main/services/license-gate'
 import { pythonBackend } from '../src/main/services/python-backend'
 import { configStore } from '../src/main/config/config-store'
+import { operationalAccess } from '../src/main/services/operational-access'
 import type { BackendEnvelope } from '../src/shared/types/backend-protocol'
 
 function createMockIpcEvent(options: {
@@ -110,6 +111,64 @@ describe('Agent IPC Security and Boundary Enforcement', () => {
 })
 
 describe('Agent High-Level IPC Channels Definition', () => {
+  test('Live uses Gemini credential independently of Groq and enforces consent', async () => {
+    const ipc = ipcMain as any
+    ipc._handlers.clear()
+    ipc._listeners.clear()
+    const originalGate = licenseGate.requireUnlocked
+    const originalAccess = operationalAccess.requireAgentAccess
+    const originalConfig = configStore.getConfig
+    const originalRemove = configStore.removeProviderCredential
+    const originalHealthy = pythonBackend.isHealthy
+    const originalRequest = pythonBackend.request
+    const originalState = pythonBackend.getState
+    const requests: Array<{type: string; payload: any}> = []
+    licenseGate.requireUnlocked = () => {}
+    operationalAccess.requireAgentAccess = () => {}
+    configStore.getConfig = () => ({ aiProvider: 'groq', geminiApiKey: 'gemini-live-secret', groqApiKey: 'groq-chat-secret', voiceName: 'Kore' } as any)
+    configStore.removeProviderCredential = () => configStore.getConfig()
+    pythonBackend.isHealthy = async () => true
+    pythonBackend.getState = () => 'ready'
+    pythonBackend.request = async (type: any, payload: unknown) => { requests.push({type, payload}); return {} as any }
+    try {
+      registerIpcHandlers()
+      const event = createMockIpcEvent()
+      const start = ipc._handlers.get(IPC_CHANNELS.AGENT_LIVE_START)
+      const result = await start(event, true)
+      assert.equal(result.success, true)
+      assert.deepEqual(requests[0], {type: 'live_start', payload: {apiKey: 'gemini-live-secret', voice: 'Kore', greeting: true}})
+      assert.doesNotMatch(JSON.stringify(result), /secret/)
+      await ipc._handlers.get(IPC_CHANNELS.CONFIG_REMOVE_CREDENTIAL)(event, 'gemini')
+      assert.equal(requests[1]?.type, 'live_stop', 'removing Gemini key must close independent live call')
+      await ipc._handlers.get(IPC_CHANNELS.AGENT_LIVE_STOP)(event)
+      assert.equal(requests[2].type, 'live_stop')
+      let releaseStart: ((value: unknown) => void) | undefined
+      pythonBackend.request = async (type: any, payload: unknown) => {
+        requests.push({type, payload})
+        if (type === 'live_start') return await new Promise(resolve => { releaseStart = resolve }) as any
+        return {} as any
+      }
+      const pendingStart = start(event, false)
+      for (let i = 0; i < 10 && !releaseStart; i++) await Promise.resolve()
+      assert.ok(releaseStart, 'connection must be pending')
+      assert.equal((await start(event, false)).success, false, 'overlapping start must be refused')
+      await ipc._handlers.get(IPC_CHANNELS.CONFIG_REMOVE_CREDENTIAL)(event, 'gemini')
+      releaseStart!({})
+      assert.equal((await pendingStart).success, false, 'removing a key invalidates a pending connection')
+      operationalAccess.requireAgentAccess = () => { throw new Error('consent required') }
+      await assert.rejects(start(event, false), /consent required/)
+    } finally {
+      licenseGate.requireUnlocked = originalGate
+      operationalAccess.requireAgentAccess = originalAccess
+      configStore.getConfig = originalConfig
+      configStore.removeProviderCredential = originalRemove
+      pythonBackend.isHealthy = originalHealthy
+      pythonBackend.request = originalRequest
+      pythonBackend.getState = originalState
+      ipc._handlers.clear()
+      ipc._listeners.clear()
+    }
+  })
   test('IPC_CHANNELS defines all typed AGENT_* channels', () => {
     assert.ok(IPC_CHANNELS.AGENT_CONNECT, 'AGENT_CONNECT must be defined')
     assert.ok(IPC_CHANNELS.AGENT_DISCONNECT, 'AGENT_DISCONNECT must be defined')
@@ -163,6 +222,8 @@ describe('Agent High-Level IPC Channels Definition', () => {
         IPC_CHANNELS.AGENT_CONNECT,
         IPC_CHANNELS.AGENT_DISCONNECT,
         IPC_CHANNELS.AGENT_GET_STATUS,
+        IPC_CHANNELS.AGENT_LIVE_START,
+        IPC_CHANNELS.AGENT_LIVE_STOP,
         IPC_CHANNELS.CONSENT_GET_STATUS,
         IPC_CHANNELS.CONSENT_ACCEPT,
         IPC_CHANNELS.CONFIG_GET,
@@ -182,7 +243,7 @@ describe('Agent High-Level IPC Channels Definition', () => {
         await assert.rejects(Promise.resolve().then(() => handler(event, {})), /license gate locked/i, channel)
       }
 
-      for (const channel of [IPC_CHANNELS.AGENT_SEND_TEXT, IPC_CHANNELS.AGENT_SEND_AUDIO, IPC_CHANNELS.AGENT_INTERRUPT]) {
+      for (const channel of [IPC_CHANNELS.AGENT_SEND_TEXT, IPC_CHANNELS.AGENT_SEND_AUDIO, IPC_CHANNELS.AGENT_INTERRUPT, IPC_CHANNELS.AGENT_LIVE_AUDIO]) {
         const listener = ipc._listeners.get(channel)
         assert.equal(typeof listener, 'function', `missing listener for ${channel}`)
         assert.throws(() => listener(event, ''), /license gate locked/i, channel)

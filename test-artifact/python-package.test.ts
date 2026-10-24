@@ -60,7 +60,9 @@ describe('Reproducible Python Packaging & Build Verification (Artifact Test)', (
     assert.ok(content.includes("'provider_adapters'"), 'spec must bundle provider_adapters')
     assert.ok(content.includes("'google.genai'"), 'spec must bundle google-genai')
     assert.ok(content.includes("'groq'"), 'spec must bundle groq')
-    assert.ok(!content.toLowerCase().includes('litellm'), 'spec must not bundle litellm')
+    assert.doesNotMatch(content, /collect_(?:submodules|data_files)\(['"]litellm['"]/, 'spec must not collect litellm')
+    const imports = content.match(/hiddenimports\s*=\s*\[([\s\S]*?)\]/)?.[1] || ''
+    assert.doesNotMatch(imports, /['"]litellm['"]/, 'spec must not import litellm')
   })
 
   test('scripts/build-python-backend.ps1 validates Python 3.11 and outputs onedir sidecar', () => {
@@ -77,6 +79,19 @@ describe('Reproducible Python Packaging & Build Verification (Artifact Test)', (
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
     assert.ok(pkg.scripts && pkg.scripts['build:python'], 'package.json must define build:python')
     assert.ok(pkg.scripts && pkg.scripts['test:package'], 'package.json must define test:package')
+  })
+
+  test('compiled Live tool worker executes a read-only tool and exits', async () => {
+    const { spawnSync } = await import('node:child_process')
+    const exe = path.join(root, 'build', 'python-backend', 'jasper-backend', 'jasper-backend.exe')
+    const result = spawnSync(exe, ['--live-tool-worker'], {
+      input: JSON.stringify({ name: 'get_system_telemetry', args: {} }),
+      encoding: 'utf8', windowsHide: true, timeout: 15000
+    })
+    assert.equal(result.status, 0, 'compiled worker must exit successfully')
+    const output = JSON.parse(JSON.parse(result.stdout))
+    assert.equal(output.status, 'ok')
+    assert.equal(typeof output.cpu_percent, 'number')
   })
 
   test('compiled onedir executable exists and completes stdio handshake', async () => {

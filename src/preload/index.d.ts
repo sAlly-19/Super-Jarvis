@@ -16,6 +16,9 @@ import type {
 
 export interface ElectronAPI {
   // High-level Agent APIs
+  startLiveCall: (greeting?: boolean) => Promise<{ success: boolean; error?: string }>
+  stopLiveCall: () => Promise<void>
+  sendLiveAudio: (chunk: ArrayBuffer) => void
   connectAgent: (config?: UpdateConfigPayload) => Promise<{ success: boolean; error?: string }>
   disconnectAgent: () => Promise<void>
   sendText: (text: string) => void

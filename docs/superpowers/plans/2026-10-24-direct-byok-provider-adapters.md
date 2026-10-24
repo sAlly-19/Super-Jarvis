@@ -1,5 +1,22 @@
 # Direct BYOK Provider Adapters Implementation Plan
 
+## Follow-up: latência após conexão funcional
+
+- Usuário confirmou funcionamento da geração; relatou espera excessiva.
+- Gemini 3.8 Flash passa a usar `thinking_config.thinking_level=low`, suportado pelo SDK e recomendado pelo Google para menor latência.
+- Logs `[Latency]` medem captura de tela, cada chamada LLM, ferramentas, texto pronto e síntese de voz, sem registrar conversa ou imagem.
+- A síntese ainda aguarda o texto completo; streaming de voz não foi implementado nesta alteração.
+- Teste de regressão observou ausência da configuração antes da implementação; suíte Python 37/37 e validação do parâmetro pelo SDK aprovadas.
+- Não há medição de latência com a conta real nesta execução; a redução percebida ainda deve ser verificada no aplicativo.
+
+## Follow-up: diagnóstico Gemini/service
+
+- Confirmado com exceções reais do SDK Google: o código HTTP fica em `code`, não em `status_code`.
+- Corrigida a classificação de 404, 429 e chave inválida retornada com HTTP 400.
+- Log do runtime agora inclui HTTP e classe da exceção, sem corpo externo ou credencial.
+- Regressão RED: três classificações falharam; GREEN: suíte Python 37/37.
+- A chamada real não foi reproduzida nesta execução: o helper Electron falhou ao acessar a credencial local. O erro de geração do cliente ainda requer o novo diagnóstico de runtime; não está comprovadamente resolvido.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Remover o LiteLLM e conectar Gemini, Groq e Ollama diretamente, com validação real de credencial/modelo e preservação do BYOK local.

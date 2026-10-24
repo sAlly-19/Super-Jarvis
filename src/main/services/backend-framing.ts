@@ -49,6 +49,16 @@ function validatePayload(type: string, value: unknown): void {
       }
       if (payload.vision !== undefined && typeof payload.vision !== 'boolean') throw new FrameError("Payload 'vision' inválido.")
       break
+    case 'live_start':
+      requireString(payload, 'apiKey')
+      requireString(payload, 'voice')
+      if ((payload.apiKey as string).length > 512 || (payload.voice as string).length > 80) throw new FrameError('Configuração Live excede o limite.')
+      if (payload.greeting !== undefined && typeof payload.greeting !== 'boolean') throw new FrameError('greeting inválido.')
+      break
+    case 'live_audio':
+      requireString(payload, 'audio_base64')
+      if ((payload.audio_base64 as string).length > 65536) throw new FrameError('Bloco Live excede o limite.')
+      break
     case 'audio_input':
       requireString(payload, 'audio_base64')
       if (payload.vision !== undefined && typeof payload.vision !== 'boolean') throw new FrameError("Payload 'vision' inválido.")

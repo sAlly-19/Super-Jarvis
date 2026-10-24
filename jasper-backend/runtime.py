@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sys
+import time
 import uuid
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
@@ -13,6 +14,7 @@ from provider_adapters import (
     ProviderAdapterError,
     create_provider_adapter,
 )
+from live_session import LiveCall
 from tools_os import (
     AVAILABLE_FUNCTIONS,
     TOOLS_SCHEMA,
@@ -206,7 +208,9 @@ async def transcribe_audio_base64(audio_b64: str, api_key: str = "", provider: s
 
 
 class JasperRuntime:
-    def __init__(self) -> None:
+    def __init__(self, event_sink=None) -> None:
+        self.event_sink = event_sink
+        self.live_call = None
         initial_provider = infer_provider_from_model(os.getenv("JASPER_MODEL", "gemini/gemini-3.8-flash"))
         initial_model = SUPPORTED_PROVIDER_MODELS[initial_provider][0]
         if initial_provider == "gemini":
@@ -332,6 +336,7 @@ class JasperRuntime:
         user_text: str,
         force_vision: bool = False,
     ) -> AsyncIterator[Dict[str, Any]]:
+        turn_started = time.perf_counter()
         provider, validated_model = validate_provider_model(
             self.config.get("provider"),
             self.config.get("model"),
@@ -369,6 +374,7 @@ class JasperRuntime:
         user_message_content: Any = user_text
 
         if needs_vision and provider != "ollama":
+            vision_started = time.perf_counter()
             try:
                 yield {
                     "version": 1,
@@ -388,6 +394,8 @@ class JasperRuntime:
                     ]
             except Exception as exc:
                 print(f"[AgentLoop] Screen capture error: {_redact_secrets(str(exc), active_key)}", file=sys.stderr)
+            finally:
+                print(f"[Latency] vision_ms={round((time.perf_counter() - vision_started) * 1000)}", file=sys.stderr)
 
         self.history.append({"role": "user", "content": user_message_content})
         if len(self.history) > 16:
@@ -409,12 +417,14 @@ class JasperRuntime:
                 self.provider_adapter = adapter
 
             for _iteration in range(max_iterations):
+                provider_started = time.perf_counter()
                 response = await adapter.complete(
                     validated_model,
                     messages,
                     TOOLS_SCHEMA,
                     0.4,
                 )
+                print(f"[Latency] provider={provider} iteration={_iteration + 1} llm_ms={round((time.perf_counter() - provider_started) * 1000)} tools={len(response.tool_calls)}", file=sys.stderr)
                 tool_calls = response.tool_calls
 
                 if not tool_calls:
@@ -424,6 +434,7 @@ class JasperRuntime:
                 messages.append(response.assistant_message)
 
                 for tc in tool_calls:
+                    tool_started = time.perf_counter()
                     fn_name = tc.name
                     fn_args = dict(tc.arguments)
 
@@ -466,6 +477,7 @@ class JasperRuntime:
                                 ensure_ascii=False,
                             )
 
+                    print(f"[Latency] tool_ms={round((time.perf_counter() - tool_started) * 1000)}", file=sys.stderr)
                     yield {
                         "version": 1,
                         "id": str(uuid.uuid4()),
@@ -493,7 +505,11 @@ class JasperRuntime:
                 final_text = (synth_resp.content or "Ação concluída.").strip()
 
         except ProviderAdapterError as exc:
-            print(f"[AgentLoop] Provider error ({provider}/{exc.category})", file=sys.stderr)
+            cause = exc.__cause__
+            from provider_adapters import _status_code
+            status = _status_code(cause) if isinstance(cause, Exception) else None
+            cause_type = type(cause).__name__ if cause is not None else "unknown"
+            print(f"[AgentLoop] Provider error ({provider}/{exc.category}) HTTP={status or 'unknown'} exception={cause_type}", file=sys.stderr)
             final_text = exc.user_message
         except Exception as exc:
             print(f"[AgentLoop] LLM error ({provider}): {type(exc).__name__}", file=sys.stderr)
@@ -503,6 +519,7 @@ class JasperRuntime:
             self.history[-1]["content"] = user_text
         self.history.append({"role": "assistant", "content": final_text})
 
+        print(f"[Latency] text_ready_ms={round((time.perf_counter() - turn_started) * 1000)}", file=sys.stderr)
         yield {
             "version": 1,
             "id": str(uuid.uuid4()),
@@ -512,7 +529,9 @@ class JasperRuntime:
         }
 
         try:
+            tts_started = time.perf_counter()
             audio_b64 = await generate_tts_base64(final_text, voice=self.config["voice"])
+            print(f"[Latency] tts_ms={round((time.perf_counter() - tts_started) * 1000)}", file=sys.stderr)
             if audio_b64:
                 yield {
                     "version": 1,
@@ -540,6 +559,37 @@ class JasperRuntime:
         msg_type = message.get("type")
         msg_id = message.get("id", str(uuid.uuid4()))
         payload = message.get("payload", {}) or {}
+
+        if msg_type == 'live_start':
+            if self.event_sink is None:
+                raise ValueError('Canal de eventos Live indisponível.')
+            if self.live_call is not None:
+                await self.live_call.stop()
+            async def live_emit(kind, data):
+                await self.event_sink({'version': 1, 'id': str(uuid.uuid4()), 'type': kind, 'payload': data})
+            self.live_call = LiveCall(live_emit)
+            try:
+                await self.live_call.start(str(payload.get('apiKey') or ''), str(payload.get('voice') or 'Charon'), self.build_system_prompt(), bool(payload.get('greeting')))
+                yield {'version': 1, 'id': str(uuid.uuid4()), 'replyTo': msg_id, 'type': 'status', 'payload': {'status': 'live_connected'}}
+            except Exception as exc:
+                from provider_adapters import _safe_provider_error
+                text = str(exc) if isinstance(exc, ValueError) else _safe_provider_error('gemini', exc).user_message
+                yield {'version': 1, 'id': str(uuid.uuid4()), 'replyTo': msg_id, 'type': 'error', 'payload': {'message': _redact_secrets(text, str(payload.get('apiKey') or ''))}}
+            return
+
+        if msg_type == 'live_audio':
+            if self.live_call is not None:
+                self.live_call.enqueue_audio(str(payload.get('audio_base64') or ''))
+            return
+
+        if msg_type in ('live_stop', 'config', 'shutdown') and self.live_call is not None:
+            await self.live_call.stop()
+            self.live_call = None
+            if msg_type == 'config' and self.event_sink is not None:
+                await self.event_sink({'version': 1, 'id': str(uuid.uuid4()), 'type': 'status', 'payload': {'status': 'live_closed'}})
+        if msg_type == 'live_stop':
+            yield {'version': 1, 'id': str(uuid.uuid4()), 'replyTo': msg_id, 'type': 'status', 'payload': {'status': 'live_closed'}}
+            return
 
         if msg_type == "hello":
             yield {
@@ -719,6 +769,9 @@ class JasperRuntime:
 
         if msg_type == "chat":
             user_text = str(payload.get("text") or payload.get("prompt") or "").strip()
+            if user_text and self.live_call is not None and self.live_call.active:
+                await self.live_call.send_text(user_text)
+                return
             if not user_text:
                 yield {
                     "version": 1,

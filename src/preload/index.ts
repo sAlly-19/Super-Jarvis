@@ -18,6 +18,9 @@ import {
 
 const electronAPI = {
   // High-level Agent APIs
+  startLiveCall: (greeting = false): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke(IPC_CHANNELS.AGENT_LIVE_START, greeting),
+  stopLiveCall: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.AGENT_LIVE_STOP),
+  sendLiveAudio: (chunk: ArrayBuffer): void => ipcRenderer.send(IPC_CHANNELS.AGENT_LIVE_AUDIO, chunk),
   connectAgent: (config?: UpdateConfigPayload): Promise<{ success: boolean; error?: string }> => {
     return ipcRenderer.invoke(IPC_CHANNELS.AGENT_CONNECT, config)
   },

@@ -135,7 +135,7 @@ describe('Suíte de Testes de Integração: Segurança, Áudio, Lip-Sync & Licen
       assert.ok(mainSrc.includes('async function exitCallMode()'))
       assert.ok(mainSrc.includes('enterCallMode(true)'))
       assert.ok(mainSrc.includes('window.electronAPI'))
-      assert.ok(mainSrc.includes('O usuário acabou de chamar você. Cumprimente-o com elegância e brevidade em português e pergunte o que deseja.'))
+      assert.ok(mainSrc.includes('window.electronAPI.startLiveCall(withGreeting)'))
       assert.ok(mainSrc.includes('Barge-in:'))
       assert.ok(mainSrc.includes('micRecorder.onCallInactivityTimeout = () => {'))
     })

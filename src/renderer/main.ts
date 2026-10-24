@@ -32,6 +32,8 @@ let isWakeWordEnabled = true
 let isBloomEnabled = true
 let isConnected = false
 let isCallMode = false
+let callStartPending = false
+let callGeneration = 0
 let shouldEndCallAfterPlayback = false
 let activeRuntimeDisposer: (() => void) | null = null
 let currentLicenseState: string = 'locked'
@@ -66,7 +68,7 @@ export function syncDashboardConnectionIndicators(connected: boolean, subtitle?:
 }
 
 export async function enterCallMode(withGreeting = true): Promise<void> {
-  if (isCallMode) return
+  if (isCallMode || callStartPending) return
 
   if (currentLicenseState !== 'unlocked') {
     showHudToast('Licença Obrigatória', 'Ative sua licença para desbloquear as funções de voz do Jasper.', 'error', 5000)
@@ -75,9 +77,12 @@ export async function enterCallMode(withGreeting = true): Promise<void> {
   }
 
   isCallMode = true
+  callStartPending = true
+  const generation = ++callGeneration
   shouldEndCallAfterPlayback = false
   console.log('[Jasper] Ativando Modo Chamada Full-Duplex...')
 
+  try {
   // 1. Pause wake word detector so it does not interfere
   if (wakeWordManager) {
     await wakeWordManager.pause()
@@ -89,37 +94,47 @@ export async function enterCallMode(withGreeting = true): Promise<void> {
     DOM.micStatusLabel.textContent = 'Modo Chamada (Full-Duplex)'
   }
 
-  if (withGreeting) {
-    updateStatusBadge('speaking', `${getCurrentAgentName()} Chamando...`)
-    const greetingPrompt = `O usuário acabou de chamar você. Cumprimente-o com elegância e brevidade em português e pergunte o que deseja.`
-    window.electronAPI.sendText(greetingPrompt)
-    await new Promise((r) => setTimeout(r, 300))
-  } else {
-    updateStatusBadge('call', `${getCurrentAgentName()} Ouvindo... (Chamada)`)
-  }
-
-  // 3. Start continuous full-duplex mic streaming
-  if (!isCallMode) return
-  try {
+    updateStatusBadge('connecting', 'Conectando ao Gemini Live...')
+    const live = await window.electronAPI.startLiveCall(withGreeting)
+    if (!live.success) throw new Error(live.error || 'Não foi possível iniciar a chamada.')
+    if (generation !== callGeneration || !isCallMode || currentLicenseState !== 'unlocked') {
+      await window.electronAPI.stopLiveCall()
+      return
+    }
+    micRecorder.setRealtimeMode(true)
     await micRecorder.start(true)
+    if (generation !== callGeneration || !isCallMode || currentLicenseState !== 'unlocked') {
+      micRecorder.stop()
+      return
+    }
+    updateStatusBadge('call', 'Gemini Live — ouvindo...')
+    if (DOM.micStatusLabel) DOM.micStatusLabel.textContent = 'Gemini Live — toque para encerrar'
   } catch (err) {
+    if (generation !== callGeneration) return
     console.error('[Jasper] Erro ao iniciar gravação no Modo Chamada:', err)
+    showHudToast('Chamada Gemini Live', err instanceof Error ? err.message : 'Falha ao iniciar chamada.', 'error', 7000)
     await exitCallMode()
+  } finally {
+    callStartPending = false
   }
 }
 
 export async function exitCallMode(): Promise<void> {
   if (!isCallMode) return
   isCallMode = false
+  callGeneration++
   shouldEndCallAfterPlayback = false
 
   console.log('[Jasper] Encerrando Modo Chamada...')
   micRecorder.stop()
+  micRecorder.setRealtimeMode(false)
+  audioPlayer.stopAll()
   DOM.btnMic?.classList.remove('active')
   if (DOM.micStatusLabel) {
     DOM.micStatusLabel.textContent = 'Pressione para falar'
   }
   updateStatusBadge('connected', `${getCurrentAgentName()} Online`)
+  try { await window.electronAPI.stopLiveCall() } catch { /* License shutdown already stops the sidecar. */ }
 
   if (isWakeWordEnabled && wakeWordManager) {
     setTimeout(async () => {
@@ -131,6 +146,7 @@ export async function exitCallMode(): Promise<void> {
 }
 
 const handleIncomingAudio = (base64Audio: string, format?: string): void => {
+  if (format === 'pcm' && !isCallMode) return
   micRecorder.notifyAssistantActivity()
   updateStatusBadge('speaking', `${getCurrentAgentName()} Falando...`)
   audioPlayer.enqueueAudioChunk(base64Audio, format)
@@ -187,6 +203,11 @@ const handleStatusChange = (statusPayload: AgentStatusPayload | string, message?
   const status = typeof statusPayload === 'string' ? statusPayload : statusPayload.status
   const msg = typeof statusPayload === 'string' ? message : statusPayload.message
 
+  if (status === 'live_closed' && isCallMode) {
+    void exitCallMode()
+    return
+  }
+
   if (status === 'connected') {
     isConnected = true
     syncDashboardConnectionIndicators(true, 'Tudo operacional')
@@ -209,6 +230,7 @@ const handleStatusChange = (statusPayload: AgentStatusPayload | string, message?
 }
 
 const handleAgentError = ({ message }: { message: string }): void => {
+  if (isCallMode) void exitCallMode()
   syncDashboardConnectionIndicators(false, message)
   if (DOM.settingsStatus) {
     DOM.settingsStatus.textContent = message
@@ -252,6 +274,9 @@ export async function mountAgentRuntime(): Promise<() => void> {
   cleanups.push(window.electronAPI.onAgentError(handleAgentError))
 
   // Connect microphone stream to secure IPC
+  micRecorder.onPcmChunk = (chunk) => {
+    if (isCallMode && currentLicenseState === 'unlocked') window.electronAPI.sendLiveAudio(chunk)
+  }
   micRecorder.onAudioLevel = (level) => {
     currentMicLevel = level
   }
@@ -333,6 +358,9 @@ export async function mountAgentRuntime(): Promise<() => void> {
       }
     }
     micRecorder.stop()
+    isCallMode = false
+    micRecorder.setRealtimeMode(false)
+    void window.electronAPI.stopLiveCall().catch(() => {})
     audioPlayer.stopAll()
     if (wakeWordManager) {
       void wakeWordManager.pause()

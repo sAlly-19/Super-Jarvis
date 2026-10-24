@@ -2,6 +2,10 @@ import asyncio
 import os
 import sys
 
+if __name__ == '__main__' and sys.argv[1:] == ['--live-tool-worker']:
+    from live_tools import worker_main
+    sys.exit(worker_main())
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -13,7 +17,6 @@ from runtime import JasperRuntime
 
 
 async def main() -> int:
-    runtime = JasperRuntime()
     decoder = FrameDecoder(allowed_types=HOST_TO_SIDECAR_MESSAGE_TYPES)
     handshake_complete = False
     write_lock = asyncio.Lock()
@@ -25,6 +28,8 @@ async def main() -> int:
             sys.stdout.buffer.write(raw_bytes)
             sys.stdout.buffer.flush()
 
+    runtime = JasperRuntime(event_sink=send_envelope)
+
     while True:
         try:
             chunk = await asyncio.to_thread(read_fn, 65536)
@@ -35,6 +40,8 @@ async def main() -> int:
         if not chunk:
             # EOF reached on stdin (parent process closed pipe)
             print("[Main] Stdin EOF received, exiting cleanly.", file=sys.stderr)
+            if runtime.live_call is not None:
+                await runtime.live_call.stop()
             return 0
 
         try:

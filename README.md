@@ -15,6 +15,12 @@ Aplicativo desktop comercial para Windows com avatar 3D interativo, voz em tempo
 - **Memória Única Sincronizada:** Persistência em `userData/memory.json` sincronizada com o runtime do agente e poda automática de retenção a cada 30 dias.
 - **Provedores de IA e Credenciais Independentes (BYOK):** Suporte nativo a **Google Gemini** (`gemini/gemini-3.8-flash`), **Groq** (`groq/openai/gpt-oss-120b`) com chaves de API independentes criptografadas localmente via Windows DPAPI (`safeStorage`), e **Ollama** (`ollama/qwen2.5:3b`) via execução local (`http://127.0.0.1:11434`) sem necessidade de chave de API. O processo Renderer recebe exclusivamente resumos mascarados e o sidecar Python recebe apenas a credencial do provedor ativo.
 
+## Chamada de voz em tempo real
+
+Em **IA & Voz**, cadastre sua chave Google Gemini e selecione uma voz Google. O botão de microfone inicia uma sessão Gemini Live, com áudio progressivo, transcrições e interrupção durante a fala. Toque novamente para encerrar. A chamada usa Gemini mesmo quando Groq ou Ollama estiver selecionado para o chat. Durante uma chamada ativa, mensagens digitadas entram na própria sessão Live; fora dela, usam o provedor de chat selecionado.
+
+O serviço requer internet e acesso ao modelo Live na sua conta Google. Falhas de rede encerram a chamada; clique novamente para reconectar. O áudio trafega pelo sidecar licenciado e a chave continua criptografada localmente.
+
 ## Requisitos de Desenvolvimento
 
 - Node.js 24 LTS (motor `>=24 <25`)

@@ -22,10 +22,11 @@ describe('Sidecar Versioned Framing Protocol (TypeScript)', () => {
   test('publishes the complete canonical message allowlists', () => {
     assert.deepEqual(BACKEND_MESSAGE_TYPES, [
       'hello', 'config', 'chat', 'audio_input', 'interrupt', 'memory_snapshot', 'memory_clear', 'shutdown',
+      'live_start', 'live_audio', 'live_stop',
       'hello_ack', 'status', 'user_transcript', 'response', 'audio_output', 'tool_execution', 'tool_result',
       'memory_upsert', 'turn_complete', 'interrupted', 'error'
     ])
-    assert.equal(HOST_TO_SIDECAR_MESSAGE_TYPES.length, 8)
+    assert.equal(HOST_TO_SIDECAR_MESSAGE_TYPES.length, 11)
     assert.equal(SIDECAR_TO_HOST_MESSAGE_TYPES.length, 12)
   })
 
@@ -39,6 +40,9 @@ describe('Sidecar Versioned Framing Protocol (TypeScript)', () => {
       memory_snapshot: { facts: [] },
       memory_clear: {},
       shutdown: { reason: 'test' },
+      live_start: { apiKey: 'test', voice: 'Charon', greeting: false },
+      live_audio: { audio_base64: 'AAA=' },
+      live_stop: {},
       hello_ack: { service: 'jasper-backend', protocolVersion: 1, tools: [] },
       status: { status: 'ready' },
       user_transcript: { text: 'oi' },

@@ -9,6 +9,14 @@ export class MicRecorder {
 
   private recording: boolean = false
   private isCallMode: boolean = false
+  private realtimeMode = false
+  public onPcmChunk: ((chunk: ArrayBuffer) => void) | null = null
+
+  public setRealtimeMode(enabled: boolean): void {
+    this.realtimeMode = enabled
+    this.bufferOffset = 0
+    this.utteranceChunks = []
+  }
 
   // 100ms buffering at 16kHz (1600 samples = 3200 bytes)
   private static readonly BUFFER_SAMPLES = 1600
@@ -205,7 +213,7 @@ export class MicRecorder {
       this.pcmBuffer[this.bufferOffset++] = pcmVal
 
       if (this.bufferOffset >= MicRecorder.BUFFER_SAMPLES) {
-        window.electronAPI?.sendAudio(this.pcmBuffer.buffer.slice(0))
+        if (this.realtimeMode) this.onPcmChunk?.(this.pcmBuffer.buffer.slice(0))
         this.bufferOffset = 0
       }
     }
@@ -215,6 +223,15 @@ export class MicRecorder {
 
     const now = Date.now()
     const assistantIsSpeaking = this.isAssistantSpeaking ? this.isAssistantSpeaking() : false
+
+    if (this.realtimeMode) {
+      if (rms >= MicRecorder.SPEECH_RMS_THRESHOLD) this.lastActivityTimestamp = now
+      if (this.isCallMode && !assistantIsSpeaking && now - this.lastActivityTimestamp >= MicRecorder.CALL_INACTIVITY_TIMEOUT_MS) {
+        this.onCallInactivityTimeout?.()
+        this.stop()
+      }
+      return
+    }
 
     if (rms >= MicRecorder.SPEECH_RMS_THRESHOLD && !assistantIsSpeaking) {
       this.speechFramesCount++
@@ -317,7 +334,7 @@ export class MicRecorder {
   private flushRemainingBuffer(): void {
     if (this.bufferOffset > 0) {
       const slice = this.pcmBuffer.slice(0, this.bufferOffset)
-      window.electronAPI?.sendAudio(slice.buffer)
+      if (this.realtimeMode) this.onPcmChunk?.(slice.buffer)
       this.bufferOffset = 0
     }
     if (this.hasSpoken) {

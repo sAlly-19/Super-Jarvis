@@ -18,6 +18,17 @@ from protocol import (
 
 
 class TestBackendProtocol(unittest.TestCase):
+    def test_live_controls_roundtrip_and_pcm_limits(self):
+        for kind, payload in (
+            ('live_start', {'apiKey': 'test-key', 'voice': 'Charon', 'greeting': False}),
+            ('live_stop', {}),
+            ('live_audio', {'audio_base64': 'AAA='}),
+        ):
+            message = {'version': 1, 'id': kind, 'type': kind, 'payload': payload}
+            self.assertEqual(FrameDecoder().feed(encode_frame(message)), [message])
+        with self.assertRaises(FrameError):
+            encode_frame({'version': 1, 'id': 'bad-live', 'type': 'live_audio', 'payload': {'audio_base64': 'A' * 65537}})
+
     def test_roundtrip_unicode_envelope(self):
         envelope = {
             "version": 1,
@@ -40,11 +51,12 @@ class TestBackendProtocol(unittest.TestCase):
             ALL_MESSAGE_TYPES,
             (
                 "hello", "config", "chat", "audio_input", "interrupt", "memory_snapshot", "memory_clear", "shutdown",
+                "live_start", "live_audio", "live_stop",
                 "hello_ack", "status", "user_transcript", "response", "audio_output", "tool_execution", "tool_result",
                 "memory_upsert", "turn_complete", "interrupted", "error",
             ),
         )
-        self.assertEqual(len(HOST_TO_SIDECAR_MESSAGE_TYPES), 8)
+        self.assertEqual(len(HOST_TO_SIDECAR_MESSAGE_TYPES), 11)
         self.assertEqual(len(SIDECAR_TO_HOST_MESSAGE_TYPES), 12)
 
     def test_accepts_valid_payload_for_every_allowed_message_type(self):
@@ -64,6 +76,9 @@ class TestBackendProtocol(unittest.TestCase):
             "memory_snapshot": {"facts": []},
             "memory_clear": {},
             "shutdown": {"reason": "test"},
+            "live_start": {"apiKey": "test", "voice": "Charon", "greeting": False},
+            "live_audio": {"audio_base64": "AAA="},
+            "live_stop": {},
             "hello_ack": {"service": "jasper-backend", "protocolVersion": 1, "tools": []},
             "status": {"status": "ready"},
             "user_transcript": {"text": "oi"},

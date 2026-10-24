@@ -6,6 +6,9 @@ export const IPC_CHANNELS = {
   AGENT_SEND_AUDIO: 'agent:send-audio',
   AGENT_INTERRUPT: 'agent:interrupt',
   AGENT_GET_STATUS: 'agent:get-status',
+  AGENT_LIVE_START: 'agent:live-start',
+  AGENT_LIVE_STOP: 'agent:live-stop',
+  AGENT_LIVE_AUDIO: 'agent:live-audio',
 
   // Agent events (Main -> Renderer)
   AGENT_STATUS: 'agent:status',

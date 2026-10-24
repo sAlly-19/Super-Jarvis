@@ -6,7 +6,10 @@ export const HOST_TO_SIDECAR_MESSAGE_TYPES = [
   'interrupt',
   'memory_snapshot',
   'memory_clear',
-  'shutdown'
+  'shutdown',
+  'live_start',
+  'live_audio',
+  'live_stop'
 ] as const
 
 export const SIDECAR_TO_HOST_MESSAGE_TYPES = [

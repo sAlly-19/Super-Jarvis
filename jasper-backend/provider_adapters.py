@@ -55,7 +55,7 @@ def _decode_arguments(raw: Any) -> Dict[str, Any]:
 
 
 def _status_code(exc: Exception) -> Optional[int]:
-    for candidate in (getattr(exc, "status_code", None), getattr(getattr(exc, "response", None), "status_code", None)):
+    for candidate in (getattr(exc, "status_code", None), getattr(exc, "code", None), getattr(getattr(exc, "response", None), "status_code", None)):
         if isinstance(candidate, int):
             return candidate
     return None
@@ -67,7 +67,7 @@ def _safe_provider_error(provider: str, exc: Exception, model: str = "") -> Prov
     raw = str(exc).lower()
     class_name = type(exc).__name__.lower()
 
-    if status in (401, 403) or any(token in raw for token in ("invalid api key", "unauthorized", "permission_denied")):
+    if status in (401, 403) or any(token in raw for token in ("invalid api key", "api key not valid", "api_key_invalid", "unauthorized", "permission_denied")):
         return ProviderAdapterError(
             "authentication",
             f"A credencial do provedor {label} foi recusada. Verifique a chave configurada.",
@@ -298,6 +298,8 @@ class GeminiAdapter:
             "temperature": temperature,
             "automatic_function_calling": {"disable": True},
         }
+        if remote_model == "gemini-3.8-flash":
+            config["thinking_config"] = {"thinking_level": "low"}
         if system_instruction:
             config["system_instruction"] = system_instruction
         if tools:

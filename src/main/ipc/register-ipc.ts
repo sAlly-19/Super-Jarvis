@@ -157,6 +157,9 @@ function configSaveResult(runtimeStatus: ConfigSaveResult['runtimeStatus'], mess
 
 let backendForwardingWired = false
 let activeBackendSessionId: number | null = null
+let liveCallActive = false
+let liveCallGeneration = 0
+let liveStartPending = false
 
 function wireBackendForwarding(): void {
   if (backendForwardingWired) return
@@ -168,6 +171,7 @@ function wireBackendForwarding(): void {
     }
     switch (envelope.type) {
       case 'status':
+        if ((envelope.payload as any)?.status === 'live_closed') liveCallActive = false
         if ((envelope.payload as any)?.status === 'connected' || (envelope.payload as any)?.status === 'ready') {
           try {
             const currentMem = memoryStore.load()
@@ -232,6 +236,10 @@ function wireBackendForwarding(): void {
   })
 
   licenseGate.onStateChanged((snapshot) => {
+    if (snapshot.state !== 'unlocked') {
+      liveCallActive = false
+      liveCallGeneration++
+    }
     activeBackendSessionId = snapshot.state === 'unlocked' ? pythonBackend.getSessionId() : null
     safeSend(IPC_CHANNELS.LICENSE_STATUS_CHANGED, snapshot)
   })
@@ -239,6 +247,53 @@ function wireBackendForwarding(): void {
 
 export function registerIpcHandlers(): void {
   wireBackendForwarding()
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_LIVE_START, async (event, greeting: unknown = false) => {
+    assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.AGENT_LIVE_START)
+    operationalAccess.requireAgentAccess()
+    if (typeof greeting !== 'boolean') throw new Error('Opção de chamada inválida.')
+    if (liveStartPending) return { success: false, error: 'Aguarde a conexão da chamada anterior terminar.' }
+    const cfg = configStore.getConfig()
+    if (!cfg.geminiApiKey?.trim()) return { success: false, error: 'Cadastre sua chave Google Gemini em IA & Voz para usar a chamada.' }
+    const generation = ++liveCallGeneration
+    liveStartPending = true
+    liveCallActive = false
+    try {
+      if (!await pythonBackend.isHealthy()) await pythonBackend.start()
+      activeBackendSessionId = pythonBackend.getSessionId()
+      await pythonBackend.request('live_start', { apiKey: cfg.geminiApiKey, voice: cfg.voiceName, greeting })
+      if (generation !== liveCallGeneration) {
+        pythonBackend.notify('live_stop', {})
+        return { success: false, error: 'Chamada cancelada.' }
+      }
+      operationalAccess.requireAgentAccess()
+      liveCallActive = true
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Não foi possível iniciar Gemini Live.' }
+    } finally {
+      liveStartPending = false
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.AGENT_LIVE_STOP, async (event) => {
+    assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.AGENT_LIVE_STOP)
+    liveCallGeneration++
+    liveCallActive = false
+    if (pythonBackend.getState() === 'ready') await pythonBackend.request('live_stop', {})
+  })
+
+  ipcMain.on(IPC_CHANNELS.AGENT_LIVE_AUDIO, (event, chunk: unknown) => {
+    assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.AGENT_LIVE_AUDIO)
+    operationalAccess.requireAgentAccess()
+    assertAudioPayload(chunk)
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as ArrayBuffer)
+    if (!bytes.length || bytes.length > 32768 || bytes.length % 2 !== 0) throw new Error('Bloco PCM Live inválido.')
+    if (liveCallActive) pythonBackend.notify('live_audio', { audio_base64: bytes.toString('base64') })
+  })
 
   // Agent text prompt
   ipcMain.on(IPC_CHANNELS.AGENT_SEND_TEXT, (event, message: unknown) => {
@@ -373,6 +428,12 @@ export function registerIpcHandlers(): void {
 
     const wasActive = configStore.getConfig().aiProvider === provider
     configStore.removeProviderCredential(provider)
+    if (provider === 'gemini') {
+      const hadLiveCall = liveCallActive || liveStartPending
+      liveCallActive = false
+      liveCallGeneration++
+      if (hadLiveCall && pythonBackend.getState() === 'ready') await pythonBackend.request('live_stop', {})
+    }
     if (wasActive) {
       activeBackendSessionId = null
       await pythonBackend.stop('active_provider_credential_removed')

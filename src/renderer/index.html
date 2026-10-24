@@ -461,12 +461,25 @@
                       </select>
                     </div>
                     <div class="form-group flex-1">
-                      <label for="select-voice">Voz Neural (Edge-TTS):</label>
+                      <label for="select-voice">Voz (Chamada Gemini Live / leitura):</label>
                       <select id="select-voice">
+                        <optgroup label="Google — chamada em tempo real">
+                          <option value="Charon">Google Charon</option>
+                          <option value="Puck">Google Puck</option>
+                          <option value="Fenrir">Google Fenrir</option>
+                          <option value="Aoede">Google Aoede</option>
+                          <option value="Kore">Google Kore</option>
+                          <option value="Orus">Google Orus</option>
+                          <option value="Leda">Google Leda</option>
+                          <option value="Zephyr">Google Zephyr</option>
+                        </optgroup>
+                        <optgroup label="Edge — leitura do chat (chamada usa voz Google equivalente)">
                         <option value="pt-BR-AntonioNeural" selected>Antonio Neural (Masculina)</option>
                         <option value="pt-BR-FranciscaNeural">Francisca Neural (Feminina)</option>
                         <option value="pt-BR-ThalitaNeural">Thalita Neural (Feminina Expressiva)</option>
+                        </optgroup>
                       </select>
+                      <p class="hint-text">O microfone inicia Gemini Live com sua chave Google. O chat mantém o provedor selecionado.</p>
                     </div>
                   </div>
                 </div>

@@ -39,6 +39,32 @@ class FakeProviderAdapter:
 
 
 class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
+    async def test_text_during_live_is_sent_to_live_without_blocking_stdin_with_tts(self):
+        fake = SimpleNamespace(active=True, send_text=AsyncMock())
+        self.runtime = JasperRuntime()
+        self.runtime.live_call = fake
+        with patch('runtime.generate_tts_base64', new_callable=AsyncMock) as tts:
+            replies = [r async for r in self.runtime.handle({'version': 1, 'id': 'typed', 'type': 'chat', 'payload': {'text': 'Oi'}})]
+        fake.send_text.assert_awaited_once_with('Oi')
+        tts.assert_not_awaited()
+        self.assertEqual(replies, [])
+
+    async def test_live_start_uses_independent_gemini_key_and_stops_on_shutdown(self):
+        events = []
+        async def sink(event):
+            events.append(event)
+        runtime = JasperRuntime(event_sink=sink)
+        fake = SimpleNamespace(start=AsyncMock(), stop=AsyncMock(), active=True)
+        with patch('runtime.LiveCall', return_value=fake):
+            replies = [r async for r in runtime.handle({'version': 1, 'id': 'live', 'type': 'live_start', 'payload': {
+                'apiKey': 'google-live-only', 'voice': 'Charon', 'greeting': False,
+            }})]
+        self.assertEqual(replies[0]['payload']['status'], 'live_connected')
+        self.assertEqual(fake.start.call_args.args[0], 'google-live-only')
+        self.assertNotIn('google-live-only', json.dumps(replies))
+        _ = [r async for r in runtime.handle({'version': 1, 'id': 'end', 'type': 'shutdown', 'payload': {}})]
+        fake.stop.assert_awaited()
+
     async def asyncSetUp(self):
         self.runtime = JasperRuntime()
 

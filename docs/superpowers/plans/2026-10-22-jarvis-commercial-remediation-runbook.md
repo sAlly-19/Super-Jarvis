@@ -1,5 +1,14 @@
 # Jasper Commercial Remediation Runbook
 
+## Gemini Live — chamada em tempo real (24/10/2026)
+
+- Microfone transmite PCM16 mono 16 kHz à sessão Gemini Live pelo Main/sidecar; áudio Google 24 kHz é reproduzido em blocos com lip-sync e interrupção do servidor.
+- Chave Gemini independente do provedor de chat, protegida por DPAPI. Licença, consentimento e origem IPC obrigatórios também para início e áudio Live.
+- Vozes Google selecionáveis; encerramento fecha conexão, limpa filas e termina árvores dos processos de ferramentas pendentes.
+- Revisão independente corrigida com regressões de concorrência, remoção de chave durante conexão e cancelamento de ferramentas.
+- Verificação: 194 testes TypeScript, 51 Python, 8 de artefato; typecheck, build Electron e PyInstaller aprovados. Manifesto atualizado para 111 arquivos.
+- Chamada física e acesso ao modelo na conta do cliente ainda não foram verificados. Detalhes e retomada em `docs/superpowers/plans/2026-10-24-gemini-live-call.md`.
+
 **Última atualização:** 24 de outubro de 2026  
 **Branch de referência:** `main`  
 **Especificação aprovada:** `docs/superpowers/specs/2026-10-22-jarvis-commercial-total-control-design.md`  

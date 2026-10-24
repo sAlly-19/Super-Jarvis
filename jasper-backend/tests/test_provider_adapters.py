@@ -60,6 +60,24 @@ TOOLS = [
 
 
 class ProviderAdaptersTests(unittest.IsolatedAsyncioTestCase):
+    async def test_google_sdk_code_classifies_errors_without_exposing_response(self):
+        from google.genai.errors import ClientError
+
+        for code, message, expected in [
+            (400, "API key not valid", "authentication"),
+            (429, "limit exceeded", "quota"),
+            (404, "missing", "model"),
+        ]:
+            with self.subTest(code=code):
+                error = ClientError(code, {"error": {"message": message}})
+                client = SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(
+                    generate_content=AsyncRecorder(error=error)
+                )))
+                adapter = GeminiAdapter("test-secret", client=client)
+                with self.assertRaises(ProviderAdapterError) as raised:
+                    await adapter.complete("gemini/gemini-3.8-flash", [{"role": "user", "content": "Oi"}], [], 0.4)
+                self.assertEqual(raised.exception.category, expected)
+
     async def test_groq_strips_internal_prefix_and_normalizes_tool_calls(self):
         tool_call = SimpleNamespace(
             id="call-1",
@@ -146,6 +164,7 @@ class ProviderAdaptersTests(unittest.IsolatedAsyncioTestCase):
         sent = generate.calls[0][1]
         self.assertEqual(sent["model"], "gemini-3.8-flash")
         self.assertEqual(sent["config"]["system_instruction"], "Sistema")
+        self.assertEqual(sent["config"]["thinking_config"], {"thinking_level": "low"})
         self.assertEqual(sent["config"]["tools"][0]["function_declarations"][0]["name"], "get_system_telemetry")
         image_part = sent["contents"][0]["parts"][1]
         self.assertEqual(image_part["inline_data"]["mime_type"], "image/jpeg")

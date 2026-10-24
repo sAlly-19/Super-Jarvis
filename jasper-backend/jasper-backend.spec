@@ -10,6 +10,8 @@ datas += collect_data_files('edge_tts')
 hiddenimports = [
     'protocol',
     'runtime',
+    'live_session',
+    'live_tools',
     'provider_adapters',
     'google.genai',
     'groq',
@@ -23,7 +25,7 @@ hiddenimports = [
     'comtypes',
     'speech_recognition',
 ]
-hiddenimports += collect_submodules('google.genai')
+hiddenimports += collect_submodules('google.genai', filter=lambda name: '.tests' not in name)
 hiddenimports += collect_submodules('groq')
 
 a = Analysis(
@@ -35,7 +37,8 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'matplotlib', 'scipy', 'pandas', 'IPython', 'pytest', 'unittest'],
+    excludes=['tkinter', 'matplotlib', 'scipy', 'pandas', 'IPython', 'pytest', 'unittest',
+              'tensorflow', 'torch', 'torchaudio', 'transformers', 'boto3', 'botocore', 'litellm', 'openai'],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

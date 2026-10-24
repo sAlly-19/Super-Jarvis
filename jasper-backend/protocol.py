@@ -9,6 +9,7 @@ MAX_CHAT_TEXT_LENGTH = 20_000
 
 HOST_TO_SIDECAR_MESSAGE_TYPES = (
     "hello", "config", "chat", "audio_input", "interrupt", "memory_snapshot", "memory_clear", "shutdown",
+    "live_start", "live_audio", "live_stop",
 )
 SIDECAR_TO_HOST_MESSAGE_TYPES = (
     "hello_ack", "status", "user_transcript", "response", "audio_output", "tool_execution", "tool_result",
@@ -51,6 +52,17 @@ def _validate_payload(msg_type: str, payload: Any) -> None:
             raise FrameError(f"Texto de chat excede limite de {MAX_CHAT_TEXT_LENGTH} caracteres.")
         if "vision" in payload and not isinstance(payload["vision"], bool):
             raise FrameError("Payload 'vision' inválido.")
+    elif msg_type == 'live_start':
+        _require_string(payload, 'apiKey')
+        _require_string(payload, 'voice')
+        if len(payload['apiKey']) > 512 or len(payload['voice']) > 80:
+            raise FrameError('Configuração Live excede o limite.')
+        if 'greeting' in payload and not isinstance(payload['greeting'], bool):
+            raise FrameError('greeting deve ser booleano.')
+    elif msg_type == 'live_audio':
+        _require_string(payload, 'audio_base64')
+        if len(payload['audio_base64']) > 65536:
+            raise FrameError('Bloco Live excede o limite.')
     elif msg_type == "audio_input":
         _require_string(payload, "audio_base64")
         if "vision" in payload and not isinstance(payload["vision"], bool):
