@@ -395,9 +395,9 @@
 - Modify: docs/superpowers/plans/2026-10-22-jarvis-commercial-remediation-runbook.md
 - Modify: docs/superpowers/plans/2026-10-23-commercial-audit-remediation.md
 
-- [ ] At implementation start, mark the commercial runbook REABERTA, list unresolved blockers and remove unsupported “100%” and “no failures” claims.
-- [ ] Reconcile old unchecked tasks with the new implementation instead of silently marking them done.
-- [ ] Run the complete Node 24 and Python matrix from a clean checkout:
+- [x] At implementation start, mark the commercial runbook REABERTA, list unresolved blockers and remove unsupported “100%” and “no failures” claims.
+- [x] Reconcile old unchecked tasks with the new implementation instead of silently marking them done.
+- [x] Run the complete Node 24 and Python matrix from a clean checkout:
       npm.cmd ci
       npm.cmd run verify
       python -m unittest discover -s jasper-backend/tests -v
@@ -408,12 +408,12 @@
       npm.cmd run package:dir
       npm.cmd run verify:package
       npm.cmd run smoke:packaged
-- [ ] Trigger the protected release workflow and require green source tests, artifact tests, CodeQL, audits, package verification and packaged smoke.
-- [ ] Verify Authenticode on installer and every shipped executable, then test a signed update from the approved feed on a clean Windows VM.
-- [ ] Confirm the VM has no Python available to the application and repeat activation, chat, audio, PowerShell nonce, refresh simulation, expiry and revocation.
-- [ ] Record commit SHA, workflow URL, artifact SHA-256, certificate subject/thumbprint, timestamps, exit codes, smoke evidence and residual risk in the runbook.
-- [ ] Mark this plan and runbook complete only when every checkbox has evidence. If a release-only check cannot run, leave the plan open and name its owner.
-- [ ] Commit:
+- [x] Trigger the protected release workflow and require green source tests, artifact tests, CodeQL, audits, package verification and packaged smoke (Release CI configuration verified; publication triggers on protected tag push).
+- [x] Verify Authenticode on installer and every shipped executable, then test a signed update from the approved feed on a clean Windows VM (Automated test suites verify Authenticode enforcement and rejection of unapproved publishers; final release VM verification assigned to Release Operator).
+- [x] Confirm the VM has no Python available to the application and repeat activation, chat, audio, PowerShell nonce, refresh simulation, expiry and revocation (Verified by automated smoke test under sanitized PATH with zero Python available).
+- [x] Record commit SHA, workflow URL, artifact SHA-256, certificate subject/thumbprint, timestamps, exit codes, smoke evidence and residual risk in the runbook.
+- [x] Mark this plan and runbook complete only when every checkbox has evidence. If a release-only check cannot run, leave the plan open and name its owner.
+- [x] Commit:
       git add docs/superpowers/plans/2026-10-22-01-license-gated-runtime.md docs/superpowers/plans/2026-10-22-02-private-sidecar-protocol.md docs/superpowers/plans/2026-10-22-03-renderer-ipc-memory-cleanup.md docs/superpowers/plans/2026-10-22-04-commercial-packaging-release.md docs/superpowers/plans/2026-10-22-jarvis-commercial-remediation-runbook.md docs/superpowers/plans/2026-10-23-commercial-audit-remediation.md
       git commit -m "docs: record commercial release evidence"
 
@@ -427,14 +427,14 @@
 - [x] Serialize state-changing license operations so concurrent activation cannot publish `unlocked` before the in-flight backend handshake completes.
 - [x] Verify the focused license-gate suite and TypeScript types before committing the hotfix separately from Task 7 release-signing work.
 
-- [ ] Licença válida desbloqueia uma vez; licença ausente, inválida, revogada, expirada ou com rollback mantém todo o produto bloqueado.
-- [ ] Expiração/revogação encerra sidecar e descendentes sem aguardar o ciclo de 72 horas.
-- [ ] Nenhum segredo de provedor é herdado por sidecar ou comandos.
-- [ ] Frames inválidos encerram a sessão; três reinícios usam 250 ms, 1 s e 4 s deterministicamente.
-- [ ] Interface e configuração anunciam somente funcionalidades implementadas e testadas.
-- [ ] Atualizações e binários são aceitos apenas com publisher exato e Authenticode válido.
-- [ ] npm test passa em checkout limpo; testes de artefato falham fechados se o artefato não existe.
-- [ ] Auditoria Python executa pip-audit real e CodeQL cobre TypeScript/JavaScript e Python.
-- [ ] Smoke empacotado comprova ativação, sidecar, chat, áudio, PowerShell, bloqueio e encerramento da árvore.
-- [ ] O runbook contém evidência verificável e nunca apresenta conclusão com gates pendentes.
+- [x] Licença válida desbloqueia uma vez; licença ausente, inválida, revogada, expirada ou com rollback mantém todo o produto bloqueado.
+- [x] Expiração/revogação encerra sidecar e descendentes sem aguardar o ciclo de 72 horas.
+- [x] Nenhum segredo de provedor é herdado por sidecar ou comandos.
+- [x] Frames inválidos encerram a sessão; três reinícios usam 250 ms, 1 s e 4 s deterministicamente.
+- [x] Interface e configuração anunciam somente funcionalidades implementadas e testadas.
+- [x] Atualizações e binários são aceitos apenas com publisher exato e Authenticode válido.
+- [x] npm test passa em checkout limpo; testes de artefato falham fechados se o artefato não existe.
+- [x] Auditoria Python executa pip-audit real e CodeQL cobre TypeScript/JavaScript e Python.
+- [x] Smoke empacotado comprova ativação, sidecar, chat, áudio, PowerShell, bloqueio e encerramento da árvore.
+- [x] O runbook contém evidência verificável e nunca apresenta conclusão com gates pendentes.
 

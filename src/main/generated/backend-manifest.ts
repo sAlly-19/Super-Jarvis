@@ -41,7 +41,7 @@ export const DEFAULT_BACKEND_MANIFEST: BackendManifest = {
     { path: "_internal/attrs-26.1.0.dist-info/RECORD", sha256: "32885e42990fc3173e73c4cefa53066d6bcc15ce0939be51021093227278d63d" },
     { path: "_internal/attrs-26.1.0.dist-info/REQUESTED", sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
     { path: "_internal/attrs-26.1.0.dist-info/WHEEL", sha256: "41c708c5adba6e097513ab8ccb9f1d7865a2fb469e22491a9e01dcc64da459fc" },
-    { path: "_internal/base_library.zip", sha256: "1b9c0863760693a68ed1d052a878d9ac0dda4f97086c457c1129788ce2880131" },
+    { path: "_internal/base_library.zip", sha256: "521268ba819e066f900ea507a1ec9236eee07f2a4d37c0ce06355bc3ee6d262f" },
     { path: "_internal/boto3/data/cloudformation/2010-05-15/resources-1.json", sha256: "e6615528956d6d5a07c8f7474b235f6799a9920080c2ce4f867bde4aee2acdd2" },
     { path: "_internal/boto3/data/cloudwatch/2010-08-01/resources-1.json", sha256: "ab802013c178a5bb1c77ed94dcd612180ccae79ce93323901abf37254c5b6572" },
     { path: "_internal/boto3/data/dynamodb/2012-08-10/resources-1.json", sha256: "8412dad49b7b6dd4f9e7b53d03b51c4a2f120a938d2b375bb43453ce3335f98d" },
@@ -3124,6 +3124,6 @@ export const DEFAULT_BACKEND_MANIFEST: BackendManifest = {
     { path: "_internal/VCRUNTIME140.dll", sha256: "4d292623516f65c80482081e62d5dadb759dc16e851de5db24c3cbb57b87db83" },
     { path: "_internal/yaml/_yaml.cp311-win_amd64.pyd", sha256: "ee7df83fa5dca1467bfd841dc08189b10361f31700cf57a6aacddaf0c05706f4" },
     { path: "_internal/yarl/_quoting_c.cp311-win_amd64.pyd", sha256: "60cfa958fe961af953a9e53ae6b6fe7d7b610a8e79e3965164d677767844f1df" },
-    { path: "jasper-backend.exe", sha256: "c88f846c51809d9d8a98b30d837809916217c3184d3a79527e923c6daf6aac6a" },
+    { path: "jasper-backend.exe", sha256: "207343467ec38e3f8fbc3997831625fb507c270b72041a845dfd3f63dc7aa9ba" },
   ]
 }
