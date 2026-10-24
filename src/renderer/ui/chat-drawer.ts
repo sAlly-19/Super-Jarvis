@@ -5,6 +5,7 @@ export interface ChatDrawerOptions {
   getIsConnected: () => boolean
   getAgentName: () => string
   offlineHandler: OfflineHandler
+  controlConsentModal?: { show: () => void }
 }
 
 export function initChatDrawer(options: ChatDrawerOptions): void {
@@ -20,7 +21,7 @@ export function initChatDrawer(options: ChatDrawerOptions): void {
     }
   })
 
-  const sendTextMessage = (): void => {
+  const sendTextMessage = async (): Promise<void> => {
     if (!inputChatText) return
     const text = inputChatText.value.trim()
     if (!text) return
@@ -31,6 +32,18 @@ export function initChatDrawer(options: ChatDrawerOptions): void {
     inputChatText.value = ''
 
     if (!options.getIsConnected()) {
+      const accepted = await window.electronAPI.isConsentAccepted().catch(() => false)
+      if (!accepted) {
+        options.controlConsentModal?.show()
+        return
+      }
+      try {
+        const outcome = await window.electronAPI.connectAgent()
+        if (outcome.success) {
+          window.electronAPI.sendText(text)
+          return
+        }
+      } catch {}
       options.offlineHandler.handleQuery(text, options.getAgentName())
       return
     }
@@ -38,11 +51,11 @@ export function initChatDrawer(options: ChatDrawerOptions): void {
     window.electronAPI.sendText(text)
   }
 
-  btnSendText?.addEventListener('click', sendTextMessage)
+  btnSendText?.addEventListener('click', () => { void sendTextMessage() })
   inputChatText?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendTextMessage()
+      void sendTextMessage()
     }
   })
 }

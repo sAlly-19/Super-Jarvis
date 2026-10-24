@@ -112,10 +112,9 @@ export class OfflineHandler {
 
     // Fallback response
     this.speak(
-      `Recebi seu pedido "${input}", porém estou desconectado da API Gemini no momento. Posso informar as horas, data, fazer cálculos ou abrir utilitários do sistema.`,
+      `Recebi seu pedido "${input}", porém estou desconectado do provedor de IA no momento. Autorize o consentimento ou configure as credenciais nas Configurações. No modo offline, posso informar as horas, data, fazer cálculos ou abrir utilitários do sistema.`,
       agentName
     )
     return true
   }
 }
-

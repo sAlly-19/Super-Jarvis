@@ -304,9 +304,24 @@ export async function mountAgentRuntime(): Promise<() => void> {
     return () => {}
   }
 
-  isConnected = true
-  syncDashboardConnectionIndicators(true, 'Tudo operacional')
-  updateStatusBadge('connected', `${getCurrentAgentName()} Online`)
+  try {
+    const conn = await window.electronAPI.connectAgent()
+    if (!conn.success) {
+      console.warn('[Renderer] Agente não conectado na inicialização:', conn.error)
+      isConnected = false
+      syncDashboardConnectionIndicators(false, conn.error || 'Agente Desconectado')
+      updateStatusBadge('disconnected', conn.error || 'Agente Desconectado')
+    } else {
+      isConnected = true
+      syncDashboardConnectionIndicators(true, 'Tudo operacional')
+      updateStatusBadge('connected', `${getCurrentAgentName()} Online`)
+    }
+  } catch (err: any) {
+    console.error('[Renderer] Falha ao conectar ao agente:', err)
+    isConnected = false
+    syncDashboardConnectionIndicators(false, err?.message || 'Erro de Conexão')
+    updateStatusBadge('error', 'Erro de Conexão')
+  }
 
   const disposer = () => {
     console.log('[Renderer] Desmontando runtime operacional do agente...')
@@ -452,7 +467,8 @@ async function init(): Promise<void> {
   initChatDrawer({
     getIsConnected: () => isConnected,
     getAgentName: () => getCurrentAgentName(),
-    offlineHandler
+    offlineHandler,
+    controlConsentModal
   })
 
   new SettingsModal({

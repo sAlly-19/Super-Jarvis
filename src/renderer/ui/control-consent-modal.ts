@@ -22,27 +22,38 @@ export class ControlConsentModal {
 
     const modal = document.createElement('div')
     modal.id = 'modal-control-consent'
-    modal.className = 'modal-overlay hidden'
+    modal.className = 'modal-backdrop hidden'
     modal.innerHTML = `
       <div class="modal-card consent-card">
         <div class="modal-header">
-          <h3>Autorização de Controle Operacional do Sistema</h3>
+          <div class="modal-title-wrap">
+            <div class="modal-arc-ring">
+              <span class="modal-arc-dot"></span>
+            </div>
+            <div>
+              <h3>Autorização Operacional do Agente</h3>
+              <span class="modal-subtitle">Consentimento obrigatório para execução autônoma local.</span>
+            </div>
+          </div>
+          <button type="button" class="modal-close" id="btn-close-control-consent" aria-label="Fechar">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body consent-body">
           <p class="consent-intro">
-            O <strong>Super-Jarvis</strong> é um assistente autônomo com capacidades avançadas de controle local do sistema operacional. Para prosseguir, é necessário autorizar explicitamente as seguintes capacidades:
+            O <strong>Super-Jarvis</strong> opera com controle operacional avançado do Windows. Para ativar a IA e os provedores configurados, autorize as seguintes capacidades locais:
           </p>
           <ul class="consent-capabilities-list">
-            <li><strong>Execução de comandos e ferramentas locais:</strong> Capacidade de executar scripts de automação, ferramentas de linha de comando e utilitários do sistema.</li>
-            <li><strong>Manipulação de arquivos do projeto:</strong> Criação, edição e organização de pastas e documentos no seu espaço de trabalho.</li>
-            <li><strong>Interação com interface gráfica e mídia:</strong> Ativação de controles de mídia, janelas e automação visual do sistema.</li>
-            <li><strong>Sensoriamento de áudio e tela:</strong> Captura e processamento multimodal local para comandos de voz e análise de contexto.</li>
+            <li><strong>Ferramentas e automação local:</strong> Execução de scripts PowerShell, utilitários do sistema e controle de hardware.</li>
+            <li><strong>Interação com interface e mídia:</strong> Controle de janelas, volume, teclado/mouse e sintetização de voz.</li>
+            <li><strong>Sensoriamento e tela:</strong> Captura local de tela sob demanda e processamento de áudio para comandos.</li>
           </ul>
           <p class="consent-notice">
-            Esta autorização é única e fica vinculada com segurança a esta instalação e máquina.
+            Esta autorização é estritamente local e fica vinculada ao hardware desta estação de trabalho.
           </p>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer consent-footer">
+          <button type="button" id="btn-cancel-control-consent" class="btn-cancel">
+            Recusar (Manter Offline)
+          </button>
           <button type="button" id="btn-accept-control-consent" class="btn-primary">
             Autorizar e Ativar Agente
           </button>
@@ -64,6 +75,14 @@ export class ControlConsentModal {
         console.error('[ConsentModal] Erro ao registrar consentimento:', err)
       }
     })
+
+    const closeBtn = modal.querySelector('#btn-close-control-consent')
+    const cancelBtn = modal.querySelector('#btn-cancel-control-consent')
+    const dismiss = (): void => {
+      this.hide()
+    }
+    closeBtn?.addEventListener('click', dismiss)
+    cancelBtn?.addEventListener('click', dismiss)
   }
 
   public show(): void {

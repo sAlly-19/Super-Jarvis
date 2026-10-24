@@ -71,6 +71,7 @@ export const DOM = {
   // System & Automation Controls
   checkScreenAwareness: document.getElementById('check-screen-awareness') as HTMLInputElement | null,
   operationalConsentStatus: document.getElementById('operational-consent-status') as HTMLElement | null,
+  btnSettingsRequestConsent: document.getElementById('btn-settings-request-consent') as HTMLButtonElement | null,
 
   // Toast Container
   hudToastContainer: document.getElementById('hud-toast-container') as HTMLElement | null,

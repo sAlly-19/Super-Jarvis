@@ -7,6 +7,7 @@ import { createMainWindow, safeSend } from './windows/main-window'
 import { registerIpcHandlers } from './ipc/register-ipc'
 import { updateManager } from './services/update-manager'
 import { licenseGate } from './services/license-gate'
+import { pythonBackend } from './services/python-backend'
 
 let licenseCheckTimer: NodeJS.Timeout | null = null
 let updateServiceStarted = false
@@ -66,9 +67,15 @@ app.whenReady().then(() => {
   })
 
   // 3. Inicializa máquina de estados LicenseGate (só inicia backend se estiver 'unlocked')
-  licenseGate.initialize().then((snapshot) => {
+  licenseGate.initialize().then(async (snapshot) => {
     if (snapshot.state === 'unlocked') {
-      safeSend(IPC_CHANNELS.GEMINI_STATUS, 'connected', `${configStore.getConfig().agentName || 'Jasper'} Online`)
+      const cfg = configStore.getConfig()
+      try {
+        await pythonBackend.syncConfig(cfg)
+      } catch (err) {
+        console.warn('[Main] Falha ao sincronizar configuração inicial com o sidecar:', err)
+      }
+      safeSend(IPC_CHANNELS.GEMINI_STATUS, 'connected', `${cfg.agentName || 'Jasper'} Online`)
     }
   }).catch((err) => {
     console.warn('[Main] Falha na inicialização do LicenseGate:', err)

@@ -3,6 +3,7 @@ import { AvatarController, MoodType } from '../scene/avatar'
 import { WakeTrainerUI } from './wake-trainer-ui'
 import { showHudToast } from './toast'
 import { updateStatusBadge } from './status-badge'
+import { controlConsentModal } from './control-consent-modal'
 import {
   AI_PROVIDER_CATALOG,
   isAIProvider,
@@ -185,8 +186,14 @@ export class SettingsModal {
       DOM.operationalConsentStatus.textContent = accepted
         ? 'Consentimento ativo nesta instalação'
         : 'Consentimento pendente'
+      if (DOM.btnSettingsRequestConsent) {
+        DOM.btnSettingsRequestConsent.classList.toggle('hidden', accepted)
+      }
     } catch {
       DOM.operationalConsentStatus.textContent = 'Indisponível'
+      if (DOM.btnSettingsRequestConsent) {
+        DOM.btnSettingsRequestConsent.classList.add('hidden')
+      }
     }
   }
 
@@ -432,6 +439,10 @@ export class SettingsModal {
       if (!confirm('Deseja apagar todos os fatos memorizados?')) return
       await window.electronAPI.clearMemory()
       await this.refreshMemoryUI()
+    })
+
+    DOM.btnSettingsRequestConsent?.addEventListener('click', () => {
+      controlConsentModal.show()
     })
 
     DOM.tabBtnCopyHwid?.addEventListener('click', async () => {
