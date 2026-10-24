@@ -331,24 +331,24 @@
 - Create: test/ci-workflow.test.ts
 - Create: test/python-audit-script.test.ts
 
-- [ ] Add a failing clean-checkout test proving npm test does not require a prebuilt sidecar.
-- [ ] Add a failing artifact test proving npm run test:package fails without a sidecar and passes only after build:python.
-- [ ] Add a failing static test proving Python audit cannot report success when pip-audit is unavailable or skipped.
-- [ ] Add failing workflow assertions for source-test-before-build ordering, artifact tests after sidecar build, and CodeQL analysis of javascript-typescript and python.
-- [ ] Run new tests and confirm red:
+- [x] Add a failing clean-checkout test proving npm test does not require a prebuilt sidecar.
+- [x] Add a failing artifact test proving npm run test:package fails without a sidecar and passes only after build:python.
+- [x] Add a failing static test proving Python audit cannot report success when pip-audit is unavailable or skipped.
+- [x] Add failing workflow assertions for source-test-before-build ordering, artifact tests after sidecar build, and CodeQL analysis of javascript-typescript and python.
+- [x] Run new tests and confirm red:
       npx.cmd --yes node@24 scripts/run-tests.mjs ci-workflow
       npx.cmd --yes node@24 scripts/run-tests.mjs python-audit-script
-- [ ] Make npm test execute source tests only and add test:package for compiled assets.
-- [ ] Make package:dir self-contained. If release optimization is needed, add an internal package:dir:from-build command used only after explicit build steps.
-- [ ] Pin pip-audit==2.10.1 with hashes in requirements-audit.lock, install it in an isolated audit environment, and fail closed on install, network, invocation or report errors. Remove the hash-only fallback.
-- [ ] Add CodeQL v4 with a language matrix for TypeScript/JavaScript and Python, least-privilege permissions, pull-request/protected-branch triggers and a schedule.
-- [ ] Order CI/release as: locked install, source verification, sidecar build, artifact tests, directory package, package verification, smoke, then signing/release checks.
-- [ ] Run the clean-build sequence:
+- [x] Make npm test execute source tests only and add test:package for compiled assets.
+- [x] Make package:dir self-contained. If release optimization is needed, add an internal package:dir:from-build command used only after explicit build steps.
+- [x] Pin pip-audit==2.10.1 with hashes in requirements-audit.lock, install it in an isolated audit environment, and fail closed on install, network, invocation or report errors. Remove the hash-only fallback.
+- [x] Add CodeQL v4 with a language matrix for TypeScript/JavaScript and Python, least-privilege permissions, pull-request/protected-branch triggers and a schedule.
+- [x] Order CI/release as: locked install, source verification, sidecar build, artifact tests, directory package, package verification, smoke, then signing/release checks.
+- [x] Run the clean-build sequence:
       npm.cmd run verify
       npm.cmd run build:python
       npm.cmd run test:package
       pwsh -NoProfile -File scripts/python-audit.ps1
-- [ ] Commit:
+- [x] Commit:
       git add package.json scripts/run-tests.mjs scripts/run-package-tests.mjs test/python-package.test.ts test-artifact/python-package.test.ts scripts/python-audit.ps1 jasper-backend/requirements-audit.lock .github/workflows/ci.yml .github/workflows/release.yml .github/workflows/codeql.yml test/ci-workflow.test.ts test/python-audit-script.test.ts
       git commit -m "ci: make clean builds and security audits reproducible"
 

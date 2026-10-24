@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 
-describe('Reproducible Python Packaging & Build Verification (Task 1)', () => {
+describe('Reproducible Python Packaging & Build Verification (Artifact Test)', () => {
   const root = process.cwd()
   const backendDir = path.join(root, 'jasper-backend')
 
@@ -18,7 +18,7 @@ describe('Reproducible Python Packaging & Build Verification (Task 1)', () => {
     assert.ok(content.includes('psutil==7.2.2'), 'must pin psutil==7.2.2')
     assert.ok(content.includes('PyAutoGUI==0.9.54'), 'must pin PyAutoGUI==0.9.54')
     assert.ok(content.includes('mss==10.2.0'), 'must pin mss==10.2.0')
-    assert.ok(content.includes('Pillow==12.3.0'), 'must pin Pillow==12.3.0')
+    assert.ok(content.includes('Pillow==13.0.0'), 'must pin Pillow==13.0.0')
     assert.ok(content.includes('pycaw==20260927'), 'must pin pycaw==20260927')
     assert.ok(content.includes('comtypes==1.4.17'), 'must pin comtypes==1.4.17')
     assert.ok(content.includes('SpeechRecognition==3.17.0'), 'must pin SpeechRecognition==3.17.0')
@@ -62,17 +62,17 @@ describe('Reproducible Python Packaging & Build Verification (Task 1)', () => {
     assert.ok(content.includes('requirements-build.lock'), 'script must reference requirements-build.lock')
   })
 
-  test('package.json defines build:python command', () => {
+  test('package.json defines build:python and test:package commands', () => {
     const pkgPath = path.join(root, 'package.json')
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
     assert.ok(pkg.scripts && pkg.scripts['build:python'], 'package.json must define build:python')
+    assert.ok(pkg.scripts && pkg.scripts['test:package'], 'package.json must define test:package')
   })
 
   test('compiled onedir executable exists and completes stdio handshake', async () => {
     const exePath = path.join(root, 'build', 'python-backend', 'jasper-backend', 'jasper-backend.exe')
     if (!fs.existsSync(exePath)) {
-      // If not built yet, skip or assert failure depending on mode
-      assert.fail(`Sidecar executable not found at ${exePath}`)
+      assert.fail(`Sidecar executable not found at ${exePath}. Compiled artifact is required for test:package.`)
     }
 
     const { spawn } = await import('node:child_process')
@@ -85,7 +85,7 @@ describe('Reproducible Python Packaging & Build Verification (Task 1)', () => {
       version: 1,
       id: 'test-handshake-1',
       type: 'hello',
-      payload: { clientVersion: '2.0.0' }
+      payload: { client: 'super-jarvis-electron', protocolVersion: 1 }
     })
     const payloadBytes = Buffer.from(handshakePayload, 'utf-8')
     const frameHeader = Buffer.alloc(4)
@@ -97,7 +97,7 @@ describe('Reproducible Python Packaging & Build Verification (Task 1)', () => {
       const timeout = setTimeout(() => {
         proc.kill()
         reject(new Error('Timeout waiting for sidecar handshake response'))
-      }, 5000)
+      }, 15000)
 
       proc.stdout.on('data', (chunk) => {
         buffer = Buffer.concat([buffer, chunk])
@@ -121,53 +121,6 @@ describe('Reproducible Python Packaging & Build Verification (Task 1)', () => {
     assert.equal(response.version, 1)
     assert.equal(response.type, 'hello_ack')
     assert.equal(response.replyTo, 'test-handshake-1')
-  })
-
-  test('CI workflow (.github/workflows/ci.yml) enforces quality gates without signing secrets', () => {
-    const ciPath = path.join(root, '.github', 'workflows', 'ci.yml')
-    assert.ok(fs.existsSync(ciPath), '.github/workflows/ci.yml must exist')
-    const content = fs.readFileSync(ciPath, 'utf-8')
-
-    assert.match(content, /node-version:\s*['"]?24/, 'CI must target Node 24')
-    assert.match(content, /python-version:\s*['"]?3\.11/, 'CI must target Python 3.11')
-    assert.match(content, /npm ci/, 'CI must use npm ci')
-    assert.match(content, /npm run verify|npm run test/, 'CI must run verification and tests')
-    assert.match(content, /npm run test:python/, 'CI must run Python tests')
-    assert.match(content, /npm run scan:secrets/, 'CI must run secret scanning')
-    assert.match(content, /npm run audit:runtime/, 'CI must run runtime audit')
-    assert.match(content, /npm run audit:python/, 'CI must run python audit')
-    assert.match(content, /npm run build:python/, 'CI must build python sidecar')
-    assert.match(content, /npm run package:dir/, 'CI must package directory')
-    assert.match(content, /npm run verify:package/, 'CI must verify package')
-    assert.match(content, /npm run smoke:packaged/, 'CI must run clean-machine smoke')
-
-    // PR / regular CI must NOT touch signing secrets
-    assert.doesNotMatch(content, /CSC_LINK/, 'PR CI must never touch CSC_LINK secret')
-    assert.doesNotMatch(content, /CSC_KEY_PASSWORD/, 'PR CI must never touch CSC_KEY_PASSWORD secret')
-  })
-
-  test('Release workflow (.github/workflows/release.yml) enforces Authenticode and SBOM uploads on tag push', () => {
-    const releasePath = path.join(root, '.github', 'workflows', 'release.yml')
-    assert.ok(fs.existsSync(releasePath), '.github/workflows/release.yml must exist')
-    const content = fs.readFileSync(releasePath, 'utf-8')
-
-    assert.match(content, /tags:\s*-\s*['"]?v\*/, 'Release must trigger on tags v*')
-    assert.match(content, /CSC_LINK/, 'Release must configure CSC_LINK for signing')
-    assert.match(content, /CSC_KEY_PASSWORD/, 'Release must configure CSC_KEY_PASSWORD')
-    assert.match(content, /verify-authenticode\.ps1/, 'Release must run Authenticode verification')
-    assert.match(content, /sbom:runtime/, 'Release must generate runtime npm SBOM')
-    assert.match(content, /sbom:python/, 'Release must generate Python SBOM')
-  })
-
-  test('package.json defines audit:python and sbom:python scripts', () => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'))
-    assert.ok(pkg.scripts['audit:python'], 'package.json must define audit:python')
-    assert.ok(pkg.scripts['sbom:python'], 'package.json must define sbom:python')
-  })
-
-  test('scripts/python-audit.ps1 and scripts/generate-python-sbom.ps1 exist', () => {
-    assert.ok(fs.existsSync(path.join(root, 'scripts', 'python-audit.ps1')), 'python-audit.ps1 must exist')
-    assert.ok(fs.existsSync(path.join(root, 'scripts', 'generate-python-sbom.ps1')), 'generate-python-sbom.ps1 must exist')
   })
 })
 

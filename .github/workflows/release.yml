@@ -46,6 +46,9 @@ jobs:
       - name: Build isolated Python sidecar
         run: npm run build:python
 
+      - name: Run compiled sidecar artifact tests
+        run: npm run test:package
+
       - name: Generate sidecar integrity manifest
         run: npm run generate:backend-manifest
 
