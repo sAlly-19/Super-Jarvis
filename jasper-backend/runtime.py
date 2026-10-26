@@ -36,8 +36,8 @@ VOICE_MAP: Dict[str, str] = {
 }
 
 SUPPORTED_PROVIDER_MODELS: Dict[str, Tuple[str, ...]] = {
-    "gemini": ("gemini/gemini-3.8-flash",),
-    "groq": ("groq/openai/gpt-oss-120b",),
+    "gemini": ("gemini/gemini-3.8-flash", "gemini/gemini-3.6-flash", "gemini/gemini-3.5-flash-lite", "gemini/gemini-3.1-flash-lite"),
+    "groq": ("groq/openai/gpt-oss-120b", "groq/openai/gpt-oss-20b"),
     "ollama": ("ollama/qwen2.5:3b",),
 }
 

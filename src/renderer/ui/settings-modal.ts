@@ -88,7 +88,8 @@ export class SettingsModal {
       ...models.map((entry) => {
         const opt = document.createElement('option')
         opt.value = entry.id
-        opt.textContent = `${entry.label} (${entry.id})`
+        opt.textContent = entry.label
+        opt.title = entry.id
         return opt
       })
     )

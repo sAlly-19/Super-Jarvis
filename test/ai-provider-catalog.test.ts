@@ -13,11 +13,11 @@ describe('AI provider catalog', () => {
     assert.deepEqual(Object.keys(AI_PROVIDER_CATALOG), ['gemini', 'groq', 'ollama'])
     assert.deepEqual(
       AI_PROVIDER_CATALOG.gemini.models.map(({ id }) => id),
-      ['gemini/gemini-3.8-flash']
+      ['gemini/gemini-3.8-flash', 'gemini/gemini-3.6-flash', 'gemini/gemini-3.5-flash-lite', 'gemini/gemini-3.1-flash-lite']
     )
     assert.deepEqual(
       AI_PROVIDER_CATALOG.groq.models.map(({ id }) => id),
-      ['groq/openai/gpt-oss-120b']
+      ['groq/openai/gpt-oss-120b', 'groq/openai/gpt-oss-20b']
     )
     assert.deepEqual(
       AI_PROVIDER_CATALOG.ollama.models.map(({ id }) => id),

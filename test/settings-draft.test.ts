@@ -39,7 +39,7 @@ describe('SettingsDraft pure helpers', () => {
 
     assert.deepEqual(
       modelsForProvider('groq').map((m) => m.id),
-      ['groq/openai/gpt-oss-120b']
+      ['groq/openai/gpt-oss-120b', 'groq/openai/gpt-oss-20b']
     )
     assert.deepEqual(
       modelsForProvider('ollama').map((m) => m.id),

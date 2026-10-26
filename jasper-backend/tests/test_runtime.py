@@ -86,6 +86,9 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(ack["payload"]["tools"], list)
 
     def test_validate_provider_model_enforces_allowlist(self):
+        for model in ("gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"):
+            self.assertEqual(validate_provider_model("gemini", f"gemini/{model}"), ("gemini", f"gemini/{model}"))
+        self.assertEqual(validate_provider_model("groq", "groq/openai/gpt-oss-20b"), ("groq", "groq/openai/gpt-oss-20b"))
         self.assertEqual(
             validate_provider_model("gemini", "gemini/gemini-3.8-flash"),
             ("gemini", "gemini/gemini-3.8-flash"),

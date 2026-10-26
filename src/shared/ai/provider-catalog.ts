@@ -18,13 +18,21 @@ export const AI_PROVIDER_CATALOG: Readonly<Record<AIProvider, AIProviderDefiniti
     id: 'gemini',
     label: 'Gemini',
     requiresApiKey: true,
-    models: [{ id: 'gemini/gemini-3.8-flash', label: 'Gemini 3.8 Flash' }]
+    models: [
+      { id: 'gemini/gemini-3.8-flash', label: 'Gemini 3.8 Flash' },
+      { id: 'gemini/gemini-3.6-flash', label: 'Gemini 3.6 Flash' },
+      { id: 'gemini/gemini-3.5-flash-lite', label: 'Gemini 3.5 Flash-Lite' },
+      { id: 'gemini/gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash-Lite' }
+    ]
   },
   groq: {
     id: 'groq',
     label: 'Groq',
     requiresApiKey: true,
-    models: [{ id: 'groq/openai/gpt-oss-120b', label: 'GPT-OSS 120B' }]
+    models: [
+      { id: 'groq/openai/gpt-oss-120b', label: 'GPT-OSS 120B' },
+      { id: 'groq/openai/gpt-oss-20b', label: 'GPT-OSS 20B' }
+    ]
   },
   ollama: {
     id: 'ollama',

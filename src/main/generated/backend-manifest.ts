@@ -41,7 +41,7 @@ export const DEFAULT_BACKEND_MANIFEST: BackendManifest = {
     { path: "_internal/attrs-26.1.0.dist-info/RECORD", sha256: "32885e42990fc3173e73c4cefa53066d6bcc15ce0939be51021093227278d63d" },
     { path: "_internal/attrs-26.1.0.dist-info/REQUESTED", sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
     { path: "_internal/attrs-26.1.0.dist-info/WHEEL", sha256: "41c708c5adba6e097513ab8ccb9f1d7865a2fb469e22491a9e01dcc64da459fc" },
-    { path: "_internal/base_library.zip", sha256: "7c8508097579e7f18ee6168684b2d53914a7af8743fd3f66402b28a2e0d8ef36" },
+    { path: "_internal/base_library.zip", sha256: "7664a2d276f2d47ed87dc119f4c535b6c93bb8d7fcbf815a9208a57b23428b12" },
     { path: "_internal/certifi/cacert.pem", sha256: "50f79f98dac192b20dbf73f35c56f0b0c557ab267ff5199d1117cc1180b70785" },
     { path: "_internal/certifi/py.typed", sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
     { path: "_internal/charset_normalizer/cd.cp311-win_amd64.pyd", sha256: "71f058fba64042b52ffa94a5637e57208fa9a3e027be2ea8ed2ddb3ce8ea462f" },
@@ -126,6 +126,6 @@ export const DEFAULT_BACKEND_MANIFEST: BackendManifest = {
     { path: "_internal/websockets/speedups.cp311-win_amd64.pyd", sha256: "9ad57b15b6cb99c88a2a5ee0ff20a0ae32b8fa9bc8aede3a8ef32ca1ae69d486" },
     { path: "_internal/yaml/_yaml.cp311-win_amd64.pyd", sha256: "ee7df83fa5dca1467bfd841dc08189b10361f31700cf57a6aacddaf0c05706f4" },
     { path: "_internal/yarl/_quoting_c.cp311-win_amd64.pyd", sha256: "60cfa958fe961af953a9e53ae6b6fe7d7b610a8e79e3965164d677767844f1df" },
-    { path: "jasper-backend.exe", sha256: "bc0d27e96dd354325ccdb3dd41457c53648dbe9d1f32b4a11788f4173e6d03ca" },
+    { path: "jasper-backend.exe", sha256: "60526ee3bc11f8c0777630d2aa6317afdacf4fdf8063d61b0089a27c59e10b1d" },
   ]
 }

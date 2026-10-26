@@ -1,5 +1,9 @@
 # Jasper Commercial Remediation Runbook
 
+## Atualização — Opções de modelo para texto (26/10/2026)
+
+Catálogo Gemini ampliado para 3.8 Flash, 3.6 Flash, 3.5 Flash-Lite e 3.1 Flash-Lite; Groq com GPT-OSS 120B e 20B. Chamada Gemini Live preservada. Defaults, credenciais separadas e allowlists continuam aplicados. Plano/evidências: [2026-10-26-text-model-options.md](2026-10-26-text-model-options.md).
+
 ## Atualização — Ativação por palmas (24/10/2026)
 
 A ativação por nome e a calibração de voz foram retiradas do runtime e da tela. Duas palmas separadas por 180–800 ms iniciam a chamada existente, com processamento local enquanto o aplicativo aguarda. A chave `enableWakeWord` foi mantida por compatibilidade. Licença, consentimento e pausa durante chamadas continuam aplicados.
