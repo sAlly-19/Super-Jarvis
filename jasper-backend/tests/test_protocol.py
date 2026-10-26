@@ -52,16 +52,25 @@ class TestBackendProtocol(unittest.TestCase):
             (
                 "hello", "config", "chat", "audio_input", "interrupt", "memory_snapshot", "memory_clear", "shutdown",
                 "live_start", "live_audio", "live_stop",
+                "module_snapshot", "capability_execute", "capability_response", "invocation_cancel",
+                "task_runtime", "task_event_ack", "task_cancel",
                 "hello_ack", "status", "user_transcript", "response", "audio_output", "tool_execution", "tool_result",
                 "memory_upsert", "turn_complete", "interrupted", "error",
+                "module_snapshot_ack", "capability_request", "capability_result", "capability_cancel_request",
+                "task_runtime_ack", "task_event",
             ),
         )
-        self.assertEqual(len(HOST_TO_SIDECAR_MESSAGE_TYPES), 11)
-        self.assertEqual(len(SIDECAR_TO_HOST_MESSAGE_TYPES), 12)
+        self.assertEqual(len(HOST_TO_SIDECAR_MESSAGE_TYPES), 18)
+        self.assertEqual(len(SIDECAR_TO_HOST_MESSAGE_TYPES), 18)
 
     def test_accepts_valid_payload_for_every_allowed_message_type(self):
         payloads = {
             "hello": {"client": "test", "protocolVersion": 1},
+            'task_runtime': {'taskRuntimeVersion': 1, 'sessionId': 1},
+            'task_runtime_ack': {'taskRuntimeVersion': 1, 'sessionId': 1},
+            'task_event': {'requestId': 'r', 'sessionId': 1, 'taskId': '', 'expectedRevision': 0, 'event': {'type': 'open', 'origin': 'chat'}},
+            'task_event_ack': {'requestId': 'r', 'taskId': 't', 'revision': 0, 'accepted': True},
+            'task_cancel': {'taskId': 't'},
             "config": {
                 "provider": "gemini",
                 "agent_name": "Jasper",
@@ -79,6 +88,14 @@ class TestBackendProtocol(unittest.TestCase):
             "live_start": {"apiKey": "test", "voice": "Charon", "greeting": False},
             "live_audio": {"audio_base64": "AAA="},
             "live_stop": {},
+            "module_snapshot": {"moduleRuntimeVersion": 1, "snapshotVersion": 1, "sessionId": 1, "capabilities": []},
+            "module_snapshot_ack": {"moduleRuntimeVersion": 1, "snapshotVersion": 1},
+            "capability_request": {"requestId": "req", "snapshotVersion": 1, "capabilityId": "run_powershell", "args": {}},
+            "capability_cancel_request": {"requestId": "req"},
+            "capability_execute": {"requestId": "req", "snapshotVersion": 1, "capabilityId": "run_powershell", "args": {}, "context": {"taskId": "t", "stepId": "s", "invocationId": "i", "sessionId": 1, "moduleRevision": 0}},
+            "capability_result": {"context": {"taskId": "t", "stepId": "s", "invocationId": "i", "sessionId": 1, "moduleRevision": 0}, "result": {"status": "unknown", "evidence": []}},
+            "capability_response": {"requestId": "req", "result": {"status": "failed", "evidence": []}},
+            "invocation_cancel": {"invocationId": "i", "reason": "test"},
             "hello_ack": {"service": "jasper-backend", "protocolVersion": 1, "tools": []},
             "status": {"status": "ready"},
             "user_transcript": {"text": "oi"},

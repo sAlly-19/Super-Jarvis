@@ -11,10 +11,20 @@ import type {
   AgentStatusPayload,
   AgentAudioPayload,
   ToolExecutionPayload,
-  ToolResultPayload
+  ToolResultPayload,
+  ModuleId,
+  ModuleSnapshot,
+  TaskRecord
 } from '@shared'
 
 export interface ElectronAPI {
+  listTasks: () => Promise<TaskRecord[]>
+  getTask: (id: string) => Promise<TaskRecord | null>
+  cancelTask: (id: string) => Promise<TaskRecord>
+  onTaskChanged: (callback: (task: TaskRecord) => void) => () => void
+  listModules: () => Promise<ModuleSnapshot[]>
+  setModuleEnabled: (id: ModuleId, enabled: boolean, expectedRevision: number) => Promise<ModuleSnapshot>
+  diagnoseModule: (id: ModuleId) => Promise<ModuleSnapshot>
   // High-level Agent APIs
   startLiveCall: (greeting?: boolean) => Promise<{ success: boolean; error?: string }>
   stopLiveCall: () => Promise<void>

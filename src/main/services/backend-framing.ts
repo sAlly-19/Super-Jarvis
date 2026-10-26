@@ -6,6 +6,8 @@ import {
   MAX_CHAT_TEXT_LENGTH,
   BACKEND_MESSAGE_TYPES
 } from '@shared'
+import { validateModulePayload } from '../modules/wire-protocol'
+import { validateTaskPayload } from '../tasks/task-protocol'
 
 export class FrameError extends Error {
   constructor(message: string) {
@@ -30,6 +32,8 @@ function validatePayload(type: string, value: unknown): void {
     throw new FrameError(`Payload inválido para '${type}': esperado objeto.`)
   }
   const payload = value
+  try { if (validateTaskPayload(type, payload)) return } catch { throw new FrameError('Invalid task payload') }
+  try { if (validateModulePayload(type, payload)) return } catch { throw new FrameError('Invalid modular payload') }
   switch (type) {
     case 'hello':
       requireString(payload, 'client')

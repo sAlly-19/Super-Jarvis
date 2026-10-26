@@ -15,6 +15,7 @@ from provider_adapters import (
     create_provider_adapter,
 )
 from live_session import LiveCall
+from module_bridge import ModuleBridge
 from tools_os import (
     AVAILABLE_FUNCTIONS,
     TOOLS_SCHEMA,
@@ -207,9 +208,16 @@ async def transcribe_audio_base64(audio_b64: str, api_key: str = "", provider: s
         return ""
 
 
+from orchestration.client import TaskClient
+from orchestration.planner import Planner, ClarificationRequired
+from orchestration.contracts import validate_plan
+from orchestration.verification import task_summary
+
+
 class JasperRuntime:
     def __init__(self, event_sink=None) -> None:
         self.event_sink = event_sink
+        self.module_bridge = ModuleBridge(event_sink)
         self.live_call = None
         initial_provider = infer_provider_from_model(os.getenv("JASPER_MODEL", "gemini/gemini-3.8-flash"))
         initial_model = SUPPORTED_PROVIDER_MODELS[initial_provider][0]
@@ -231,6 +239,7 @@ class JasperRuntime:
         self.history: List[Dict[str, Any]] = []
         self.facts: List[Dict[str, str]] = []
         self.current_task: Optional[asyncio.Task[Any]] = None
+        self.tasks = TaskClient(event_sink, self.module_bridge.invoke)
         self.provider_adapter: Any = None
 
     def build_system_prompt(self) -> str:
@@ -373,7 +382,7 @@ class JasperRuntime:
         needs_vision = force_vision or self.config["vision_enabled"] or bool(VISION_KEYWORDS_RE.search(user_text))
         user_message_content: Any = user_text
 
-        if needs_vision and provider != "ollama":
+        if needs_vision and provider != "ollama" and any(tool['function']['name'] == 'capture_screen_base64' for tool in self.module_bridge.tools()):
             vision_started = time.perf_counter()
             try:
                 yield {
@@ -383,7 +392,10 @@ class JasperRuntime:
                     "type": "tool_execution",
                     "payload": {"tool": "capture_screen_base64", "args": {"auto_vision": True}},
                 }
-                screen_b64 = await asyncio.to_thread(capture_screen_base64)
+                capture_result = await self.module_bridge.invoke('capture_screen_base64', {})
+                screen_b64 = capture_result.get('data') if isinstance(capture_result, dict) else None
+                if not isinstance(screen_b64, str):
+                    screen_b64 = None
                 if screen_b64:
                     user_message_content = [
                         {"type": "text", "text": user_text},
@@ -421,7 +433,7 @@ class JasperRuntime:
                 response = await adapter.complete(
                     validated_model,
                     messages,
-                    TOOLS_SCHEMA,
+                    self.module_bridge.tools(),
                     0.4,
                 )
                 print(f"[Latency] provider={provider} iteration={_iteration + 1} llm_ms={round((time.perf_counter() - provider_started) * 1000)} tools={len(response.tool_calls)}", file=sys.stderr)
@@ -429,6 +441,12 @@ class JasperRuntime:
 
                 if not tool_calls:
                     final_text = response.content.strip()
+                    break
+
+                if self.tasks.session_id is not None:
+                    planner = Planner(adapter, validated_model)
+                    result = await self.tasks.run('chat', lambda task_id: planner.plan(task_id, user_text, self.module_bridge.capabilities))
+                    final_text = task_summary(result)
                     break
 
                 messages.append(response.assistant_message)
@@ -446,36 +464,11 @@ class JasperRuntime:
                         "payload": {"tool": fn_name, "args": fn_args},
                     }
 
-                    fn_to_call = AVAILABLE_FUNCTIONS.get(fn_name)
-                    if not fn_to_call:
-                        tool_result = json.dumps(
-                            {"status": "error", "error": f"Ferramenta '{fn_name}' não encontrada."},
-                            ensure_ascii=False,
-                        )
-                    elif fn_name == "capture_screen_base64":
-                        try:
-                            img_b64 = await asyncio.to_thread(capture_screen_base64)
-                            tool_result = json.dumps(
-                                {
-                                    "status": "ok",
-                                    "info": "Captura de tela realizada com sucesso.",
-                                    "size_kb": round(len(img_b64) * 3 / 4 / 1024, 1),
-                                },
-                                ensure_ascii=False,
-                            )
-                        except Exception as exc:
-                            tool_result = json.dumps(
-                                {"status": "error", "error": _redact_secrets(str(exc), active_key)},
-                                ensure_ascii=False,
-                            )
-                    else:
-                        try:
-                            tool_result = await asyncio.to_thread(fn_to_call, **fn_args)
-                        except Exception as exc:
-                            tool_result = json.dumps(
-                                {"status": "error", "error": _redact_secrets(str(exc), active_key)},
-                                ensure_ascii=False,
-                            )
+                    result = await self.module_bridge.invoke(fn_name, fn_args)
+                    if fn_name == 'capture_screen_base64' and isinstance(result, dict) and isinstance(result.get('data'), str):
+                        # Screenshot bytes stay out of transcript/tool-result logs.
+                        result = {**result, 'data': {'size_kb': round(len(result['data']) * 3 / 4 / 1024, 1)}}
+                    tool_result = json.dumps(result, ensure_ascii=False)
 
                     print(f"[Latency] tool_ms={round((time.perf_counter() - tool_started) * 1000)}", file=sys.stderr)
                     yield {
@@ -504,6 +497,8 @@ class JasperRuntime:
                 )
                 final_text = (synth_resp.content or "Ação concluída.").strip()
 
+        except ClarificationRequired as exc:
+            final_text = str(exc)
         except ProviderAdapterError as exc:
             cause = exc.__cause__
             from provider_adapters import _status_code
@@ -555,11 +550,63 @@ class JasperRuntime:
             "payload": {},
         }
 
+    def live_task_tools(self):
+        tools = self.module_bridge.tools()
+        if self.tasks.session_id is not None and tools:
+            tools = [*tools, {'type': 'function', 'function': {'name': 'execute_task',
+                'description': 'Planeja e executa um objetivo composto com as capacidades autorizadas. Use para pedidos com várias etapas.',
+                'parameters': {'type': 'object', 'properties': {'objective': {'type': 'string'}}, 'required': ['objective']}}}]
+        return tools
+
+    async def invoke_live_task(self, name, args):
+        if self.tasks.session_id is None:
+            return await self.module_bridge.invoke(name, args)
+        if name == 'execute_task':
+            if not isinstance(args, dict) or set(args) != {'objective'} or not isinstance(args['objective'], str) or not 0 < len(args['objective']) <= 20000:
+                return {'status': 'failed', 'errorCode': 'invalid_objective', 'evidence': []}
+            if self.provider_adapter is None: return {'status': 'failed', 'errorCode': 'planner_unavailable', 'evidence': []}
+            planner = Planner(self.provider_adapter, self.config['model'])
+            build = lambda task_id: planner.plan(task_id, args['objective'], self.module_bridge.capabilities)
+        else:
+            async def build(task_id):
+                return validate_plan({'taskId': task_id, 'revision': 0, 'steps': [{
+                    'id': 's1', 'capabilityId': name, 'args': args, 'dependsOn': [], 'bindings': [],
+                    'successCriterion': {'verifierId': 'telemetry_read' if name == 'get_system_telemetry' else 'none', 'expected': None}
+                }]}, self.module_bridge.capabilities)
+        result = await self.tasks.run('live', build)
+        if name != 'execute_task':
+            return result.get('results', {}).get('s1', {'status': result['status'], 'evidence': []})
+        # Coordination response contains metadata only; raw outputs are untrusted and stay volatile.
+        return {'status': result['status'], 'steps': result['steps']}
+
     async def handle(self, message: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
         msg_type = message.get("type")
         msg_id = message.get("id", str(uuid.uuid4()))
         payload = message.get("payload", {}) or {}
 
+        if msg_type == 'module_snapshot':
+            await self.module_bridge.snapshot(payload, msg_id)
+            return
+        if msg_type == 'capability_response':
+            self.module_bridge.respond(payload)
+            return
+        if msg_type == 'capability_execute':
+            await self.module_bridge.execute(payload, msg_id)
+            return
+        if msg_type == 'invocation_cancel':
+            await self.module_bridge.cancel(payload['invocationId'])
+            return
+
+        if msg_type == 'task_runtime':
+            self.tasks.configure(payload['sessionId'])
+            yield {'version': 1, 'id': str(uuid.uuid4()), 'replyTo': msg_id, 'type': 'task_runtime_ack', 'payload': payload}
+            return
+        if msg_type == 'task_event_ack':
+            self.tasks.ack(payload)
+            return
+        if msg_type == 'task_cancel':
+            await self.tasks.cancel(payload['taskId'])
+            return
         if msg_type == 'live_start':
             if self.event_sink is None:
                 raise ValueError('Canal de eventos Live indisponível.')
@@ -567,7 +614,7 @@ class JasperRuntime:
                 await self.live_call.stop()
             async def live_emit(kind, data):
                 await self.event_sink({'version': 1, 'id': str(uuid.uuid4()), 'type': kind, 'payload': data})
-            self.live_call = LiveCall(live_emit)
+            self.live_call = LiveCall(live_emit, tool_executor=self.invoke_live_task, tool_catalog=self.live_task_tools)
             try:
                 await self.live_call.start(str(payload.get('apiKey') or ''), str(payload.get('voice') or 'Charon'), self.build_system_prompt(), bool(payload.get('greeting')))
                 yield {'version': 1, 'id': str(uuid.uuid4()), 'replyTo': msg_id, 'type': 'status', 'payload': {'status': 'live_connected'}}
@@ -583,6 +630,7 @@ class JasperRuntime:
             return
 
         if msg_type in ('live_stop', 'config', 'shutdown') and self.live_call is not None:
+            await self.tasks.close_origin('live')
             await self.live_call.stop()
             self.live_call = None
             if msg_type == 'config' and self.event_sink is not None:
@@ -600,6 +648,7 @@ class JasperRuntime:
                 "payload": {
                     "service": "jasper-backend",
                     "protocolVersion": 1,
+                    "moduleRuntimeVersion": 1,
                     "tools": [t["function"]["name"] for t in TOOLS_SCHEMA],
                     "status": "ready",
                 },
@@ -607,6 +656,8 @@ class JasperRuntime:
             return
 
         if msg_type == "shutdown":
+            await self.tasks.close_origin()
+            await self.module_bridge.close()
             if self.provider_adapter is not None:
                 try:
                     await self.provider_adapter.aclose()

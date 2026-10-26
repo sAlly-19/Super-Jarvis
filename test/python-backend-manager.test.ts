@@ -236,6 +236,8 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
       terminateProcessTreeFn: async () => {}
     })
 
+    const ended: number[] = []
+    manager.onSessionEnded(session => ended.push(session))
     const startPromise = manager.start()
     assert.equal(manager.getState(), 'handshaking')
 
@@ -265,6 +267,9 @@ describe('Secure PythonBackendManager Stdio Lifecycle & Supervision', () => {
 
     await manager.stop()
     assert.equal(manager.getState(), 'stopped')
+    assert.deepEqual(ended, [manager.getSessionId()])
+    await manager.stop()
+    assert.equal(ended.length, 1)
   })
 
   test('request timeout rejects and cleans up pending request', async () => {

@@ -8,6 +8,8 @@ directories:
 files:
   - out/**/*
   - package.json
+  - resources/modules/native-capabilities.json
+  - src/main/storage/migrations/*.sql
   - "!**/node_modules/**/*.map"
   - "!**/node_modules/**/{test,tests,__tests__}/**"
   - "!**/node_modules/{three,@tensorflow,@tensorflow-models}/**"

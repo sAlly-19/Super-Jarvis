@@ -35,6 +35,9 @@ import { getHardwareInfo } from '../services/hwid'
 import { isTrustedRendererUrl } from '../utils/trusted-renderer'
 import { updateManager } from '../services/update-manager'
 import { pythonBackend } from '../services/python-backend'
+import { refreshModuleRuntime, assertModuleRuntimeReady, getModuleService, listModuleSnapshots } from '../modules/application'
+import { assertModuleId, assertModuleUpdate } from '../modules/ipc-validation'
+import { getTaskService } from '../tasks/application'
 
 export type TrustedEvent = IpcMainEvent | IpcMainInvokeEvent
 
@@ -245,8 +248,48 @@ function wireBackendForwarding(): void {
   })
 }
 
-export function registerIpcHandlers(): void {
+export function registerIpcHandlers(moduleRuntime = { refresh: refreshModuleRuntime, assertReady: assertModuleRuntimeReady }): void {
   wireBackendForwarding()
+    const taskId = (value: unknown): string => {
+      if (typeof value !== 'string' || !/^[a-f0-9-]{36}$/.test(value)) throw new Error('invalid_task_id')
+      return value
+    }
+    ipcMain.handle(IPC_CHANNELS.TASKS_LIST, event => {
+      assertTrustedSender(event); requireIpcAccess(IPC_CHANNELS.TASKS_LIST)
+      return getTaskService().list()
+    })
+    ipcMain.handle(IPC_CHANNELS.TASKS_GET, (event, id: unknown) => {
+      assertTrustedSender(event); requireIpcAccess(IPC_CHANNELS.TASKS_GET)
+      const validId = taskId(id)
+      return getTaskService().get(validId)
+    })
+    ipcMain.handle(IPC_CHANNELS.TASKS_CANCEL, (event, id: unknown) => {
+      assertTrustedSender(event); requireIpcAccess(IPC_CHANNELS.TASKS_CANCEL)
+      const validId = taskId(id)
+      return getTaskService().cancel(validId)
+    })
+
+  ipcMain.handle(IPC_CHANNELS.MODULES_LIST, event => {
+    assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.MODULES_LIST)
+    return listModuleSnapshots()
+  })
+  ipcMain.handle(IPC_CHANNELS.MODULES_SET_ENABLED, async (event, payload: unknown) => {
+    assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.MODULES_SET_ENABLED)
+    assertModuleUpdate(payload)
+    await getModuleService().setEnabled(payload.id, payload.enabled, payload.expectedRevision)
+    try { await moduleRuntime.refresh() } catch { console.warn('[Modules] Settings persisted; runtime synchronization unavailable.') }
+    return listModuleSnapshots().find(snapshot => snapshot.id === payload.id)
+  })
+  ipcMain.handle(IPC_CHANNELS.MODULES_DIAGNOSE, async (event, id: unknown) => {
+    assertTrustedSender(event)
+    requireIpcAccess(IPC_CHANNELS.MODULES_DIAGNOSE)
+    assertModuleId(id)
+    await getModuleService().diagnose(id)
+    try { await moduleRuntime.refresh() } catch { console.warn('[Modules] Runtime diagnostic unavailable.') }
+    return listModuleSnapshots().find(snapshot => snapshot.id === id)
+  })
 
   ipcMain.handle(IPC_CHANNELS.AGENT_LIVE_START, async (event, greeting: unknown = false) => {
     assertTrustedSender(event)
@@ -262,6 +305,7 @@ export function registerIpcHandlers(): void {
     try {
       if (!await pythonBackend.isHealthy()) await pythonBackend.start()
       activeBackendSessionId = pythonBackend.getSessionId()
+      await moduleRuntime.refresh()
       await pythonBackend.request('live_start', { apiKey: cfg.geminiApiKey, voice: cfg.voiceName, greeting })
       if (generation !== liveCallGeneration) {
         pythonBackend.notify('live_stop', {})
@@ -301,6 +345,7 @@ export function registerIpcHandlers(): void {
     requireIpcAccess(IPC_CHANNELS.AGENT_SEND_TEXT)
     operationalAccess.requireAgentAccess()
     assertTextPayload(message)
+    moduleRuntime.assertReady()
     pythonBackend.notify('chat', { text: message })
   })
 
@@ -311,6 +356,7 @@ export function registerIpcHandlers(): void {
     operationalAccess.requireAgentAccess()
     assertAudioPayload(chunk)
 
+    moduleRuntime.assertReady()
     const base64Audio = Buffer.isBuffer(chunk)
       ? chunk.toString('base64')
       : Buffer.from(chunk as ArrayBuffer).toString('base64')
@@ -351,7 +397,10 @@ export function registerIpcHandlers(): void {
         return { success: false, error: error?.message || 'Não foi possível iniciar o agente.' }
       }
     }
-    if (healthy) healthy = await pythonBackend.syncConfig(cfg)
+    if (healthy) {
+      try { await moduleRuntime.refresh() } catch { return { success: false, error: 'Runtime modular indisponível. Atualize ou reinicie o aplicativo.' } }
+      healthy = await pythonBackend.syncConfig(cfg)
+    }
     return { success: healthy }
   })
 

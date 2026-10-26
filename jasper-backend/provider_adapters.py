@@ -267,6 +267,9 @@ def _gemini_contents(messages: List[Dict[str, Any]]) -> tuple[str, List[Dict[str
     return "\n".join(part for part in system_parts if part), contents
 
 
+from gemini_tools import gemini_function_declarations
+
+
 class GeminiAdapter:
     provider = "gemini"
 
@@ -305,11 +308,7 @@ class GeminiAdapter:
         if tools:
             config["tools"] = [
                 {
-                    "function_declarations": [
-                        dict(tool.get("function") or {})
-                        for tool in tools
-                        if tool.get("type") == "function" and tool.get("function")
-                    ]
+                    "function_declarations": gemini_function_declarations(tools)
                 }
             ]
         try:

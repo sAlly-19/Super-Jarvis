@@ -60,6 +60,26 @@ TOOLS = [
 
 
 class ProviderAdaptersTests(unittest.IsolatedAsyncioTestCase):
+    async def test_gemini_projects_nested_tool_schemas_without_mutating_canonical_catalog(self):
+        import copy
+        schema = {'type': 'object', 'additionalProperties': False, 'properties': {
+            'additionalProperties': {'type': 'string'},
+            'rows': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
+                'properties': {'level': {'type': 'integer', 'minimum': 0, 'maximum': 100}}, 'required': ['level']}}
+        }, 'required': ['rows']}
+        tools = [{'type': 'function', 'function': {'name': 'inspect_rows', 'description': 'Inspect', 'parameters': schema}}]
+        original = copy.deepcopy(tools)
+        generate = AsyncRecorder(SimpleNamespace(candidates=[]))
+        adapter = GeminiAdapter('test', client=SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate))))
+        await adapter.complete('gemini/gemini-3.8-flash', [{'role': 'user', 'content': 'test'}], tools, 0.4)
+        parameters = generate.calls[0][1]['config']['tools'][0]['function_declarations'][0]['parameters']
+        self.assertNotIn('additionalProperties', parameters)
+        self.assertNotIn('additionalProperties', parameters['properties']['rows']['items'])
+        self.assertEqual(parameters['properties']['additionalProperties'], {'type': 'string'})
+        self.assertEqual(parameters['properties']['rows']['items']['properties']['level'], {'type': 'integer', 'minimum': 0, 'maximum': 100})
+        self.assertEqual(parameters['required'], ['rows'])
+        self.assertEqual(tools, original)
+
     async def test_google_sdk_code_classifies_errors_without_exposing_response(self):
         from google.genai.errors import ClientError
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { ipcMain } from 'electron'
 import { IPC_CHANNELS, LOCKED_ALLOWED_CHANNELS } from '../src/shared/constants/ipc-channels'
 import {
-  registerIpcHandlers,
+  registerIpcHandlers as registerProductionIpcHandlers,
   assertConfigPayload,
   assertTrustedSender,
   assertTextPayload,
@@ -15,6 +15,8 @@ import { pythonBackend } from '../src/main/services/python-backend'
 import { configStore } from '../src/main/config/config-store'
 import { operationalAccess } from '../src/main/services/operational-access'
 import type { BackendEnvelope } from '../src/shared/types/backend-protocol'
+
+const registerIpcHandlers = () => registerProductionIpcHandlers({ refresh: async () => {}, assertReady() {} })
 
 function createMockIpcEvent(options: {
   url?: string

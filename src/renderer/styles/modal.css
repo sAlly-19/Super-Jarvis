@@ -1368,6 +1368,14 @@ select:focus,
   gap: 12px;
 }
 
+.module-settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.module-settings-card { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid rgba(255,255,255,.14); border-radius: 10px; min-width: 0; }
+.module-settings-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.module-settings-toggle input { width: 18px; height: 18px; flex-shrink: 0; }
+.module-settings-status { font-size: 12px; margin: 0; color: #d4d4d8; }
+.module-settings-card small { color: #96969e; line-height: 1.5; overflow-wrap: anywhere; }
+.module-settings-card button { align-self: flex-start; min-height: 32px; margin-top: auto; }
+
 /* Keep chat selection separate from the real-time voice explanation. */
 #tab-ai-voice {
   container-type: inline-size;
@@ -2054,3 +2062,7 @@ select:focus,
     padding: 12px 10px;
   }
 }
+.task-progress { position: fixed; left: 20px; bottom: 100px; z-index: 15; width: min(420px, calc(100vw - 40px)); padding: 10px 14px; border: 1px solid #555; border-radius: 12px; background: #101012ed; color: #eee; font-size: 12px; }
+.task-progress[hidden] { display: none; }
+.task-progress > div { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 5px 0; }
+.task-progress button { border: 1px solid #777; border-radius: 6px; padding: 5px 8px; color: inherit; background: #222; cursor: pointer; }

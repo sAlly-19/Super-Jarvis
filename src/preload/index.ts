@@ -13,10 +13,24 @@ import {
   type AgentStatusPayload,
   type AgentAudioPayload,
   type ToolExecutionPayload,
-  type ToolResultPayload
+  type ToolResultPayload,
+  type ModuleId,
+  type ModuleSnapshot,
+  type TaskRecord
 } from '@shared'
 
 const electronAPI = {
+  listTasks: (): Promise<TaskRecord[]> => ipcRenderer.invoke(IPC_CHANNELS.TASKS_LIST),
+  getTask: (id: string): Promise<TaskRecord | null> => ipcRenderer.invoke(IPC_CHANNELS.TASKS_GET, id),
+  cancelTask: (id: string): Promise<TaskRecord> => ipcRenderer.invoke(IPC_CHANNELS.TASKS_CANCEL, id),
+  onTaskChanged: (callback: (task: TaskRecord) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, task: TaskRecord): void => callback(task)
+    ipcRenderer.on(IPC_CHANNELS.TASKS_CHANGED, handler)
+    return () => { ipcRenderer.removeListener(IPC_CHANNELS.TASKS_CHANGED, handler) }
+  },
+  listModules: (): Promise<ModuleSnapshot[]> => ipcRenderer.invoke(IPC_CHANNELS.MODULES_LIST),
+  setModuleEnabled: (id: ModuleId, enabled: boolean, expectedRevision: number): Promise<ModuleSnapshot> => ipcRenderer.invoke(IPC_CHANNELS.MODULES_SET_ENABLED, { id, enabled, expectedRevision }),
+  diagnoseModule: (id: ModuleId): Promise<ModuleSnapshot> => ipcRenderer.invoke(IPC_CHANNELS.MODULES_DIAGNOSE, id),
   // High-level Agent APIs
   startLiveCall: (greeting = false): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke(IPC_CHANNELS.AGENT_LIVE_START, greeting),
   stopLiveCall: (): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.AGENT_LIVE_STOP),

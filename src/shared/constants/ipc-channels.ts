@@ -1,4 +1,11 @@
 export const IPC_CHANNELS = {
+  TASKS_LIST: 'tasks:list',
+  TASKS_GET: 'tasks:get',
+  TASKS_CANCEL: 'tasks:cancel',
+  TASKS_CHANGED: 'tasks:changed',
+  MODULES_LIST: 'modules:list',
+  MODULES_SET_ENABLED: 'modules:set-enabled',
+  MODULES_DIAGNOSE: 'modules:diagnose',
   // Agent traffic (Main <-> Renderer)
   AGENT_CONNECT: 'agent:connect',
   AGENT_DISCONNECT: 'agent:disconnect',

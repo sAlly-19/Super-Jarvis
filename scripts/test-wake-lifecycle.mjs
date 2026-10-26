@@ -14,7 +14,7 @@ const assets = path.resolve(root, process.argv.includes('--packaged')
 const electron = createRequire(import.meta.url)('electron')
 try {
   await build({
-    entryPoints: [path.join(root, 'test/clap-lifecycle.browser.ts')],
+    entryPoints: [path.join(root, process.argv.includes('--tasks') ? 'test/task-progress.browser.ts' : process.argv.includes('--modules') ? 'test/module-settings.browser.ts' : 'test/clap-lifecycle.browser.ts')],
     outfile: path.join(temporary, 'test.js'), bundle: true, platform: 'browser', external: ['fs'],
     alias: { util: path.join(root, 'src/renderer/util-polyfill.ts') }
   })
@@ -43,8 +43,8 @@ app.whenReady().then(async()=>{
   win.webContents.on('console-message',(event)=>{
     const message=event.message;
     console.log(message);
-    if(message?.includes('WAKE_LIFECYCLE_PASS')) {clearTimeout(deadline); app.exit(0)}
-    if(message?.includes('WAKE_LIFECYCLE_FAIL')) {clearTimeout(deadline); app.exit(1)}
+    if(message?.includes('WAKE_LIFECYCLE_PASS') || message?.includes('MODULE_SETTINGS_PASS') || message?.includes('TASK_PROGRESS_PASS')) {clearTimeout(deadline); app.exit(0)}
+    if(message?.includes('WAKE_LIFECYCLE_FAIL') || message?.includes('MODULE_SETTINGS_FAIL') || message?.includes('TASK_PROGRESS_FAIL')) {clearTimeout(deadline); app.exit(1)}
   });
   await win.loadURL('app://jasper/index.html');
 }).catch(error=>{console.error(error);app.exit(1)});

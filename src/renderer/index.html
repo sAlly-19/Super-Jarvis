@@ -12,6 +12,7 @@
   </head>
   <body>
     <div id="app">
+      <section id="task-progress" class="task-progress no-drag" aria-label="Progresso de tarefas" aria-live="polite" hidden></section>
       <!-- Frameless Window Titlebar -->
       <header id="titlebar">
         <div class="drag-region">
@@ -609,6 +610,9 @@
                       <button type="button" id="btn-settings-request-consent" class="btn-toggle hidden" style="margin-left: 8px;">Autorizar</button>
                     </div>
                   </div>
+                  <div id="module-settings-list" class="module-settings-grid"></div>
+                  <p id="module-settings-feedback" class="provider-local-note" aria-live="polite">Abra as configurações para consultar os módulos.</p>
+                  <button id="module-settings-refresh" type="button" class="btn-toggle">Atualizar módulos</button>
                   <ul class="capabilities-readonly-list">
                     <li><strong>PowerShell Nativo:</strong> Execução de comandos e scripts de administração (<code>run_powershell</code>).</li>
                     <li><strong>Automação GUI (Teclado e Mouse):</strong> Controle de cliques, atalhos e digitação (<code>gui_action</code>).</li>

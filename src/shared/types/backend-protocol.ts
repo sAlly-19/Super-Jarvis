@@ -9,7 +9,9 @@ export const HOST_TO_SIDECAR_MESSAGE_TYPES = [
   'shutdown',
   'live_start',
   'live_audio',
-  'live_stop'
+  'live_stop',
+  'module_snapshot', 'capability_execute', 'capability_response', 'invocation_cancel',
+  'task_runtime', 'task_event_ack', 'task_cancel'
 ] as const
 
 export const SIDECAR_TO_HOST_MESSAGE_TYPES = [
@@ -24,7 +26,9 @@ export const SIDECAR_TO_HOST_MESSAGE_TYPES = [
   'memory_clear',
   'turn_complete',
   'interrupted',
-  'error'
+  'error',
+  'module_snapshot_ack', 'capability_request', 'capability_result', 'capability_cancel_request',
+  'task_runtime_ack', 'task_event'
 ] as const
 
 export const BACKEND_MESSAGE_TYPES = [

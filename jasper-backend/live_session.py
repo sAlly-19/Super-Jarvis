@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from provider_adapters import _safe_provider_error
+from gemini_tools import gemini_function_declarations
 from tools_os import AVAILABLE_FUNCTIONS, TOOLS_SCHEMA
 from live_tools import execute_live_tool
 
@@ -19,10 +20,11 @@ def _client(key):
 
 
 class LiveCall:
-    def __init__(self, emit, client_factory=_client, tool_executor=execute_live_tool):
+    def __init__(self, emit, client_factory=_client, tool_executor=execute_live_tool, tool_catalog=None):
         self.emit = emit
         self.client_factory = client_factory
         self.tool_executor = tool_executor
+        self.tool_catalog = tool_catalog
         self.client = None
         self.session = None
         self.context = None
@@ -47,8 +49,10 @@ class LiveCall:
             'speech_config': {'voice_config': {'prebuilt_voice_config': {'voice_name': selected_voice}}},
             'input_audio_transcription': {},
             'output_audio_transcription': {},
-            'tools': [{'function_declarations': [t['function'] for t in TOOLS_SCHEMA]}],
         }
+        tool_definitions = gemini_function_declarations(self.tool_catalog() if self.tool_catalog else TOOLS_SCHEMA)
+        if tool_definitions:
+            config['tools'] = [{'function_declarations': tool_definitions}]
         try:
             self.context = self.client.aio.live.connect(model=LIVE_MODEL, config=config)
             self.session = await asyncio.wait_for(self.context.__aenter__(), timeout=20)
@@ -152,8 +156,12 @@ class LiveCall:
             fn = AVAILABLE_FUNCTIONS.get(call.name)
             args = dict(call.args or {})
             await self.emit('tool_execution', {'tool': call.name, 'args': args})
-            if fn:
+            declared = any(tool.get('function', {}).get('name') == call.name for tool in (self.tool_catalog() if self.tool_catalog else TOOLS_SCHEMA))
+            if fn or declared:
                 result = await self.tool_executor(call.name, args)
+                if call.name == 'capture_screen_base64' and isinstance(result, dict) and isinstance(result.get('data'), str):
+                    await self.session.send_realtime_input(video={'data': base64.b64decode(result['data']), 'mime_type': 'image/jpeg'})
+                    result = {**result, 'data': {'message': 'Captura enviada à sessão.'}}
                 if call.name == 'capture_screen_base64' and isinstance(result, str):
                     await self.session.send_realtime_input(video={'data': base64.b64decode(result), 'mime_type': 'image/jpeg'})
                     result = {'status': 'ok', 'message': 'Captura enviada à sessão.'}

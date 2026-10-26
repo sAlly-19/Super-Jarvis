@@ -14,6 +14,7 @@ except Exception:
 
 from protocol import FrameDecoder, FrameError, HOST_TO_SIDECAR_MESSAGE_TYPES, encode_frame, validate_incoming_state
 from runtime import JasperRuntime
+from dispatch import RuntimeDispatcher
 
 
 async def main() -> int:
@@ -29,6 +30,7 @@ async def main() -> int:
             sys.stdout.buffer.flush()
 
     runtime = JasperRuntime(event_sink=send_envelope)
+    dispatcher = RuntimeDispatcher(runtime, send_envelope)
 
     while True:
         try:
@@ -38,6 +40,10 @@ async def main() -> int:
             return 1
 
         if not chunk:
+            dispatcher.begin_shutdown()
+            await dispatcher.drain_controls()
+            await dispatcher.close()
+            await runtime.module_bridge.close()
             # EOF reached on stdin (parent process closed pipe)
             print("[Main] Stdin EOF received, exiting cleanly.", file=sys.stderr)
             if runtime.live_call is not None:
@@ -57,8 +63,7 @@ async def main() -> int:
             msg_type = frame.get("type")
             try:
                 validate_incoming_state(frame, handshake_complete)
-                async for reply in runtime.handle(frame):
-                    await send_envelope(reply)
+                await dispatcher.handle(frame)
                 if msg_type == "hello":
                     handshake_complete = True
             except FrameError as state_err:

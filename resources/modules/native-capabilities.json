@@ -1,0 +1,178 @@
+[
+  {
+    "id": "run_powershell",
+    "moduleId": "computer",
+    "description": "Executa comandos PowerShell no Windows.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": [
+        "string",
+        "object"
+      ]
+    },
+    "permissions": [
+      "computer.shell"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "system_command"
+    ],
+    "timeoutMs": 15000,
+    "cancellable": true
+  },
+  {
+    "id": "get_system_telemetry",
+    "moduleId": "computer",
+    "description": "Consulta CPU, memoria, disco e processos.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": [
+        "string",
+        "object"
+      ]
+    },
+    "permissions": [
+      "computer.telemetry"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "read"
+    ],
+    "timeoutMs": 25000,
+    "cancellable": true
+  },
+  {
+    "id": "gui_action",
+    "moduleId": "computer",
+    "description": "Controla mouse e teclado.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "click",
+            "double_click",
+            "right_click",
+            "move",
+            "type",
+            "hotkey"
+          ]
+        },
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": [
+        "string",
+        "object"
+      ]
+    },
+    "permissions": [
+      "computer.gui"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "desktop_input"
+    ],
+    "timeoutMs": 25000,
+    "cancellable": true
+  },
+  {
+    "id": "control_system_volume",
+    "moduleId": "computer",
+    "description": "Consulta ou ajusta volume do Windows.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "get",
+            "set",
+            "mute",
+            "unmute"
+          ]
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": [
+        "string",
+        "object"
+      ]
+    },
+    "permissions": [
+      "computer.volume"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "audio_setting"
+    ],
+    "timeoutMs": 25000,
+    "cancellable": true
+  },
+  {
+    "id": "capture_screen_base64",
+    "moduleId": "computer",
+    "description": "Captura o monitor principal para inspecao visual.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": [
+        "string",
+        "object"
+      ]
+    },
+    "permissions": [
+      "computer.screen"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "read"
+    ],
+    "timeoutMs": 25000,
+    "cancellable": true
+  }
+]

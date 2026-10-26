@@ -29,12 +29,22 @@ export function atomicWriteJsonSync(filePath: string, value: unknown): void {
       movedExistingFile = true
     }
     fs.renameSync(temporaryPath, filePath)
-    if (movedExistingFile && fs.existsSync(backupPath)) fs.unlinkSync(backupPath)
   } catch (error) {
     if (fs.existsSync(temporaryPath)) fs.unlinkSync(temporaryPath)
     if (!fs.existsSync(filePath) && movedExistingFile && fs.existsSync(backupPath)) {
       fs.renameSync(backupPath, filePath)
     }
     throw error
+  }
+
+  // The rename above committed the new document. Backup housekeeping must not
+  // report that committed write as a failure or trigger rollback semantics.
+  if (movedExistingFile) {
+    try {
+      if (fs.existsSync(backupPath)) fs.unlinkSync(backupPath)
+    } catch {
+      // Preserve the backup for later cleanup; never log its path or contents.
+      console.warn('[AtomicJSON] Write committed; backup cleanup deferred.')
+    }
   }
 }

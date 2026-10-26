@@ -8,6 +8,7 @@ import { registerIpcHandlers } from './ipc/register-ipc'
 import { updateManager } from './services/update-manager'
 import { licenseGate } from './services/license-gate'
 import { pythonBackend } from './services/python-backend'
+import { initializeModuleApplication, closeModuleApplication } from './modules/application'
 
 let licenseCheckTimer: NodeJS.Timeout | null = null
 let updateServiceStarted = false
@@ -55,6 +56,7 @@ function registerAppProtocol(): void {
 app.whenReady().then(() => {
   registerAppProtocol()
   configStore.initialize()
+  initializeModuleApplication()
 
   // 1. Registra IPC mínimo inicial
   registerIpcHandlers()
@@ -96,6 +98,7 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
+  void closeModuleApplication().catch(() => {})
   void licenseGate.shutdown().catch(() => {})
 })
 

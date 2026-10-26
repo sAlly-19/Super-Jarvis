@@ -56,6 +56,21 @@ export class PythonBackendManager {
   private messageListeners = new Set<(envelope: BackendEnvelope, sessionId: number) => void>()
   private restartTimer: unknown | null = null
   private sessionId = 0
+  private endedSessionId = 0
+  private sessionEndedListeners = new Set<(sessionId: number) => void>()
+
+  public onSessionEnded(listener: (sessionId: number) => void): () => void {
+    this.sessionEndedListeners.add(listener)
+    return () => { this.sessionEndedListeners.delete(listener) }
+  }
+
+  private notifySessionEnded(): void {
+    if (this.sessionId === 0 || this.endedSessionId === this.sessionId) return
+    this.endedSessionId = this.sessionId
+    for (const listener of this.sessionEndedListeners) {
+      try { listener(this.sessionId) } catch { console.warn('[PythonBackend] Session cleanup listener failed.') }
+    }
+  }
 
   private isExecutionAllowed: () => boolean
   private readonly manifest: BackendManifest
@@ -272,6 +287,7 @@ export class PythonBackendManager {
       this.restartTimer = null
     }
     const proc = this.process
+    this.notifySessionEnded()
     const wasReady = this.state === 'ready'
     this.process = null
     this.state = 'stopped'
@@ -423,6 +439,7 @@ export class PythonBackendManager {
 
   private handleProcessExit(child: ChildProcess, code: number | null, signal: string | null): void {
     if (this.process !== child) return
+    this.notifySessionEnded()
     this.process = null
     this.rejectAllPending(new Error(`Sidecar process exited (code=${code}, signal=${signal})`))
 
@@ -467,6 +484,7 @@ export class PythonBackendManager {
 
   private handleProtocolViolation(child: ChildProcess, cause: unknown): void {
     if (this.process !== child) return
+    this.notifySessionEnded()
     const detail = cause instanceof Error ? cause.message : String(cause)
     const error = new Error(`Sidecar protocol violation: ${detail}`)
     this.state = 'error'

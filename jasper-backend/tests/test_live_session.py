@@ -21,6 +21,45 @@ class FakeSession:
 
 
 class LiveTests(unittest.IsolatedAsyncioTestCase):
+    async def test_declared_orchestration_tool_delegates_to_runtime_executor(self):
+        self.call.tool_catalog = lambda: [{'type': 'function', 'function': {'name': 'execute_task', 'description': 'Task', 'parameters': {'type': 'object'}}}]
+        await self.call.start('test', 'Charon', 'System')
+        await self.session.messages.put(NS(server_content=None, tool_call=NS(function_calls=[NS(id='task', name='execute_task', args={'objective': 'Read twice'})])))
+        await asyncio.sleep(0.02)
+        self.call.tool_executor.assert_awaited_once_with('execute_task', {'objective': 'Read twice'})
+    async def test_live_projects_canonical_schema_without_weakening_original(self):
+        schema = {'type': 'object', 'properties': {'action': {'type': 'string', 'enum': ['get']}},
+                  'additionalProperties': False, 'required': ['action']}
+        self.call.tool_catalog = lambda: [{'type': 'function', 'function': {'name': 'read', 'description': 'Read', 'parameters': schema}}]
+        configs = []
+        connect = self.client.aio.live.connect
+        def capture(**kwargs):
+            configs.append(kwargs['config'])
+            return connect(**kwargs)
+        self.client.aio.live.connect = capture
+        await self.call.start('test', 'Charon', 'System')
+        parameters = configs[0]['tools'][0]['function_declarations'][0]['parameters']
+        self.assertNotIn('additionalProperties', parameters)
+        self.assertEqual(parameters['properties']['action']['enum'], ['get'])
+        self.assertEqual(parameters['required'], ['action'])
+        self.assertIs(schema['additionalProperties'], False)
+
+    async def test_disabled_catalog_omits_tools_and_native_calls_are_denied_by_bridge(self):
+        from module_bridge import ModuleBridge
+        configs = []
+        connect = self.client.aio.live.connect
+        def capture_config(**kwargs):
+            configs.append(kwargs['config'])
+            return connect(**kwargs)
+        self.client.aio.live.connect = capture_config
+        self.call.tool_catalog = lambda: []
+        self.call.tool_executor = ModuleBridge(None).invoke
+        await self.call.start('secret', 'Charon', 'Sistema')
+        self.assertNotIn('tools', configs[0])
+        await self.session.messages.put(NS(server_content=None, tool_call=NS(function_calls=[NS(id='denied', name='get_system_telemetry', args={})])))
+        await asyncio.sleep(0.02)
+        response = self.session.send_tool_response.call_args.kwargs['function_responses'][0]['response']
+        self.assertEqual(response['error'], 'module_unavailable')
     async def asyncSetUp(self):
         self.events = []
         self.session = FakeSession()

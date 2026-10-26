@@ -1,5 +1,7 @@
 import struct
 import json
+from module_protocol import validate_module_payload
+from orchestration.protocol import validate_task_payload
 from typing import Any, Dict, List
 
 MAX_FRAME_BODY_LENGTH = 16 * 1024 * 1024  # 16 MiB
@@ -9,11 +11,11 @@ MAX_CHAT_TEXT_LENGTH = 20_000
 
 HOST_TO_SIDECAR_MESSAGE_TYPES = (
     "hello", "config", "chat", "audio_input", "interrupt", "memory_snapshot", "memory_clear", "shutdown",
-    "live_start", "live_audio", "live_stop",
+    "live_start", "live_audio", "live_stop", "module_snapshot", "capability_execute", "capability_response", "invocation_cancel", "task_runtime", "task_event_ack", "task_cancel",
 )
 SIDECAR_TO_HOST_MESSAGE_TYPES = (
     "hello_ack", "status", "user_transcript", "response", "audio_output", "tool_execution", "tool_result",
-    "memory_upsert", "memory_clear", "turn_complete", "interrupted", "error",
+    "memory_upsert", "memory_clear", "turn_complete", "interrupted", "error", "module_snapshot_ack", "capability_request", "capability_result", "capability_cancel_request", "task_runtime_ack", "task_event",
 )
 ALL_MESSAGE_TYPES = HOST_TO_SIDECAR_MESSAGE_TYPES + tuple(
     message_type for message_type in SIDECAR_TO_HOST_MESSAGE_TYPES if message_type != "memory_clear"
@@ -32,6 +34,15 @@ def _require_string(payload: Dict[str, Any], field: str, allow_empty: bool = Fal
 
 
 def _validate_payload(msg_type: str, payload: Any) -> None:
+    try:
+        if validate_task_payload(msg_type, payload): return
+    except ValueError as exc:
+        raise FrameError('Invalid task payload') from exc
+    try:
+        if validate_module_payload(msg_type, payload):
+            return
+    except ValueError as exc:
+        raise FrameError('Invalid modular payload') from exc
     if not isinstance(payload, dict):
         raise FrameError(f"Payload inválido para '{msg_type}': esperado objeto.")
 

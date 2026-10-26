@@ -336,7 +336,7 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
         )
         self.runtime.provider_adapter = adapter
 
-        with patch.dict("runtime.AVAILABLE_FUNCTIONS", {"test_tool": lambda value: json.dumps({"value": value})}), patch(
+        with patch.object(self.runtime.module_bridge, 'invoke', new_callable=AsyncMock, return_value={'status': 'unknown', 'data': {'value': 7}, 'evidence': []}) as delegated, patch(
             "runtime.generate_tts_base64", new_callable=AsyncMock, return_value=""
         ):
             replies = [
@@ -353,6 +353,7 @@ class TestJasperRuntime(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response["payload"]["text"], "Ferramenta concluída.")
         tool_message = adapter.completions[1]["messages"][-1]
         self.assertEqual(tool_message["tool_call_id"], "call-1")
+        delegated.assert_awaited_once_with('test_tool', {'value': 7})
 
     def test_groq_transcription_uses_official_sdk_without_litellm(self):
         calls = []
