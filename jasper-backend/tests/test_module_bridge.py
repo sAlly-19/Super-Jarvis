@@ -10,6 +10,27 @@ from provider_adapters import ProviderResponse, ProviderToolCall
 
 
 class ModuleBridgeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_unrelated_snapshot_preserves_pending_request_and_late_grant(self):
+        sent = []
+        async def emit(frame): sent.append(frame)
+        executor = AsyncMock(return_value='fixture')
+        bridge = ModuleBridge(emit, executor=executor)
+        computer = {'id': 'get_system_telemetry', 'moduleId': 'computer', 'description': 'fixture', 'inputSchema': {'type': 'object'}}
+        reminder = {**computer, 'id': 'reminder_get', 'moduleId': 'reminders'}
+        await bridge.snapshot({'moduleRuntimeVersion': 1, 'snapshotVersion': 1, 'sessionId': 1, 'capabilities': [computer, reminder]}, 'one')
+        work = asyncio.create_task(bridge.invoke('get_system_telemetry', {}))
+        await asyncio.sleep(0)
+        request_id = sent[-1]['payload']['requestId']
+        await bridge.snapshot({'moduleRuntimeVersion': 1, 'snapshotVersion': 2, 'sessionId': 1, 'capabilities': [computer]}, 'two')
+        await asyncio.sleep(0)
+        self.assertFalse(work.done())
+        grant = {'requestId': request_id, 'snapshotVersion': 1, 'capabilityId': computer['id'], 'args': {}, 'context': {'invocationId': 'fixture', 'taskId': 'task', 'stepId': 'step', 'sessionId': 1, 'moduleRevision': 0}}
+        await bridge.execute(grant)
+        await asyncio.sleep(0)
+        executor.assert_awaited_once()
+        bridge.respond({'requestId': request_id, 'result': {'status': 'unknown', 'data': 'fixture', 'evidence': []}})
+        self.assertEqual((await work)['data'], 'fixture')
+        await bridge.close()
     async def test_grants_are_correlated_single_use_and_cancelling_request_waits_for_worker_cleanup(self):
         sent = []
         started = asyncio.Event()

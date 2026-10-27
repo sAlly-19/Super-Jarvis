@@ -210,8 +210,9 @@ async def transcribe_audio_base64(audio_b64: str, api_key: str = "", provider: s
 
 from orchestration.client import TaskClient
 from orchestration.planner import Planner, ClarificationRequired
-from orchestration.contracts import validate_plan
+from orchestration.contracts import validate_plan, verifier_for
 from orchestration.verification import task_summary
+from orchestration.responder import compose_task_response
 
 
 class JasperRuntime:
@@ -258,6 +259,10 @@ class JasperRuntime:
             "gui_action, control_system_volume, capture_screen_base64). Use-as autonomamente sempre que "
             "o usuário pedir para abrir programas, executar comandos, verificar hardware/processos, "
             "interagir com a tela ou ajustar o sistema."
+            " Para lembretes persistentes do Jasper, use as ferramentas reminder_* quando estiverem no catálogo. "
+            "Se não estiverem disponíveis, informe que o módulo de lembretes está indisponível. "
+            "Não substitua esse módulo criando por conta própria serviços ou tarefas do Agendador do Windows. "
+            "Não invente data, hora ou fuso quando faltar uma referência confiável: peça o esclarecimento necessário."
             f"{facts_block}"
         )
 
@@ -446,7 +451,7 @@ class JasperRuntime:
                 if self.tasks.session_id is not None:
                     planner = Planner(adapter, validated_model)
                     result = await self.tasks.run('chat', lambda task_id: planner.plan(task_id, user_text, self.module_bridge.capabilities))
-                    final_text = task_summary(result)
+                    final_text = await compose_task_response(adapter, validated_model, user_text, result)
                     break
 
                 messages.append(response.assistant_message)
@@ -571,13 +576,13 @@ class JasperRuntime:
             async def build(task_id):
                 return validate_plan({'taskId': task_id, 'revision': 0, 'steps': [{
                     'id': 's1', 'capabilityId': name, 'args': args, 'dependsOn': [], 'bindings': [],
-                    'successCriterion': {'verifierId': 'telemetry_read' if name == 'get_system_telemetry' else 'none', 'expected': None}
+                    'successCriterion': {'verifierId': verifier_for(name), 'expected': None}
                 }]}, self.module_bridge.capabilities)
         result = await self.tasks.run('live', build)
         if name != 'execute_task':
             return result.get('results', {}).get('s1', {'status': result['status'], 'evidence': []})
-        # Coordination response contains metadata only; raw outputs are untrusted and stay volatile.
-        return {'status': result['status'], 'steps': result['steps']}
+        # Bounded observations are volatile tool data, never operational authority or SQLite history.
+        return {'status': result['status'], 'steps': result['steps'], 'summary': task_summary(result)}
 
     async def handle(self, message: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
         msg_type = message.get("type")

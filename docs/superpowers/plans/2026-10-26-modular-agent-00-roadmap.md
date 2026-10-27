@@ -34,6 +34,10 @@ Cada documento tem o mesmo prefixo deste arquivo, seguido do número/nome. Não 
 
 ## Decisões e gates
 
+Decisão posterior vigente: usuário rejeitou A e ordenou B. Catálogo estruturado A e guard retirados; cinco ferramentas originais/PowerShell livre restaurados, com melhores diagnósticos. [Estado atual do plano B](2026-10-27-computer-control-plan-b.md). Referências à entrega A abaixo são históricas, não instrução para restaurá-la.
+
+Atualização de 27/10/2026: fase03 alternativa A autorizada e implementada, preservando PowerShell livre; [evidências e retomada](2026-10-27-computer-control-progress.md). Novas ferramentas estruturadas, protocolo de tarefas v2, plano aceito no Main e migração004 validados localmente. Provedor real permanece diferido; fases04–14 não iniciadas nesta entrega.
+
 Atualização de execução em 26/10/2026: usuário autorizou 01 e depois avançou explicitamente ao 02 apesar da pendência HTTP 503. O1–O5 aprovados e núcleo do orquestrador implementado com validação local. Registro atual: [progresso 02](2026-10-26-orchestrator-progress.md). Aceite com objetivo composto por provedor real ainda pendente; não iniciar integrações futuras ou publicar automaticamente. As restrições de somente planejamento abaixo descrevem a rodada original e são superadas somente para as fases posteriormente autorizadas.
 - T1 — SQLite integrado verificado e adotado no plano após autorização do usuário: node:sqlite no Electron Main, sem dependência nova. Probe local passou; validação de produção/empacotamento permanece pendente.
 - D1 — RESOLVIDA: opção A, núcleo Python + governança Main, escolhida pelo usuário em 26/10/2026.

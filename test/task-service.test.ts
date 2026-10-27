@@ -7,7 +7,7 @@ import { TaskStore } from '../src/main/tasks/task-store'
 import { TaskService } from '../src/main/tasks/task-service'
 
 test('task service binds stable invocations and only host-observed telemetry can verify a step', () => {
-  const sql = ['001-module-state.sql', '002-capability-invocations.sql', '003-tasks.sql'].map(name => fs.readFileSync(path.join(process.cwd(), 'src/main/storage/migrations', name), 'utf8'))
+  const sql = ['001-module-state.sql', '002-capability-invocations.sql', '003-tasks.sql', '004-task-evidence.sql'].map(name => fs.readFileSync(path.join(process.cwd(), 'src/main/storage/migrations', name), 'utf8'))
   const db = new StateDatabase(':memory:', sql[0], sql.slice(1))
   try {
     let access = true

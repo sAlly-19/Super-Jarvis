@@ -26,23 +26,23 @@ export function initializeModuleSettings(): void {
       toggle.type = 'checkbox'
       toggle.checked = snapshot.enabled
       toggle.setAttribute('aria-label', LABELS[snapshot.id])
-      toggle.disabled = snapshot.id !== 'computer' || !snapshot.authorized || snapshot.lifecycle === 'stopping'
+      toggle.disabled = !snapshot.configured || !snapshot.authorized || snapshot.lifecycle === 'stopping'
       label.append(title, toggle)
       const status = document.createElement('p')
       status.className = 'module-settings-status'
-      status.textContent = snapshot.id !== 'computer' ? 'Planejado — ainda não implementado'
+      status.textContent = !snapshot.configured ? 'Planejado — ainda não implementado'
         : !snapshot.authorized ? 'Aguardando consentimento operacional'
         : snapshot.lifecycle === 'stopping' ? 'Encerramento pendente — não reativar'
         : !snapshot.enabled ? 'Desativado'
         : snapshot.health !== 'healthy' ? 'Runtime indisponível — reconecte o agente'
-        : 'Ativo — ferramentas nativas autorizadas'
+        : snapshot.id === 'reminders' ? 'Ativo — agenda local com o aplicativo aberto' : 'Ativo — ferramentas nativas autorizadas'
       const detail = document.createElement('small')
-      detail.textContent = snapshot.id === 'computer' ? 'PowerShell, teclado/mouse, volume, telemetria e captura. Sem confirmação por operação.' : 'Configuração será disponibilizada na fase deste módulo.'
+      detail.textContent = snapshot.id === 'computer' ? 'PowerShell livre para scripts e automação do Windows, teclado/mouse, volume, telemetria e captura. Sem confirmação por operação. Comandos e erros são apresentados sem presumir que o objetivo foi concluído.' : snapshot.id === 'reminders' ? 'Agenda e calendário manual .ics no painel abaixo. Avisos sem som; resumo de atrasados na retomada. Não depende de conexão com a IA.' : 'Configuração será disponibilizada na fase deste módulo.'
       const diagnostic = document.createElement('button')
       diagnostic.type = 'button'
       diagnostic.className = 'btn-toggle'
       diagnostic.textContent = 'Diagnosticar'
-      diagnostic.disabled = snapshot.id !== 'computer' || !snapshot.authorized
+      diagnostic.disabled = !snapshot.configured || !snapshot.authorized
       diagnostic.addEventListener('click', async () => {
         diagnostic.disabled = true
         try { await window.electronAPI.diagnoseModule(snapshot.id); await refresh() }
@@ -53,6 +53,7 @@ export function initializeModuleSettings(): void {
         toggle.disabled = true
         try {
           await window.electronAPI.setModuleEnabled(snapshot.id, toggle.checked, snapshot.revision)
+          window.dispatchEvent(new Event('jasper-modules-changed'))
           await refresh()
         } catch {
           await refresh()

@@ -1,5 +1,9 @@
 # Controle do computador — roteiro de implementação
 
+> **Estado vigente:** A rejeitado pelo usuário; B implementado com as cinco ferramentas originais e PowerShell livre. [Plano B e evidências](2026-10-27-computer-control-plan-b.md). Atualizações A abaixo são históricas.
+
+> Atualização 27/10/2026: alternativa A autorizada e implementada com validação local. [Desenho](../specs/2026-10-27-computer-control-design.md), [plano detalhado](2026-10-27-computer-control-implementation.md) e [progresso/evidências](2026-10-27-computer-control-progress.md). Este roteiro é histórico; o caminho modules/computer.py e o status preliminar abaixo foram substituídos pelo plano detalhado. Aceite com provedor real continua diferido.
+
 > **For agentic workers:** REQUIRED SUB-SKILL após aprovação: superpowers:executing-plans ou superpowers:subagent-driven-development. Não iniciar código a partir deste rascunho.
 
 **Goal:** Entregar o módulo 01 da proposta: Controle do computador.

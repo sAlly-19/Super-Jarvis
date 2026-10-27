@@ -1,12 +1,18 @@
+from .diagnostics import diagnostic
+
+
 def task_summary(result):
     labels = {'succeeded': 'Tarefa verificada.', 'partial': 'Tarefa parcialmente verificada.',
-              'unknown': 'Resultado desconhecido. Não vou repetir ações automaticamente.',
+              'unknown': 'Execução encerrada; resultado do objetivo não comprovado. Não vou repetir ações automaticamente.',
               'failed': 'Não foi possível concluir a tarefa.', 'cancelled': 'Tarefa cancelada.'}
     parts = [labels[result['status']]]
     for observation in result.get('results', {}).values():
         if observation.get('status') == 'succeeded' and any(item.get('verified') is True and item.get('kind') == 'telemetry_read' for item in observation.get('evidence', [])):
             data = observation.get('data', {})
             parts.append(f"CPU: {data['cpu_percent']}%. RAM: {data['ram']['percent']}%. Disco C: {data['disk_c']['percent']}%.")
+        else:
+            detail = diagnostic(observation)
+            if detail: parts.append(detail)
     return ' '.join(parts)
 
 

@@ -11,6 +11,10 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/main/index.ts'),
+          'reminders-ical-worker': resolve(__dirname, 'src/main/modules/reminders/ical-worker.ts')
+        },
         external: ['ws', 'dotenv']
       }
     }

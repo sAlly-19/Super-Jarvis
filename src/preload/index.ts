@@ -16,10 +16,34 @@ import {
   type ToolResultPayload,
   type ModuleId,
   type ModuleSnapshot,
-  type TaskRecord
+  type TaskRecord,
+  type ReminderListQuery,
+  type MutationRequest,
+  type ReminderPreferencesRequest,
+  type ReminderImportAction,
+  type ReminderExportRequest,
+  type ReminderOverdueSummary
 } from '@shared'
 
 const electronAPI = {
+  listReminders: (query: ReminderListQuery) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_LIST, query),
+  getReminder: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_GET, id),
+  mutateReminder: (request: MutationRequest) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_MUTATE, request),
+  reminderPreferences: (request: ReminderPreferencesRequest) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_PREFERENCES, request),
+  importReminders: (request: ReminderImportAction) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_IMPORT, request),
+  exportReminders: (request: ReminderExportRequest) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_EXPORT, request),
+  getOverdueReminders: (cursor?: string, batchId?: string) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_OVERDUE, { ...(cursor ? { cursor } : {}), ...(batchId ? { batchId } : {}) }),
+  acknowledgeOverdueReminders: (batchId: string, observedTotal: number) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_ACK_OVERDUE, { batchId, observedTotal }),
+  onRemindersChanged: (callback: () => void): (() => void) => {
+    const handler = () => callback()
+    ipcRenderer.on(IPC_CHANNELS.REMINDERS_CHANGED, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.REMINDERS_CHANGED, handler)
+  },
+  onOverdueReminders: (callback: (batch: ReminderOverdueSummary) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, batch: ReminderOverdueSummary) => callback(batch)
+    ipcRenderer.on(IPC_CHANNELS.REMINDERS_OVERDUE, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.REMINDERS_OVERDUE, handler)
+  },
   listTasks: (): Promise<TaskRecord[]> => ipcRenderer.invoke(IPC_CHANNELS.TASKS_LIST),
   getTask: (id: string): Promise<TaskRecord | null> => ipcRenderer.invoke(IPC_CHANNELS.TASKS_GET, id),
   cancelTask: (id: string): Promise<TaskRecord> => ipcRenderer.invoke(IPC_CHANNELS.TASKS_CANCEL, id),

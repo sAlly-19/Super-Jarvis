@@ -6,7 +6,7 @@ import os from 'node:os'
 import { StateDatabase } from '../src/main/storage/state-database'
 import { TaskStore } from '../src/main/tasks/task-store'
 
-const migrations = () => ['001-module-state.sql', '002-capability-invocations.sql', '003-tasks.sql'].map(name => fs.readFileSync(path.join(process.cwd(), 'src/main/storage/migrations', name), 'utf8'))
+const migrations = () => ['001-module-state.sql', '002-capability-invocations.sql', '003-tasks.sql', '004-task-evidence.sql'].map(name => fs.readFileSync(path.join(process.cwd(), 'src/main/storage/migrations', name), 'utf8'))
 function database(filename: string) { const [first, ...rest] = migrations(); return new StateDatabase(filename, first, rest) }
 
 test('task events use CAS, reject replay and persist only host-generated metadata', () => {

@@ -139,10 +139,16 @@ class LiveTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.session.send_client_content.call_args.kwargs['turn_complete'])
 
     async def test_network_failure_closes_session_and_emits_safe_error(self):
+        closed = asyncio.Event()
+        original_emit = self.call.emit
+        async def emit(kind, payload):
+            await original_emit(kind, payload)
+            if kind == 'status' and payload.get('status') == 'live_closed': closed.set()
+        self.call.emit = emit
         await self.call.start('secret', 'Charon', 'Sistema')
         self.session.send_realtime_input.side_effect = ConnectionError('network secret')
         self.call.enqueue_audio('AAA=')
-        await asyncio.sleep(0.02)
+        await asyncio.wait_for(closed.wait(), timeout=2)
         self.assertFalse(self.call.active)
         self.assertIn('live_closed', [p.get('status') for k, p in self.events if k == 'status'])
         self.assertNotIn('secret', str(self.events))

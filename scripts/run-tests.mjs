@@ -24,6 +24,13 @@ fs.symlinkSync(path.join(rootDir, 'node_modules'), path.join(tempTestRoot, 'node
 const electronMockShim = `
 import os from 'node:os';
 import path from 'node:path';
+import { EventEmitter } from 'node:events';
+export const powerMonitor = new EventEmitter();
+export class Notification extends EventEmitter {
+  static isSupported() { return false; }
+  constructor(options) { super(); this.options = options; }
+  show() { throw new Error('Desktop notifications are forbidden in source tests'); }
+}
 const tempUserData = ${JSON.stringify(tempUserData)};
 
 export const app = {

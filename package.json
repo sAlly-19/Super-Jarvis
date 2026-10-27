@@ -44,6 +44,7 @@
     "dotenv": "^16.4.7",
     "electron-updater": "^6.8.9",
     "exceljs": "^4.4.0",
+    "ical.js": "2.2.1",
     "jsqr": "^1.4.0",
     "mammoth": "^1.12.3",
     "pdf-parse": "^2.4.5",

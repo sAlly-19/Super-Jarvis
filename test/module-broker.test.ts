@@ -15,7 +15,7 @@ function invocations(t: TestContext): InvocationStore {
   return new InvocationStore(db)
 }
 
-test('disabling computer blocks every native capability before worker dispatch', async t => {
+test('disabling computer blocks every computer capability before worker dispatch', async t => {
   const registry = new ModuleRegistry(JSON.parse(fs.readFileSync(path.join(process.cwd(), 'resources/modules/native-capabilities.json'), 'utf8')))
   let calls = 0
   const policy = new ModulePolicy(registry, {
@@ -28,7 +28,7 @@ test('disabling computer blocks every native capability before worker dispatch',
     run_powershell: { command: 'Get-Date' }, get_system_telemetry: {},
     gui_action: { action: 'move', x: 0, y: 0 }, control_system_volume: { action: 'mute' }, capture_screen_base64: {}
   }
-  for (const capability of registry.list()) {
+  for (const capability of registry.list().filter(capability => capability.moduleId === 'computer')) {
     const result = await broker.invoke(capability.id, args[capability.id], {
       taskId: 'acceptance', stepId: capability.id, invocationId: capability.id, sessionId: 1, moduleRevision: 1
     })

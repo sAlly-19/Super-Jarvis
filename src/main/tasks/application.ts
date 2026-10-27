@@ -1,6 +1,6 @@
 import type { StateDatabase } from '../storage/state-database'
 import { TaskStore } from './task-store'
-import { TaskService } from './task-service'
+import { TaskService, type TaskDependencies } from './task-service'
 import { TaskEventRouter } from './task-event-router'
 import { pythonBackend } from '../services/python-backend'
 import { operationalAccess } from '../services/operational-access'
@@ -8,11 +8,12 @@ import { licenseGate } from '../services/license-gate'
 import { safeSend } from '../windows/main-window'
 import { IPC_CHANNELS } from '../../shared/constants/ipc-channels'
 let service: TaskService | undefined
-export function initializeTaskApplication(database: StateDatabase): TaskService {
+export function initializeTaskApplication(database: StateDatabase, verification: Pick<TaskDependencies, 'verifyCapability' | 'releaseObservation' | 'clearObservations'> = {}): TaskService {
   if (service) return service
   const store = new TaskStore(database)
   store.markInterrupted()
   service = new TaskService(store, {
+    ...verification,
     requireAccess: () => operationalAccess.requireAgentAccess(), sessionId: () => pythonBackend.getSessionId(),
     sendCancel: taskId => pythonBackend.notify('task_cancel', { taskId }),
     changed: task => safeSend(IPC_CHANNELS.TASKS_CHANGED, task)

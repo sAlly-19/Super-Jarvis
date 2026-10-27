@@ -622,6 +622,40 @@
                   </ul>
                 </div>
 
+                <section class="settings-card reminders-settings" aria-labelledby="reminders-heading">
+                  <div class="settings-card-header"><div class="card-text-col"><h4 id="reminders-heading">Lembretes &amp; calendário</h4><p>Avisos enquanto o Jasper estiver aberto. Ative Lembretes nos módulos acima.</p></div></div>
+                  <p id="reminders-feedback" role="status">Carregando disponibilidade...</p>
+                  <fieldset id="reminders-controls" disabled>
+                    <div class="reminders-toolbar">
+                      <button id="reminders-new" type="button" class="btn-toggle">Novo lembrete</button>
+                      <button id="reminders-refresh" type="button" class="btn-toggle">Atualizar</button>
+                      <button id="reminders-import" type="button" class="btn-toggle">Importar .ics</button>
+                      <button id="reminders-export" type="button" class="btn-toggle">Exportar esta página</button>
+                      <label>Exibir <select id="reminders-state"><option value="active">Ativos</option><option value="completed">Concluídos</option></select></label>
+                    </div>
+                    <form id="reminders-editor" class="reminders-form" hidden>
+                      <label>Título<input id="reminder-title" maxlength="200" required autocomplete="off"></label>
+                      <label>Descrição<textarea id="reminder-description" maxlength="4000" rows="2"></textarea></label>
+                      <div class="reminders-fields">
+                        <label>Data e hora no fuso escolhido<input id="reminder-date" type="datetime-local" step="1" required></label>
+                        <label>Fuso IANA<input id="reminder-zone" placeholder="America/Sao_Paulo" required></label>
+                        <label>Repetição<select id="reminder-recurrence"><option value="none">Uma vez</option><option value="daily">Diariamente</option><option value="weekly">Semanalmente</option><option value="monthly">Mensalmente</option></select></label>
+                        <label>Dia de referência mensal<input id="reminder-anchor" type="number" min="1" max="31" value="1" required></label>
+                      </div>
+                      <p id="reminder-edit-note" class="provider-local-note"></p>
+                      <div class="reminders-toolbar"><button type="submit" class="btn-toggle">Salvar lembrete</button><button id="reminders-cancel-edit" type="button" class="btn-toggle">Fechar editor</button></div>
+                    </form>
+                    <div id="reminders-import-preview" hidden><p id="reminders-import-report"></p><button id="reminders-import-apply" type="button" class="btn-toggle">Importar itens válidos</button><button id="reminders-import-cancel" type="button" class="btn-toggle">Descartar prévia</button></div>
+                    <div id="reminders-list" class="reminders-list"></div>
+                    <button id="reminders-next" type="button" class="btn-toggle" hidden>Próxima página</button>
+                    <details class="reminders-preferences"><summary>Preferências de calendário</summary>
+                      <div class="reminders-fields"><label>Fuso para novos itens<input id="reminders-pref-zone" placeholder="America/Sao_Paulo"></label><label>Aviso de dia inteiro<input id="reminders-pref-time" type="time" value="09:00"></label></div>
+                      <label><input id="reminders-pref-notifications" type="checkbox" checked> Notificações do sistema, sem som</label>
+                      <p class="provider-local-note">O fuso original dos lembretes é preservado. O horário de dia inteiro vale para novas importações.</p>
+                      <button id="reminders-save-preferences" type="button" class="btn-toggle">Salvar preferências</button>
+                    </details>
+                  </fieldset>
+                </section>
                 <!-- Application Updates -->
                 <div class="settings-card update-settings-card">
                   <div class="settings-card-header">
@@ -872,5 +906,9 @@
     </div>
 
     <script type="module" src="./main.ts"></script>
-  </body>
+  <aside id="reminders-overdue" class="reminders-overdue" role="status" hidden>
+    <strong id="reminders-overdue-title"></strong><p>Resumo dos atrasados; nenhum lembrete foi concluído ou adiado.</p>
+    <div id="reminders-overdue-list"></div><button id="reminders-overdue-more" type="button" class="btn-toggle" hidden>Mais itens</button><button id="reminders-overdue-dismiss" type="button" class="btn-toggle">Fechar resumo</button>
+  </aside>
+</body>
 </html>

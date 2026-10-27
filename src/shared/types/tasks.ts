@@ -7,9 +7,10 @@ export interface PlanStep {
   successCriterion: { verifierId: string; expected: unknown }
 }
 export interface TaskPlan { taskId: string; revision: number; steps: PlanStep[] }
+export interface TaskEvidence { stepId: string; invocationId: string; kind: string; reference: string; observedAt: string; verified: boolean }
 export interface TaskRecord {
   taskId: string; origin: TaskOrigin; sessionId: number; status: TaskStatus; revision: number
-  createdAt: string; updatedAt: string; stepStates: Record<string, StepStatus>; evidence: never[]; errorCode?: string
+  createdAt: string; updatedAt: string; stepStates: Record<string, StepStatus>; evidence: TaskEvidence[]; errorCode?: string
 }
 export type TaskMutation = { sequence: number } & (
   { type: 'planning' } | { type: 'plan_ready'; stepIds: string[] } |

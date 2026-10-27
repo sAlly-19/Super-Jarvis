@@ -2064,5 +2064,22 @@ select:focus,
 }
 .task-progress { position: fixed; left: 20px; bottom: 100px; z-index: 15; width: min(420px, calc(100vw - 40px)); padding: 10px 14px; border: 1px solid #555; border-radius: 12px; background: #101012ed; color: #eee; font-size: 12px; }
 .task-progress[hidden] { display: none; }
+.reminders-settings fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.reminders-settings fieldset:disabled { opacity: .55; }
+.reminders-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.reminders-toolbar label { margin-left: auto; }
+.reminders-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.reminders-settings label { display: grid; gap: 6px; font-size: 12px; color: #bdbdc4; }
+.reminders-settings input:not([type=checkbox]), .reminders-settings select, .reminders-settings textarea { box-sizing: border-box; width: 100%; padding: 10px 12px; border: 1px solid #39393e; border-radius: 8px; background: #09090b; color: #eee; font: inherit; color-scheme: dark; }
+.reminders-form, .reminders-preferences, #reminders-import-preview { border: 1px solid #39393e; border-radius: 10px; padding: 14px; margin: 14px 0; }
+.reminders-form > label { margin-bottom: 12px; }
+.reminder-row { border-top: 1px solid #303034; padding: 15px 0 4px; overflow-wrap: anywhere; }
+.reminder-row p { white-space: pre-wrap; color: #bdbdc4; margin: 7px 0; }
+.reminder-row small { display: block; color: #9999a2; }
+.reminders-settings button:focus-visible, .reminders-settings input:focus-visible, .reminders-settings select:focus-visible, .reminders-settings textarea:focus-visible { outline: 2px solid #ddd; outline-offset: 2px; }
+.reminders-overdue { position: fixed; z-index: 2100; top: 60px; right: 20px; width: min(430px, calc(100vw - 40px)); max-height: 60vh; overflow: auto; padding: 18px; border: 1px solid #68686e; border-radius: 14px; background: #101012f5; color: #eee; box-shadow: 0 12px 40px #0008; font-size: 13px; overflow-wrap: anywhere; }
+.reminders-overdue[hidden], .reminders-form[hidden], #reminders-import-preview[hidden] { display: none; }
+.reminders-overdue p { color: #bdbdc4; line-height: 1.5; }
+@media (max-width: 650px) { .reminders-fields { grid-template-columns: 1fr; } }
 .task-progress > div { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 5px 0; }
 .task-progress button { border: 1px solid #777; border-radius: 6px; padding: 5px 8px; color: inherit; background: #222; cursor: pointer; }

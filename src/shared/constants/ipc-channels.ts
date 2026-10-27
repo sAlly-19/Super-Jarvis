@@ -1,4 +1,13 @@
 export const IPC_CHANNELS = {
+  REMINDERS_LIST: 'reminders:list',
+  REMINDERS_GET: 'reminders:get',
+  REMINDERS_MUTATE: 'reminders:mutate',
+  REMINDERS_PREFERENCES: 'reminders:preferences',
+  REMINDERS_IMPORT: 'reminders:import',
+  REMINDERS_EXPORT: 'reminders:export',
+  REMINDERS_CHANGED: 'reminders:changed',
+  REMINDERS_OVERDUE: 'reminders:overdue',
+  REMINDERS_ACK_OVERDUE: 'reminders:ack-overdue',
   TASKS_LIST: 'tasks:list',
   TASKS_GET: 'tasks:get',
   TASKS_CANCEL: 'tasks:cancel',

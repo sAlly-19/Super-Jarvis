@@ -2,7 +2,8 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, basename } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const listed = spawnSync('git', ['ls-files', '-z'], { encoding: 'utf8' });
+const includeUntracked = process.argv.includes('--include-untracked');
+const listed = spawnSync('git', ['ls-files', '-z', ...(includeUntracked ? ['--cached', '--others', '--exclude-standard'] : [])], { encoding: 'utf8' });
 if (listed.status !== 0) {
   console.error(listed.stderr || 'Unable to list tracked files.');
   process.exit(1);
@@ -69,4 +70,4 @@ if (findings.length > 0) {
   process.exit(1);
 }
 
-console.log(`Secret scan passed: ${files.length} tracked files checked.`);
+console.log(`Secret scan passed: ${files.length} ${includeUntracked ? 'tracked and nonignored untracked' : 'tracked'} files checked.`);

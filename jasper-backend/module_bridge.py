@@ -1,6 +1,7 @@
 """Private modular protocol client. Only the Main process can authorize dispatch."""
 import asyncio
 import uuid
+import copy
 from live_tools import execute_live_tool
 
 
@@ -19,6 +20,7 @@ class ModuleBridge:
         self.pending = {}
         self.executing = {}
         self.granted = {}
+        self.requests = {}
 
     def tools(self):
         return [{'type': 'function', 'function': {'name': item['id'], 'description': item['description'], 'parameters': item['inputSchema']}}
@@ -35,12 +37,14 @@ class ModuleBridge:
     async def snapshot(self, payload, reply_to):
         if payload['moduleRuntimeVersion'] != 1 or payload['snapshotVersion'] <= self.version:
             raise ValueError('invalid_module_snapshot')
-        for future in self.pending.values():
-            if not future.done():
-                future.set_result({'error': 'module_snapshot_changed'})
-        for task in self.executing.values():
-            self._cancel_worker(task)
-        self.capabilities = {item['id']: item for item in payload['capabilities']}
+        capabilities = {item['id']: copy.deepcopy(item) for item in payload['capabilities']}
+        for request_id, metadata in list(self.requests.items()):
+            if metadata['sessionId'] != payload['sessionId'] or capabilities.get(metadata['capabilityId']) != metadata['definition']:
+                worker = self.executing.get(self.granted.get(request_id))
+                if worker is not None: self._cancel_worker(worker)
+                future = self.pending.get(request_id)
+                if future is not None and not future.done(): future.set_result({'error': 'module_snapshot_changed'})
+        self.capabilities = capabilities
         self.version = payload['snapshotVersion']
         self.session_id = payload['sessionId']
         await self._send('module_snapshot_ack', {'moduleRuntimeVersion': 1, 'snapshotVersion': self.version}, reply_to)
@@ -51,6 +55,8 @@ class ModuleBridge:
         request_id = str(uuid.uuid4())
         future = asyncio.get_running_loop().create_future()
         self.pending[request_id] = future
+        self.requests[request_id] = {'capabilityId': capability_id, 'definition': copy.deepcopy(self.capabilities[capability_id]),
+                                     'args': copy.deepcopy(args), 'snapshotVersion': self.version, 'sessionId': self.session_id}
         try:
             payload = {'requestId': request_id, 'snapshotVersion': self.version, 'capabilityId': capability_id, 'args': args}
             if task is not None: payload['task'] = task
@@ -70,6 +76,7 @@ class ModuleBridge:
         finally:
             self.pending.pop(request_id, None)
             self.granted.pop(request_id, None)
+            self.requests.pop(request_id, None)
 
     def respond(self, payload):
         future = self.pending.get(payload['requestId'])
@@ -82,9 +89,12 @@ class ModuleBridge:
     async def execute(self, payload, reply_to=None):
         context = payload['context']
         invocation_id = context['invocationId']
-        if (payload['snapshotVersion'] != self.version or context['sessionId'] != self.session_id
+        metadata = self.requests.get(payload['requestId'])
+        if (metadata is None or payload['snapshotVersion'] != metadata['snapshotVersion'] or context['sessionId'] != self.session_id
                 or payload['capabilityId'] not in self.capabilities or invocation_id in self.executing
-                or payload['requestId'] not in self.pending or payload['requestId'] in self.granted):
+                or metadata['capabilityId'] != payload['capabilityId'] or metadata['args'] != payload['args']
+                or metadata['definition'] != self.capabilities[payload['capabilityId']]
+                or payload['requestId'] not in self.pending or self.pending[payload['requestId']].done() or payload['requestId'] in self.granted):
             return
         self.granted[payload['requestId']] = invocation_id
         async def work():

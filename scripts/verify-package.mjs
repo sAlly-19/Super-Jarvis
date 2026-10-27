@@ -4,6 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import asar from '@electron/asar'
 import { FuseV1Options, getCurrentFuseWire } from '@electron/fuses'
 
 const root = process.cwd()
@@ -55,6 +56,15 @@ if (!fs.existsSync(releaseDir)) {
 }
 
 const appExe = path.join(releaseDir, 'Jasper AI.exe')
+const archive = path.join(releaseDir, 'resources', 'app.asar')
+const reminderResource = name => asar.extractFile(archive, path.join(...name.split('/')))
+for (const resource of ['out/main/reminders-ical-worker.js', 'src/main/storage/migrations/005-reminders.sql', 'src/main/storage/migrations/006-reminder-imports.sql', 'resources/licenses/ical.js-LICENSE.txt', 'node_modules/ical.js/package.json']) {
+  if (!reminderResource(resource).length) throw new Error(`Missing reminder artifact: ${resource}`)
+}
+const reminderWorker = reminderResource('out/main/reminders-ical-worker.js').toString()
+for (const match of reminderWorker.matchAll(/require\(["'](\.\/chunks\/[^"']+)["']/g)) {
+  if (!reminderResource(`out/main/${match[1].slice(2)}`).length) throw new Error('Missing reminder worker chunk')
+}
 if (!fs.existsSync(appExe)) {
   console.error(`FAIL: Main executable missing at ${appExe}.`)
   process.exit(1)

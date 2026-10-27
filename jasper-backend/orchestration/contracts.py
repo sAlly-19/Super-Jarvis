@@ -3,6 +3,11 @@ import math
 import re
 
 LIMITS = {'max_steps': 8, 'timeout_seconds': 120, 'max_revisions': 2}
+CAPABILITY_VERIFIERS = {'get_system_telemetry': 'telemetry_read', 'reminder_get': 'reminder_read', 'reminder_list': 'reminder_read',
+                        **{f'reminder_{name}': 'reminder_write' for name in ('create', 'update', 'delete', 'complete', 'snooze')}}
+
+
+def verifier_for(capability_id): return CAPABILITY_VERIFIERS.get(capability_id, 'none')
 
 
 def validate_value(value, schema):
@@ -59,8 +64,8 @@ def validate_plan(plan, catalog, limits=None):
         schema['required'] = [name for name in schema.get('required', []) if name not in {b['inputField'] for b in step['bindings']}]
         validate_value(args, schema)
         criterion = step['successCriterion']
-        if not isinstance(criterion, dict) or set(criterion) != {'verifierId', 'expected'} or criterion['verifierId'] not in ('none', 'telemetry_read'): raise ValueError('unknown_verifier')
-        if criterion['verifierId'] == 'telemetry_read' and step['capabilityId'] != 'get_system_telemetry': raise ValueError('verifier_mismatch')
+        if not isinstance(criterion, dict) or set(criterion) != {'verifierId', 'expected'} or criterion['verifierId'] not in ('none', *CAPABILITY_VERIFIERS.values()): raise ValueError('unknown_verifier')
+        if criterion['verifierId'] != 'none' and criterion['verifierId'] != verifier_for(step['capabilityId']): raise ValueError('verifier_mismatch')
         if criterion['expected'] is not None: raise ValueError('unsupported_success_criterion')
         seen.add(step['id'])
     return copy.deepcopy(plan)

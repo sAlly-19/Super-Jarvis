@@ -146,6 +146,7 @@ describe('Reproducible Python Packaging & Build Verification (Artifact Test)', (
     assert.equal(response.version, 1)
     assert.equal(response.type, 'hello_ack')
     assert.equal(response.replyTo, 'test-handshake-1')
+    assert.deepEqual(response.payload.tools.slice().sort(), ['run_powershell', 'get_system_telemetry', 'gui_action', 'control_system_volume', 'capture_screen_base64'].sort(), 'compiled plan B must not advertise the six structured tools from A')
   })
 })
 

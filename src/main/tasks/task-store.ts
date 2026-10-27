@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import type { TaskRecord, TaskOrigin, TaskMutation, StepStatus, TaskStatus } from '../../shared/types/tasks'
-import { StateDatabase } from '../storage/state-database'
+import type { TaskRecord, TaskOrigin, TaskMutation, StepStatus, TaskStatus, TaskEvidence } from '../../shared/types/tasks'
+import { StateDatabase, type StateTransaction } from '../storage/state-database'
 
 const ACTIVE = ['queued', 'planning', 'running', 'cancelling']
 const id = (value: unknown): value is string => typeof value === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(value)
@@ -11,6 +11,13 @@ const record = (row: Record<string, unknown>): TaskRecord => ({ taskId: String(r
 /** Metadata only. Caller-provided summaries, commands, plans and tool data never enter the database. */
 export class TaskStore {
   constructor(private readonly database: StateDatabase) {}
+  private hydrate(tx: StateTransaction, row: Record<string, unknown>): TaskRecord {
+    const task = record(row)
+    task.evidence = tx.prepare('SELECT * FROM task_evidence WHERE task_id=? ORDER BY observed_at,step_id').all(task.taskId).map(proof => ({
+      stepId: String(proof.step_id), invocationId: String(proof.invocation_id), kind: String(proof.kind), reference: String(proof.reference), observedAt: String(proof.observed_at), verified: proof.verified === 1
+    }))
+    return task
+  }
   public create(origin: TaskOrigin, sessionId: number): TaskRecord {
     if (!['chat', 'live', 'automation'].includes(origin) || !Number.isSafeInteger(sessionId) || sessionId < 0) throw new Error('invalid_task_origin')
     const taskId = randomUUID(), now = new Date().toISOString()
@@ -18,11 +25,16 @@ export class TaskStore {
     return this.get(taskId)!
   }
   public get(taskId: string): TaskRecord | null {
-    return this.database.transaction(tx => { const row = tx.prepare('SELECT * FROM tasks WHERE task_id=?').get(taskId); return row ? record(row) : null })
+    return this.database.transaction(tx => { const row = tx.prepare('SELECT * FROM tasks WHERE task_id=?').get(taskId); return row ? this.hydrate(tx, row) : null })
   }
-  public listActive(): TaskRecord[] { return this.database.transaction(tx => tx.prepare("SELECT * FROM tasks WHERE status IN ('queued','planning','running','cancelling') ORDER BY created_at").all().map(record)) }
-  public list(): TaskRecord[] { return this.database.transaction(tx => tx.prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT 100').all().map(record)) }
-  public appendEvent(taskId: string, expectedRevision: number, event: TaskMutation, hostVerified = false): TaskRecord {
+  public listActive(): TaskRecord[] { return this.database.transaction(tx => tx.prepare("SELECT * FROM tasks WHERE status IN ('queued','planning','running','cancelling') ORDER BY created_at").all().map(row => this.hydrate(tx, row))) }
+  public list(): TaskRecord[] { return this.database.transaction(tx => tx.prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT 100').all().map(row => this.hydrate(tx, row))) }
+  public appendEvent(taskId: string, expectedRevision: number, event: TaskMutation, hostVerified = false, evidence: TaskEvidence[] = []): TaskRecord {
+    for (const proof of evidence) {
+      if (!proof || Object.keys(proof).sort().join(',') !== 'invocationId,kind,observedAt,reference,stepId,verified'
+        || proof.verified !== true || ![proof.stepId, proof.invocationId, proof.kind, proof.reference].every(value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(value))
+        || !Number.isFinite(Date.parse(proof.observedAt)) || event.type !== 'step_finished' || event.status !== 'succeeded' || event.stepId !== proof.stepId || !hostVerified) throw new Error('invalid_task_evidence')
+    }
     const allowed: Record<string, string[]> = {
       planning: [], plan_ready: ['stepIds'], step_started: ['stepId'], step_finished: ['stepId', 'status'], cancel_requested: [], finished: ['status']
     }
@@ -30,7 +42,7 @@ export class TaskStore {
     return this.database.transaction(tx => {
       const row = tx.prepare('SELECT * FROM tasks WHERE task_id=?').get(taskId)
       if (!row) throw new Error('task_not_found')
-      const task = record(row)
+      const task = this.hydrate(tx, row)
       if (task.revision !== expectedRevision) throw new Error('stale_task')
       if (event.sequence !== task.revision + 1) throw new Error('event_order')
       if (!ACTIVE.includes(task.status)) throw new Error('terminal_task')
@@ -65,9 +77,10 @@ export class TaskStore {
         }
       }
       const now = new Date().toISOString()
+      for (const proof of evidence) tx.prepare('INSERT INTO task_evidence (task_id,step_id,invocation_id,kind,reference,observed_at,verified) VALUES (?,?,?,?,?,?,1)').run(taskId, proof.stepId, proof.invocationId, proof.kind, proof.reference, proof.observedAt)
       tx.prepare('INSERT INTO task_events (task_id,sequence,type,step_id,occurred_at) VALUES (?,?,?,?,?)').run(taskId, event.sequence, event.type, 'stepId' in event ? event.stepId : null, now)
       tx.prepare('UPDATE tasks SET status=?,revision=?,updated_at=?,step_states=? WHERE task_id=? AND revision=?').run(task.status, event.sequence, now, JSON.stringify(task.stepStates), taskId, expectedRevision)
-      return { ...task, revision: event.sequence, updatedAt: now }
+      return { ...task, revision: event.sequence, updatedAt: now, evidence: [...task.evidence, ...evidence] }
     })
   }
   public markInterrupted(sessionId?: number, taskId?: string): TaskRecord[] {
@@ -76,7 +89,7 @@ export class TaskStore {
       const rows = tx.prepare("SELECT * FROM tasks WHERE status IN ('queued','planning','running','cancelling')" + (sessionId === undefined ? '' : ' AND session_id=?') + (taskId === undefined ? '' : ' AND task_id=?')).all(...(sessionId === undefined ? [] : [sessionId]), ...(taskId === undefined ? [] : [taskId]))
       const changed: TaskRecord[] = []
       for (const row of rows) {
-        const task = record(row)
+        const task = this.hydrate(tx, row)
         const uncertain = Object.values(task.stepStates).some(status => status === 'running' || status === 'unknown')
         for (const step of Object.keys(task.stepStates)) {
           if (task.stepStates[step] === 'running') task.stepStates[step] = 'unknown'

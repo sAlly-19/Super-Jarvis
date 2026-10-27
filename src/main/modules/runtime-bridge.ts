@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { BackendEnvelope, HostToSidecarMessageType } from '../../shared/types/backend-protocol'
-import type { ExecutionContext } from '../../shared/types/modules'
+import type { ExecutionContext, ModuleId } from '../../shared/types/modules'
 import { ModuleRegistry } from './registry'
 import { ModulePolicy } from './policy'
 import { InvocationStore } from './invocation-store'
@@ -14,6 +14,7 @@ export interface ModuleTransport {
   notify(type: HostToSidecarMessageType, payload: unknown): void
   request(type: HostToSidecarMessageType, payload: unknown, timeoutMs?: number): Promise<unknown>
 }
+export type HostCapabilityExecutor = (id: string, args: unknown, context: ExecutionContext, signal: AbortSignal) => Promise<unknown>
 
 /** Private transport adapter; it does not grant authority from renderer or LLM fields. */
 export class ModuleRuntimeBridge {
@@ -22,15 +23,24 @@ export class ModuleRuntimeBridge {
   private ready = false
   private readonly broker: ExecutionBroker
   private readonly requestIds = new Map<string, string>()
+  private readonly catalog = new Map<ModuleId, string>()
+  private advertised = new Set<string>()
 
   public isReady(): boolean { return this.ready && this.negotiatedSession === this.transport.getSessionId() }
 
   constructor(private readonly registry: ModuleRegistry, private readonly policy: ModulePolicy,
     invocations: InvocationStore, private readonly transport: ModuleTransport,
-    private readonly getRevision: () => number, private readonly tasks?: TaskService) {
+    private readonly getRevision: (moduleId: ModuleId) => number, private readonly tasks?: TaskService,
+    private readonly hostExecutors: Partial<Record<ModuleId, HostCapabilityExecutor>> = {}) {
     this.broker = new ExecutionBroker(registry, policy, async (capabilityId, args, context, signal) => {
       const requestId = this.requestIds.get(context.invocationId)
       if (!requestId || !this.ready || context.sessionId !== this.negotiatedSession) throw new Error('module_not_ready')
+      const moduleId = this.registry.get(capabilityId)!.moduleId
+      if (moduleId !== 'computer') {
+        const executor = this.hostExecutors[moduleId]
+        if (!executor) throw new Error('host_executor_unavailable')
+        return executor(capabilityId, args, context, signal)
+      }
       const cancel = (): void => {
         if (context.sessionId === this.transport.getSessionId()) {
           this.transport.notify('invocation_cancel', { invocationId: context.invocationId, reason: 'execution_cancelled' })
@@ -50,6 +60,7 @@ export class ModuleRuntimeBridge {
   }
 
   public async negotiate(features: { moduleRuntimeVersion?: number }, sessionId: number): Promise<number> {
+    if (this.negotiatedSession !== null && this.negotiatedSession !== sessionId) await this.close()
     this.ready = false
     if (features.moduleRuntimeVersion !== 1 || sessionId !== this.transport.getSessionId()) {
       this.negotiatedSession = null
@@ -64,13 +75,20 @@ export class ModuleRuntimeBridge {
     const sessionId = this.negotiatedSession
     if (sessionId === null || sessionId !== this.transport.getSessionId()) throw new Error('module_not_negotiated')
     const snapshotVersion = ++this.snapshotVersion
-    await this.broker.stopModule('computer')
-    const capabilities = this.registry.list().filter(capability => this.policy.authorize(capability.id, {
-      taskId: 'catalog', stepId: 'catalog', invocationId: 'catalog', sessionId, moduleRevision: this.getRevision()
+    const capabilities = this.registry.list().filter(capability => (capability.moduleId === 'computer' || Boolean(this.hostExecutors[capability.moduleId])) && this.policy.authorize(capability.id, {
+      taskId: 'catalog', stepId: 'catalog', invocationId: 'catalog', sessionId, moduleRevision: this.getRevision(capability.moduleId)
     }).allowed)
+    const next = new Map<ModuleId, string>()
+    for (const id of new Set(this.registry.list().map(capability => capability.moduleId))) {
+      const fingerprint = JSON.stringify({ revision: this.getRevision(id), capabilities: capabilities.filter(capability => capability.moduleId === id) })
+      next.set(id, fingerprint)
+      if (this.catalog.has(id) && this.catalog.get(id) !== fingerprint) await this.broker.stopModule(id)
+    }
     const ack = await this.transport.request('module_snapshot', { moduleRuntimeVersion: 1, snapshotVersion, sessionId, capabilities }) as { snapshotVersion: number }
     validateModulePayload('module_snapshot_ack', ack)
     if (sessionId !== this.transport.getSessionId() || this.snapshotVersion !== snapshotVersion || ack.snapshotVersion !== snapshotVersion) throw new Error('stale_module_ack')
+    this.catalog.clear(); for (const [id, fingerprint] of next) this.catalog.set(id, fingerprint)
+    this.advertised = new Set(capabilities.map(capability => capability.id))
     this.ready = true
     return snapshotVersion
   }
@@ -90,6 +108,10 @@ export class ModuleRuntimeBridge {
       this.transport.notify('capability_response', { requestId: payload.requestId, result: { status: 'failed', evidence: [], errorCode: 'module_not_ready' } })
       return
     }
+    if (!this.advertised.has(payload.capabilityId)) {
+      this.transport.notify('capability_response', { requestId: payload.requestId, result: { status: 'failed', evidence: [], errorCode: 'module_unavailable' } })
+      return
+    }
     // Deterministic host-generated opaque ID lets SQLite reject replayed request IDs without an unbounded JS map.
     let binding: { taskId: string; stepId: string; invocationId: string } | undefined
     if (payload.task) {
@@ -103,7 +125,7 @@ export class ModuleRuntimeBridge {
     }
     const invocationId = binding?.invocationId ?? createHash('sha256').update(`jasper:capability:v1:${payload.requestId}`).digest('hex')
     const context: ExecutionContext = { invocationId, taskId: binding?.taskId ?? invocationId, stepId: binding?.stepId ?? invocationId,
-      sessionId: eventSessionId, moduleRevision: this.getRevision() }
+      sessionId: eventSessionId, moduleRevision: this.getRevision(this.registry.get(payload.capabilityId)!.moduleId) }
     if (this.requestIds.has(invocationId)) {
       this.transport.notify('capability_response', { requestId: payload.requestId, result: { status: 'failed', evidence: [], errorCode: 'duplicate_invocation' } })
       return
@@ -112,16 +134,22 @@ export class ModuleRuntimeBridge {
     try {
       let result = await this.broker.invoke(payload.capabilityId, payload.args, context)
       if (binding && this.tasks) {
-        try { result = this.tasks.observe(binding.taskId, binding.stepId, payload.capabilityId, result) }
+        try { result = this.tasks.observe(binding.taskId, binding.stepId, payload.capabilityId, result, context) }
         catch { result = { status: 'unknown', evidence: [], errorCode: 'task_invalidated' } }
+      } else if (this.tasks) {
+        try { result = this.tasks.verifyHostResult(context, payload.capabilityId, result) }
+        catch { result = { status: 'unknown', evidence: [], errorCode: 'execution_invalidated' } }
       }
       if (eventSessionId === this.transport.getSessionId()) this.transport.notify('capability_response', { requestId: payload.requestId, result })
-    } finally { this.requestIds.delete(invocationId) }
+    } finally { this.requestIds.delete(invocationId); this.tasks?.releaseHostObservation(invocationId) }
   }
 
   public async close(): Promise<StopReport> {
     this.ready = false
     this.negotiatedSession = null
-    return this.broker.stopModule('computer')
+    this.catalog.clear(); this.advertised.clear()
+    const reports = await Promise.all([...new Set(this.registry.list().map(capability => capability.moduleId))].map(id => this.broker.stopModule(id)))
+    return { stopped: reports.every(report => report.stopped), unknownInvocationIds: reports.flatMap(report => report.unknownInvocationIds) }
   }
+  public stopModule(id: ModuleId): Promise<StopReport> { return this.broker.stopModule(id) }
 }

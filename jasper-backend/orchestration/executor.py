@@ -27,7 +27,7 @@ class Executor:
                     started = True
                     states[step['id']] = 'running'
                     result = await self.invoke(step)
-                    results[step['id']] = result
+                    results[step['id']] = {**result, 'capabilityId': step['capabilityId']}
                     status = Verification.verify(step, result)
                     states[step['id']] = status
                     if status == 'succeeded': outputs[step['id']] = result.get('data')

@@ -1,5 +1,6 @@
 import { DOM } from './dom'
 import { initializeModuleSettings } from './module-settings'
+import { initializeRemindersSettings } from './reminders-settings'
 import { AvatarController, MoodType } from '../scene/avatar'
 import { showHudToast } from './toast'
 import { updateStatusBadge } from './status-badge'
@@ -63,6 +64,7 @@ export class SettingsModal {
 
   constructor(private readonly options: SettingsModalOptions) {
     initializeModuleSettings()
+    initializeRemindersSettings()
     this.setupListeners()
   }
 

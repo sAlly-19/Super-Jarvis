@@ -16,13 +16,13 @@ import { TaskService } from '../src/main/tasks/task-service'
 import { TaskEventRouter } from '../src/main/tasks/task-event-router'
 import type { BackendEnvelope, HostToSidecarMessageType } from '../src/shared/types/backend-protocol'
 
-for (const mode of ['legacy', 'orchestrated', 'cancel'] as const) test(`real stdio bridge ${mode}, then blocks the disabled module`, { timeout: 30000 }, async () => {
+for (const mode of ['legacy', 'orchestrated', 'cancel', 'diagnostics'] as const) test(`real stdio bridge ${mode}, then blocks the disabled module`, { timeout: 30000 }, async () => {
   const orchestrated = mode !== 'legacy'
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jasper-module-stdio-'))
   const marker = path.join(root, 'powershell.pid')
   const sql = (name: string) => fs.readFileSync(path.join(process.cwd(), 'src/main/storage/migrations', name), 'utf8')
-  const db = new StateDatabase(path.join(root, 'state.sqlite'), sql('001-module-state.sql'), [sql('002-capability-invocations.sql'), sql('003-tasks.sql')])
-  const child = spawn(process.env.JASPER_PYTHON_EXECUTABLE || 'python', [path.join(process.cwd(), 'test/fixtures/module-sidecar.py')], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, JASPER_TEST_ORCHESTRATOR: orchestrated ? '1' : '0', JASPER_TEST_CANCEL_TASK: mode === 'cancel' ? '1' : '0', JASPER_TEST_CANCEL_MARKER: marker } })
+  const db = new StateDatabase(path.join(root, 'state.sqlite'), sql('001-module-state.sql'), [sql('002-capability-invocations.sql'), sql('003-tasks.sql'), sql('004-task-evidence.sql')])
+  const child = spawn(process.env.JASPER_PYTHON_EXECUTABLE || 'python', [path.join(process.cwd(), 'test/fixtures/module-sidecar.py')], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, JASPER_TEST_ORCHESTRATOR: orchestrated ? '1' : '0', JASPER_TEST_CANCEL_TASK: mode === 'cancel' ? '1' : '0', JASPER_TEST_CANCEL_MARKER: marker, JASPER_TEST_DIAGNOSTICS: mode === 'diagnostics' ? '1' : '0' } })
   const frames: BackendEnvelope[] = []
   const pending = new Map<string, { type: string; resolve: (value: any) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>()
   let bridge: ModuleRuntimeBridge | undefined
@@ -95,6 +95,13 @@ for (const mode of ['legacy', 'orchestrated', 'cancel'] as const) test(`real std
       const task = tasks.list()[0]
       assert.equal(task.status, 'unknown')
       assert.deepEqual(task.stepStates, { a: 'unknown', b: 'skipped' })
+    } else if (mode === 'diagnostics') {
+      assert.equal(tasks.list()[0].status, 'unknown')
+      const response = frames.find(frame => frame.type === 'response')!.payload as { text: string }
+      assert.match(response.text, /PLAN_B_NATIVE_OUTPUT/)
+      assert.match(response.text, /PLAN_B_NATIVE_STDERR/)
+      assert.match(response.text, /código 7/)
+      assert.doesNotMatch(response.text, /Tarefa verificada\./)
     } else if (orchestrated) {
       const task = tasks.list()[0]
       assert.equal(task.status, 'succeeded')

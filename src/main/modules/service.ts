@@ -7,11 +7,11 @@ export class ModuleService {
   private readonly stopErrors = new Set<ModuleId>()
 
   constructor(private readonly store: ModuleStore, private readonly lifecycle: ModuleLifecycle,
-    private readonly requireAgentAccess: () => void) {}
+    private readonly requireAgentAccess: () => void, private readonly implemented: ReadonlySet<ModuleId> = new Set(['computer'])) {}
 
   public getSnapshot(id: ModuleId): ModuleSnapshot {
     const record = this.store.get(id)
-    const implemented = id === 'computer'
+    const implemented = this.implemented.has(id)
     let authorized = false
     try { this.requireAgentAccess(); authorized = true } catch { /* No private diagnostic reaches renderer. */ }
     const stopping = this.stopping.has(id) || this.stopErrors.has(id)
@@ -26,7 +26,7 @@ export class ModuleService {
   public async setEnabled(id: ModuleId, enabled: boolean, expectedRevision: number): Promise<ModuleSnapshot> {
     this.requireAgentAccess()
     if (this.stopping.has(id) || this.stopErrors.has(id)) throw new Error('module_stopping')
-    if (enabled && id !== 'computer') throw new Error('not_implemented')
+    if (enabled && !this.implemented.has(id)) throw new Error('not_implemented')
     this.store.setEnabled(id, enabled, expectedRevision)
     if (!enabled) {
       this.stopping.add(id)

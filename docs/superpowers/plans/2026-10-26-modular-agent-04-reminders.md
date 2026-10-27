@@ -1,12 +1,16 @@
 # Lembretes — roteiro de implementação
 
+> Detalhamento iniciado em27/10/2026 por direção do usuário: [desenho e decisões recebidas](../specs/2026-10-27-reminders-design-draft.md). Confirmados último dia do mês para recorrência mensal31 e importação de eventos/tarefas com data. Código do módulo ainda não iniciado; propostas restantes aguardam revisão.
+
+> Atualização: confirmados também09:00 ajustável para dia inteiro, preservação de edições locais na reimportação, uso de ical.js, fuso original preservado e primeiro horário válido para ocorrência em horário inexistente. O desenho reúne as políticas restantes para revisão conjunta antes dos planos executivos.
+
 > **For agentic workers:** REQUIRED SUB-SKILL após aprovação: superpowers:executing-plans ou superpowers:subagent-driven-development. Não iniciar código a partir deste rascunho.
 
-**Goal:** Entregar o módulo 02 da proposta: Lembretes.
-**Architecture:** Opção A; SQLite local aprovado para tarefas/agendas, sob governança Main. iCal aprovado como importação/exportação manual de arquivos .ics, sem assinatura por URL nem sincronização automática.
-**Tech Stack:** Reutilizar stack atual; nenhuma dependência nova aprovada.
+**Goal:** Entregar o módulo reminders: Lembretes.
+**Architecture:** SQLite local para tarefas/agendas, sob governança Main. iCal aprovado como importação/exportação manual de arquivos .ics, sem assinatura por URL nem sincronização automática.
+**Tech Stack:** Stack atual + `ical.js`, autorizado pelo usuário em27/10/2026. Versão e instalação serão fixadas no plano executivo; biblioteca ainda não instalada.
 **Spec:** [Desenho preliminar](../specs/2026-10-26-modular-agent-design-draft.md).
-**Status:** BLOQUEADO PARA IMPLEMENTAÇÃO — escopo preliminar.
+**Status:** desenho e planos aprovados; etapas01–02 concluídas,03–05 pendentes. [Mapa executivo](2026-10-27-reminders-00-execution-map.md) e [retomada](2026-10-27-reminders-progress.md). Este roteiro é histórico; não refazer01/02 nem anunciar agenda antes das etapas seguintes.
 **Depends on:** 01 + 02 + detalhamento do scheduler. D4: execução apenas com o processo do app em funcionamento; preservar X e minimização atuais, sem nova bandeja.
 
 ## Global Constraints

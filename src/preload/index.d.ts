@@ -14,10 +14,11 @@ import type {
   ToolResultPayload,
   ModuleId,
   ModuleSnapshot,
-  TaskRecord
+  TaskRecord,
+  RemindersAPI
 } from '@shared'
 
-export interface ElectronAPI {
+export interface ElectronAPI extends RemindersAPI {
   listTasks: () => Promise<TaskRecord[]>
   getTask: (id: string) => Promise<TaskRecord | null>
   cancelTask: (id: string) => Promise<TaskRecord>
