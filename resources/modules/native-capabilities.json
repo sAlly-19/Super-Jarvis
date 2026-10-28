@@ -1819,5 +1819,345 @@
     "timeoutMs": 5000,
     "cancellable": true,
     "verifierId": "reminder_write"
+  },
+  {
+    "id": "pc_health_read",
+    "moduleId": "pc-health",
+    "description": "Consulta saúde do PC: CPU, RAM/swap, discos, GPU, processos, rede, uptime e sensores disponíveis. Somente leitura; campos indisponíveis são null, sem diagnóstico presumido.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "receiptRef": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "snapshot": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "ok",
+                "partial",
+                "unavailable"
+              ]
+            },
+            "observedAt": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "cpuPercent": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "temperatureC": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 150
+            },
+            "uptimeSeconds": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "memory": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "totalBytes": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "availableBytes": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "percent": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "swapTotalBytes": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "swapUsedBytes": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "totalBytes",
+                "availableBytes",
+                "percent",
+                "swapTotalBytes",
+                "swapUsedBytes"
+              ],
+              "additionalProperties": false
+            },
+            "disks": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "properties": {
+                  "mount": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "sizeBytes": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "usedPercent": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                "required": [
+                  "mount",
+                  "sizeBytes",
+                  "usedPercent"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 32
+            },
+            "gpu": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "percent": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "temperatureC": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 150
+                  }
+                },
+                "required": [
+                  "model",
+                  "percent",
+                  "temperatureC"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 8
+            },
+            "battery": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "percent": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "charging": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "percent",
+                "charging"
+              ],
+              "additionalProperties": false
+            },
+            "processes": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "total": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "top": {
+                  "type": "array",
+                  "maxItems": 10,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "pid": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 160
+                      },
+                      "cpuPercent": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "memoryPercent": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": 0,
+                        "maximum": 100
+                      }
+                    },
+                    "required": [
+                      "pid",
+                      "name",
+                      "cpuPercent",
+                      "memoryPercent"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "total",
+                "top"
+              ],
+              "additionalProperties": false
+            },
+            "network": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "receivedBytes": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sentBytes": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "receivedBytes",
+                  "sentBytes"
+                ],
+                "additionalProperties": false
+              },
+              "maxItems": 32
+            },
+            "unavailable": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "cpu",
+                  "memory",
+                  "temperature",
+                  "disks",
+                  "gpu",
+                  "battery",
+                  "processes",
+                  "network"
+                ]
+              }
+            }
+          },
+          "required": [
+            "status",
+            "observedAt",
+            "cpuPercent",
+            "temperatureC",
+            "uptimeSeconds",
+            "memory",
+            "disks",
+            "gpu",
+            "battery",
+            "processes",
+            "network",
+            "unavailable"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "receiptRef",
+        "snapshot"
+      ],
+      "additionalProperties": false
+    },
+    "permissions": [
+      "pc-health.read"
+    ],
+    "configurationKeys": [],
+    "effects": [],
+    "timeoutMs": 33000,
+    "cancellable": true,
+    "verifierId": "pc_health_read"
   }
 ]

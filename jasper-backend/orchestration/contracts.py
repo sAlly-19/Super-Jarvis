@@ -3,7 +3,7 @@ import math
 import re
 
 LIMITS = {'max_steps': 8, 'timeout_seconds': 120, 'max_revisions': 2}
-CAPABILITY_VERIFIERS = {'get_system_telemetry': 'telemetry_read', 'reminder_get': 'reminder_read', 'reminder_list': 'reminder_read',
+CAPABILITY_VERIFIERS = {'get_system_telemetry': 'telemetry_read', 'pc_health_read': 'pc_health_read', 'reminder_get': 'reminder_read', 'reminder_list': 'reminder_read',
                         **{f'reminder_{name}': 'reminder_write' for name in ('create', 'update', 'delete', 'complete', 'snooze')}}
 
 

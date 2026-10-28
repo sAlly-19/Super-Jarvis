@@ -26,6 +26,14 @@ import {
 } from '@shared'
 
 const electronAPI = {
+  getPcHealth: () => ipcRenderer.invoke(IPC_CHANNELS.PC_HEALTH_GET),
+  refreshPcHealth: () => ipcRenderer.invoke(IPC_CHANNELS.PC_HEALTH_REFRESH),
+  pcHealthPreferences: (request: import('../shared/types/pc-health').PcHealthPreferencesRequest) => ipcRenderer.invoke(IPC_CHANNELS.PC_HEALTH_PREFERENCES, request),
+  onPcHealthChanged: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on(IPC_CHANNELS.PC_HEALTH_CHANGED, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.PC_HEALTH_CHANGED, handler)
+  },
   listReminders: (query: ReminderListQuery) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_LIST, query),
   getReminder: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_GET, id),
   mutateReminder: (request: MutationRequest) => ipcRenderer.invoke(IPC_CHANNELS.REMINDERS_MUTATE, request),

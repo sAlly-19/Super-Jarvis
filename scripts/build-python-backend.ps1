@@ -10,24 +10,14 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "==> Verifying Python 3.11 environment..." -ForegroundColor Cyan
 
-# Resolve Python 3.11 executable
-$PythonExe = ""
-$uvPython = "$env:APPDATA\uv\python\cpython-3.11.15-windows-x86_64-none\python.exe"
-if (Test-Path $uvPython) {
-    $PythonExe = $uvPython
-} else {
-    $py = Get-Command "python" -ErrorAction SilentlyContinue
-    if ($py) {
-        $ver = & $py.Source --version 2>&1
-        if ($ver -match "3\.11") {
-            $PythonExe = $py.Source
-        }
-    }
-}
-
-if (-not $PythonExe) {
-    Write-Error "Python 3.11 is required to build the commercial sidecar."
-    exit 1
+# Use the same validated interpreter as development and integration tests.
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+Push-Location $ProjectRoot
+try {
+    $PythonExe = & node --input-type=module -e "import { resolveDevelopmentPython } from './scripts/development-python.mjs'; console.log(resolveDevelopmentPython())"
+    if ($LASTEXITCODE -ne 0) { throw 'Unable to resolve Python 3.11 for the sidecar build.' }
+} finally {
+    Pop-Location
 }
 
 $pyVersion = & $PythonExe --version 2>&1
@@ -47,18 +37,31 @@ if (-not (Test-Path $BuildDir)) {
 }
 
 Write-Host "==> Setting up isolated build environment in $VenvDir..." -ForegroundColor Cyan
+$VenvPython = Join-Path $VenvDir "Scripts/python.exe"
 if (Get-Command "uv" -ErrorAction SilentlyContinue) {
-    uv venv $VenvDir --python $PythonExe --quiet
-    $VenvPython = Join-Path $VenvDir "Scripts/python.exe"
+    if (-not (Test-Path -LiteralPath $VenvPython)) {
+        uv venv $VenvDir --python $PythonExe --quiet
+        if ($LASTEXITCODE -ne 0) { throw 'Failed to create the build environment.' }
+    }
+    $venvVersion = & $VenvPython --version 2>&1
+    if ($LASTEXITCODE -ne 0 -or $venvVersion -notmatch '^Python 3\.11\.') { throw 'Build environment must use Python 3.11.' }
     Write-Host "==> Installing hashed requirements with uv..." -ForegroundColor Cyan
-    uv pip install -r "$BackendDir/requirements.lock" --python $VenvPython --quiet
-    uv pip install -r "$BackendDir/requirements-build.lock" --python $VenvPython --quiet
+    uv pip install --require-hashes -r "$BackendDir/requirements.lock" --python $VenvPython --quiet
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to install backend requirements.' }
+    uv pip install --require-hashes -r "$BackendDir/requirements-build.lock" --python $VenvPython --quiet
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to install build requirements.' }
 } else {
-    & $PythonExe -m venv $VenvDir
-    $VenvPython = Join-Path $VenvDir "Scripts/python.exe"
+    if (-not (Test-Path -LiteralPath $VenvPython)) {
+        & $PythonExe -m venv $VenvDir
+        if ($LASTEXITCODE -ne 0) { throw 'Failed to create the build environment.' }
+    }
+    $venvVersion = & $VenvPython --version 2>&1
+    if ($LASTEXITCODE -ne 0 -or $venvVersion -notmatch '^Python 3\.11\.') { throw 'Build environment must use Python 3.11.' }
     Write-Host "==> Installing hashed requirements with pip..." -ForegroundColor Cyan
     & $VenvPython -m pip install --require-hashes -r "$BackendDir/requirements.lock" --quiet
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to install backend requirements.' }
     & $VenvPython -m pip install --require-hashes -r "$BackendDir/requirements-build.lock" --quiet
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to install build requirements.' }
 }
 
 $PyInstallerExe = Join-Path $VenvDir "Scripts/pyinstaller.exe"
@@ -79,6 +82,7 @@ try {
         --distpath $BuildDir `
         --workpath $WorkPath `
         "$BackendDir/jasper-backend.spec"
+    if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed to build the sidecar.' }
 } finally {
     Pop-Location
 }

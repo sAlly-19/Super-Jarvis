@@ -622,6 +622,28 @@
                   </ul>
                 </div>
 
+                <section id="pc-health-panel" class="settings-card" aria-labelledby="pc-health-heading">
+                  <h4 id="pc-health-heading">Saúde do PC</h4>
+                  <p id="pc-health-feedback" role="status">Ative o módulo para consultar o computador.</p>
+                  <fieldset id="pc-health-controls" disabled>
+                    <button id="pc-health-refresh" type="button" class="btn-toggle">Atualizar leitura</button>
+                    <details><summary>Atualização e alertas</summary>
+                      <p>Dois resultados consecutivos acima do limite; no máximo um aviso por categoria a cada 15 minutos. Sensores ausentes não geram alerta. Nenhum reparo automático.</p>
+                      <label><input id="pc-health-automatic" type="checkbox" checked> Atualizar automaticamente</label>
+                      <div class="reminders-fields">
+                        <label>Intervalo (segundos)<input id="pc-health-intervalSeconds" type="number" min="15" max="300" value="30"></label>
+                        <label>CPU a partir de (%)<input id="pc-health-cpuPercent" type="number" min="1" max="100" value="90"></label>
+                        <label>RAM a partir de (%)<input id="pc-health-memoryPercent" type="number" min="1" max="100" value="90"></label>
+                        <label>Espaço livre até (%)<input id="pc-health-diskFreePercent" type="number" min="1" max="100" value="10"></label>
+                        <label>Temperatura a partir de (°C)<input id="pc-health-temperatureC" type="number" min="1" max="120" value="85"></label>
+                        <label>Bateria até (%)<input id="pc-health-batteryPercent" type="number" min="1" max="100" value="15"></label>
+                      </div>
+                      <label><input id="pc-health-alertsEnabled" type="checkbox"> Exibir avisos visuais de limites de uso</label>
+                      <button id="pc-health-save" type="button" class="btn-toggle">Salvar preferências</button>
+                    </details>
+                  </fieldset>
+                  <div id="pc-health-metrics" aria-live="polite"></div>
+                </section>
                 <section class="settings-card reminders-settings" aria-labelledby="reminders-heading">
                   <div class="settings-card-header"><div class="card-text-col"><h4 id="reminders-heading">Lembretes &amp; calendário</h4><p>Avisos enquanto o Jasper estiver aberto. Ative Lembretes nos módulos acima.</p></div></div>
                   <p id="reminders-feedback" role="status">Carregando disponibilidade...</p>

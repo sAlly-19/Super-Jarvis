@@ -15,10 +15,11 @@ import type {
   ModuleId,
   ModuleSnapshot,
   TaskRecord,
-  RemindersAPI
+  RemindersAPI,
+  PcHealthAPI
 } from '@shared'
 
-export interface ElectronAPI extends RemindersAPI {
+export interface ElectronAPI extends RemindersAPI, PcHealthAPI {
   listTasks: () => Promise<TaskRecord[]>
   getTask: (id: string) => Promise<TaskRecord | null>
   cancelTask: (id: string) => Promise<TaskRecord>

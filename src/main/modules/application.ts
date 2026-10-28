@@ -1,9 +1,16 @@
-import { app } from 'electron'
+import { app, powerMonitor } from 'electron'
+import { PcHealthStore } from './pc-health/store'
+import { PcHealthService } from './pc-health/service'
+import { HealthCollectorClient } from './pc-health/client'
+import { createVisualReminderNotifier } from './reminders/visual-notifier'
+import { safeSend } from '../windows/main-window'
+import { IPC_CHANNELS } from '../../shared/constants/ipc-channels'
+import type { Reminder } from '../../shared/types/reminders'
 import fs from 'node:fs'
 import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { ModuleRegistry } from './registry'
-import { ModuleStore } from './store'
+import { openModuleStore } from './installation'
 import { ModuleLifecycle } from './lifecycle'
 import { ModuleService } from './service'
 import { ModulePolicy } from './policy'
@@ -13,7 +20,6 @@ import { StateDatabase } from '../storage/state-database'
 import { pythonBackend } from '../services/python-backend'
 import { operationalAccess } from '../services/operational-access'
 import { licenseGate } from '../services/license-gate'
-import { getHardwareInfo } from '../services/hwid'
 import { ModuleRefreshQueue } from './refresh-queue'
 import { initializeTaskApplication, getTaskService } from '../tasks/application'
 import { RemindersStore } from './reminders/store'
@@ -30,6 +36,9 @@ let application: { service: ModuleService; bridge: ModuleRuntimeBridge; database
 let features: { moduleRuntimeVersion?: number } = {}
 let featureSession: number | undefined
 const refreshQueue = new ModuleRefreshQueue()
+let pcHealth: PcHealthService | undefined
+let closeHealth: (() => Promise<void>) | undefined
+export function getPcHealthApplication(): PcHealthService { if (!pcHealth) throw new Error('pc_health_unavailable'); return pcHealth }
 
 export function initializeModuleApplication(): void {
   if (application) return
@@ -38,10 +47,10 @@ export function initializeModuleApplication(): void {
   const dataPath = app.getPath('userData')
   fs.mkdirSync(dataPath, { recursive: true })
   const sql = (name: string) => fs.readFileSync(path.join(root, 'src/main/storage/migrations', name), 'utf8')
-  const database = new StateDatabase(path.join(dataPath, 'jasper-state.sqlite'), sql('001-module-state.sql'), [sql('002-capability-invocations.sql'), sql('003-tasks.sql'), sql('004-task-evidence.sql'), sql('005-reminders.sql'), sql('006-reminder-imports.sql')])
-  const store = new ModuleStore(path.join(dataPath, 'modules.json'), getHardwareInfo().machineId)
+  const store = openModuleStore(path.join(dataPath, 'modules.json'))
+  const database = new StateDatabase(path.join(dataPath, 'jasper-state.sqlite'), sql('001-module-state.sql'), [sql('002-capability-invocations.sql'), sql('003-tasks.sql'), sql('004-task-evidence.sql'), sql('005-reminders.sql'), sql('006-reminder-imports.sql'), sql('007-pc-health.sql')])
   const lifecycle = new ModuleLifecycle()
-  const service = new ModuleService(store, lifecycle, () => operationalAccess.requireAgentAccess(), new Set(['computer', 'reminders']))
+  const service = new ModuleService(store, lifecycle, () => operationalAccess.requireAgentAccess(), new Set(['computer', 'reminders', 'pc-health']))
   const policy = new ModulePolicy(registry, {
     requireAgentAccess: () => operationalAccess.requireAgentAccess(),
     getSnapshot: id => service.getSnapshot(id), getSessionId: () => pythonBackend.getSessionId(),
@@ -51,12 +60,26 @@ export function initializeModuleApplication(): void {
   const reminders = new RemindersService(reminderStore, registry, {
     nowUtc: () => new Date().toISOString(), authorize: (id, context) => { const decision = policy.authorize(id, context); if (!decision.allowed) throw new Error(decision.code) }
   })
+  const healthAllowed = () => { const snapshot = service.getSnapshot('pc-health'); return snapshot.enabled && snapshot.authorized && snapshot.lifecycle === 'running' }
+  const healthNotices = createVisualReminderNotifier(undefined, undefined, { title: 'Saúde do PC — Jasper', heading: 'Saúde do PC', footer: 'Observação de uso, sem reparo automático. Confira o painel Saúde do PC no Jasper.' })
+  const health = new PcHealthService(new PcHealthStore(database), new HealthCollectorClient(path.join(__dirname, 'pc-health-worker.js')), {
+    allowed: healthAllowed, now: Date.now, changed: () => safeSend(IPC_CHANNELS.PC_HEALTH_CHANGED, null),
+    authorize: context => { const decision = policy.authorize('pc_health_read', context); if (!decision.allowed) throw new Error(decision.code) },
+    closeNotices: () => healthNotices.close?.(),
+    notify: (alerts, valid) => healthNotices.prepare({ title: 'Limites de uso atingidos', description: alerts.map(alert => alert.message).join('\n') } as Reminder,
+      { beforeShow: valid, shown: () => {}, failed: () => {} }).show()
+  })
+  pcHealth = health
+  const healthTimer = setInterval(() => { void health.poll().catch(() => {}) }, 1000); healthTimer.unref?.()
+  const suspendHealth = () => { void health.suspend().catch(() => console.warn('[PcHealth] Collector termination uncertain.')) }, resumeHealth = () => { health.resume() }
+  powerMonitor.on('suspend', suspendHealth); powerMonitor.on('resume', resumeHealth)
+  closeHealth = async () => { clearInterval(healthTimer); powerMonitor.removeListener('suspend', suspendHealth); powerMonitor.removeListener('resume', resumeHealth); await health.stop() }
   const tasks = initializeTaskApplication(database, {
-    verifyCapability: (context, id, result) => isReminderCapability(id) ? reminders.verify(context, id, result) : result,
-    releaseObservation: id => reminders.releaseObservation(id), clearObservations: () => reminders.clearObservations()
+    verifyCapability: (context, id, result) => id === 'pc_health_read' ? health.verify(context, id, result) : isReminderCapability(id) ? reminders.verify(context, id, result) : result,
+    releaseObservation: id => { reminders.releaseObservation(id); health.releaseObservation(id) }, clearObservations: () => { reminders.clearObservations(); health.clearObservations() }
   })
   const bridge = new ModuleRuntimeBridge(registry, policy, new InvocationStore(database), pythonBackend, id => store.get(id).revision, tasks,
-    { reminders: (id, args, context, signal) => reminders.execute(id, args, context, signal) })
+    { reminders: (id, args, context, signal) => reminders.execute(id, args, context, signal), 'pc-health': (id, args, context, signal) => health.execute(id, args, context, signal) })
   const reminderAllowed = () => {
     const snapshot = service.getSnapshot('reminders')
     return snapshot.enabled && snapshot.authorized && snapshot.lifecycle === 'running'
@@ -73,6 +96,7 @@ export function initializeModuleApplication(): void {
     })
   lifecycle.register('computer', () => bridge.stopModule('computer'))
   lifecycle.register('reminders', async () => { reminderRuntime.stop(); await dashboard.abortAll(); reminders.clearObservations(); return bridge.stopModule('reminders') })
+  lifecycle.register('pc-health', async () => { await health.stop(); return bridge.stopModule('pc-health') })
   application = { service, bridge, database, reminderRuntime, dashboard, reminderStore, presentation }
   pythonBackend.onMessage((frame, sessionId) => {
     if (frame.type === 'hello_ack') {
@@ -84,7 +108,7 @@ export function initializeModuleApplication(): void {
     }
   })
   licenseGate.onStateChanged(snapshot => {
-    if (snapshot.state !== 'unlocked') { reminderRuntime.stop(); void dashboard.abortAll(); void bridge.close() }
+    if (snapshot.state !== 'unlocked') { reminderRuntime.stop(); void health.stop().catch(() => console.warn('[PcHealth] Collector termination uncertain.')); void dashboard.abortAll(); void bridge.close() }
   })
 }
 
@@ -118,6 +142,7 @@ export async function refreshModuleRuntime(): Promise<void> {
 
 export async function closeModuleApplication(): Promise<void> {
   if (!application) return
+  await closeHealth?.()
   application.reminderRuntime.close()
   application.presentation.close()
   await application.dashboard.close()

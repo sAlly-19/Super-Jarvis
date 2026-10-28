@@ -1,5 +1,6 @@
 """Bounded observations for the original tools; never proof or persisted history."""
 import json
+import math
 from .contracts import CAPABILITY_VERIFIERS
 
 ERRORS = {
@@ -20,6 +21,18 @@ def bounded(value, limit):
 
 
 def diagnostic(observation):
+    if observation.get('capabilityId') == 'pc_health_read' or any(item.get('kind') == 'pc_health_read' for item in observation.get('evidence', [])):
+        raw = observation.get('data')
+        data = raw.get('snapshot') if isinstance(raw, dict) else None
+        if not isinstance(data, dict): return 'Consulta de saúde do PC indisponível.'
+        cpu, memory = data.get('cpuPercent'), data.get('memory')
+        parts = ['Leitura de saúde do PC:']
+        percent = lambda value: isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 100
+        if percent(cpu): parts.append(f'CPU: {cpu:.1f}%.')
+        if isinstance(memory, dict) and percent(memory.get('percent')): parts.append(f"RAM: {memory['percent']:.1f}%.")
+        missing = data.get('unavailable')
+        if isinstance(missing, list): parts.append('Sensores indisponíveis: ' + ', '.join(bounded(item, 32) for item in missing[:8] if isinstance(item, str)) + '.')
+        return ' '.join(parts)
     capability = observation.get('capabilityId')
     verifier = CAPABILITY_VERIFIERS.get(capability)
     if verifier in ('reminder_read', 'reminder_write'):

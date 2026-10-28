@@ -1,4 +1,8 @@
 export const IPC_CHANNELS = {
+  PC_HEALTH_GET: 'pc-health:get',
+  PC_HEALTH_REFRESH: 'pc-health:refresh',
+  PC_HEALTH_PREFERENCES: 'pc-health:preferences',
+  PC_HEALTH_CHANGED: 'pc-health:changed',
   REMINDERS_LIST: 'reminders:list',
   REMINDERS_GET: 'reminders:get',
   REMINDERS_MUTATE: 'reminders:mutate',

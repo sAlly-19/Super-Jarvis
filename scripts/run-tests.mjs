@@ -4,9 +4,11 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 import os from 'os'
+import { resolveDevelopmentPython } from './development-python.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
+const pythonExecutable = resolveDevelopmentPython({ projectRoot: rootDir })
 
 // Keep generated bundles and runtime data out of the repository.
 const tempTestRoot = path.join(os.tmpdir(), `jasper-tests-${process.pid}-${Date.now()}`)
@@ -26,6 +28,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
 export const powerMonitor = new EventEmitter();
+export const utilityProcess = { fork() { throw new Error('OS health collection is forbidden in source tests'); } };
 export class Notification extends EventEmitter {
   static isSupported() { return false; }
   constructor(options) { super(); this.options = options; }
@@ -214,6 +217,7 @@ console.log('[run-tests] Executando suíte de testes de integração real...')
 const outFiles = testFiles.map((tf) => path.join(tempTestRoot, tf.out))
 const res = spawnSync(process.execPath, ['--test', '--test-force-exit', '--test-timeout=120000', '--test-concurrency=1', ...outFiles], {
   cwd: rootDir,
+  env: { ...process.env, JASPER_PYTHON_EXECUTABLE: pythonExecutable },
   stdio: 'inherit',
   timeout: 300000
 })
@@ -223,4 +227,5 @@ try {
   fs.rmSync(resolvedTestRoot, { recursive: true, force: true })
 } catch {}
 
-process.exit(res.status ?? 0)
+if (res.error) console.error(`[run-tests] ${res.error.message}`)
+process.exit(res.status ?? 1)

@@ -10,6 +10,7 @@ export interface NotificationHooks {
 export interface ReminderNotifier {
   supported(): boolean
   prepare(item: Reminder, hooks: NotificationHooks): { show(): void; cancel(): void }
+  close?(): void
 }
 export interface SchedulerDependencies {
   allowed(): boolean
@@ -126,6 +127,7 @@ export class ReminderScheduler {
     this.delivered = null
     for (const pending of this.pending.values()) pending.cancel()
     this.pending.clear()
+    this.dependencies.notifier.close?.()
     this.store.releaseClaims(previous, true)
   }
 }

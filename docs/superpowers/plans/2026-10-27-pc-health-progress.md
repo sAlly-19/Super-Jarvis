@@ -1,0 +1,34 @@
+# Saúde do PC — implementação e retomada
+
+Atualização28/10: usuário encontrou bloqueio de inicialização por module_installation_mismatch em desenvolvimento. Recuperação da leitura de hardware e tratamento da promessa corrigidos sem regravar preferências/licença. [Evidências e reteste pendente](2026-10-28-installation-identity-recovery.md). Isso não constitui aceite manual de Saúde do PC.
+
+Usuário autorizou o próximo módulo após confirmar o aviso de Lembretes. Escolheu painel a cada30s e alertas configuráveis. Execução nativa/main, sem commit/push ou início de outro módulo. O rascunho05 foi superado para esse escopo. Sem biblioteca nova.
+
+## Escopo implementado
+
+- Coleta somente leitura em UtilityProcess Electron descartável com systeminformation instalado. CPU, RAM/swap, discos, GPU, processos, rede acumulada, uptime, bateria e temperatura conforme disponibilidade. Sem comandos/argumentos de processos, usuários, IP/MAC, serial ou credenciais nos resultados. Amostra volátil; não há histórico de telemetria persistido.
+- Uma fila PowerShell por coleta Windows, CPU amostrada após aquecimento, orçamento20s por grupo, limite27s no cliente e encerramento da árvore aguardado. Cancelar antes de spawn não deixa o processo iniciar coleta posteriormente. Falha de encerramento bloqueia novas leituras até reinício e não é declarada parada confirmada.
+- Migração007 aditiva, backup SQLite pelo mecanismo existente, preferências com revisão/CAS e cooldown persistido. Switch desativado por padrão. Quando habilitado, intervalo padrão30s (configurável15–300s), sem serviço/tray/autostart. Suspensão/licença/desativação interrompem coleta; módulo independente da conexão com IA.
+- Alertas disponíveis, desligados inicialmente para o usuário escolher seus limites. CPU90%, RAM90%, disco livre10%, temperatura85°C e bateria15% são padrões ajustáveis. Duas leituras consecutivas; intervalo mínimo15min por categoria. Sensores ausentes não geram alertas. Avisos visuais reutilizam a janela segura aprovada de Lembretes, com texto próprio de Saúde do PC e fechamento junto da principal. Não fazem reparos.
+- Painel Sistema & Automação com leitura manual, preferências e dados parciais explícitos. Conteúdo externo usa textContent; acesso IPC exige frame/janela legítimos, licença/consentimento e módulo habilitado.
+- Capacidade pc_health_read hospedada no Main, schema estrito, prova volátil vinculada ao contexto; metadata persistida não contém métricas. Orquestrador Python conhece o verificador e o diagnóstico parcial; cinco ferramentas Computer e Lembretes preservados.
+
+## Evidências e limites em atualização
+
+Testes iniciais RED por módulos ausentes, seguidos de testes de coleta parcial, timeout, CAS, cooldown, intervalo, cancelamento e prova contra dados/contexto forjados. Adicionados upgrade v6→v7 com reabertura/backup/switch, rejeição IPC, UI Chromium e stdio Main/Python com duas etapas verificadas e sem worker Python de Saúde do PC. Script test-pc-health-native.cjs coleta métricas reais e testa cancelamento precoce em perfil temporário; não usa a licença/perfil real nem prova aceite comercial desbloqueado.
+
+Primeiro teste real encontrou worker sobrevivente a cancelamento anterior ao spawn; corrigido para aguardar spawn/exit e não remover indiscriminadamente listeners internos do Electron. Reteste confirmou workers encerrados. Consultas Windows custam mais do que os8s inicialmente experimentados; mantidas leituras parciais verdadeiras, ampliado orçamento e reutilizado PowerShell por coleta para reduzir custo. Testes reais anteriores comprovaram CPU/RAM/discos, com sensores/consultas adicionais indisponíveis por ausência ou timeout; não anunciar cobertura de hardware total.
+
+Fontes primárias: [UtilityProcess](https://www.electronjs.org/docs/latest/api/utility-process) e [systeminformation](https://systeminformation.io/), além dos tipos/código da versão instalada. Registros locais `.cache/pc-health-*.log`. Validação final, hashes e aceite do pacote serão registrados ao concluir a rodada.
+
+## Pacote final e retomada — 27/10/2026
+
+Validação final do núcleo: npm run verify com Node24 aprovou282/282 testes TS, typecheck e build; Python86/86. Inclui stdio real com duas etapas health verificadas no Main, bloqueio após disable, upgrade/reabertura v6→v7 e cooldown/switch persistidos, IPC sem frame confiável rejeitado, UI Chromium escapando nomes externos, configuração com CAS e ocultação após revogação. Após revisão visual, apenas formatação/textos do painel foram refinados; typecheck e11/11 testes específicos de health passaram novamente. Captura final de dados sintéticos inspecionada em `.cache/pc-health-panel.png`.
+
+Sidecar reconstruído com os contratos/diagnósticos Python atualizados, manifesto SHA-256 regenerado e pacote Windows reconstruído após o último refinamento. No artefato final passaram, sequencialmente:11/11 testes de pacote, verify:package, test-pc-health-native --packaged, smoke:packaged, teste visual de Saúde do PC sobre HTML/CSS do ASAR, test-reminders-ui e dois ciclos de abertura/WM_CLOSE com perfil temporário. Não foram feitas chamadas reais de IA/voz, escrita no perfil pessoal nem notificações pessoais nos harnesses.
+
+Coleta real do worker final no ASAR concluiu em21610ms incluindo criação, leitura, encerramento e segundo teste de cancelamento precoce; workersExited:true. CPU, RAM/swap, discos e GPU disponíveis segundo o retorno do teste; network/battery/temperature/processes indisponíveis naquela execução. Não converter indisponibilidade por ausência, erro ou orçamento em zero nem em prova de falha de hardware; não prometer suporte total dos sensores nesta máquina. O painel é de observações de uso, não um diagnóstico de saúde garantido.
+
+Executável atualizado: `release/win-unpacked/Jasper AI.exe`; SHA-256 `65D35E02450918FC775DE029840C86E5C809BF3E05C533E1A96838DAEC843AF0`. Continua pacote local NotSigned, sem publicação. Scanner365 arquivos rastreados e novos não ignorados sem achados; diff --check aprovado. Aviso já conhecido de bundle renderer>500kB permanece. Revisão de código/visuais feita no agente principal; não alegar revisão independente.
+
+**Aceite manual pendente:** abrir esse executável com a licença existente e habilitar Saúde do PC em Sistema & Automação. Aguardar a primeira coleta (pode levar cerca de20s); conferir as leituras e as categorias indisponíveis. O módulo vem desativado; ao habilitar, usa atualização30s. Alertas visuais vêm desligados e podem ser ativados com limites escolhidos no painel. Para testar um aviso, usar temporariamente um limite abaixo de uma leitura disponível e aguardar duas leituras consecutivas; depois restaurar o limite desejado. Desligar o módulo, minimizar/retomar e fechar pelo X devem manter os comportamentos descritos. Ainda não há aceite do usuário do novo módulo, modelo real planejando health, assinatura de produção ou VM limpa. Não avançar automaticamente para Documentos.

@@ -62,6 +62,9 @@ for (const resource of ['out/main/reminders-ical-worker.js', 'src/main/storage/m
   if (!reminderResource(resource).length) throw new Error(`Missing reminder artifact: ${resource}`)
 }
 const reminderWorker = reminderResource('out/main/reminders-ical-worker.js').toString()
+for (const resource of ['out/main/pc-health-worker.js', 'src/main/storage/migrations/007-pc-health.sql', 'node_modules/systeminformation/package.json']) {
+  if (!reminderResource(resource).length) throw new Error(`Missing PC health artifact: ${resource}`)
+}
 for (const match of reminderWorker.matchAll(/require\(["'](\.\/chunks\/[^"']+)["']/g)) {
   if (!reminderResource(`out/main/${match[1].slice(2)}`).length) throw new Error('Missing reminder worker chunk')
 }

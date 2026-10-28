@@ -35,10 +35,12 @@ export function initializeModuleSettings(): void {
         : snapshot.lifecycle === 'stopping' ? 'Encerramento pendente — não reativar'
         : !snapshot.enabled ? 'Desativado'
         : snapshot.health !== 'healthy' ? 'Runtime indisponível — reconecte o agente'
-        : snapshot.id === 'reminders' ? 'Ativo — agenda local com o aplicativo aberto' : 'Ativo — ferramentas nativas autorizadas'
+        : snapshot.id === 'reminders' ? 'Ativo — agenda local com o aplicativo aberto'
+        : snapshot.id === 'pc-health' ? 'Ativo — monitoramento local do computador' : 'Ativo — ferramentas nativas autorizadas'
       const detail = document.createElement('small')
       detail.textContent = snapshot.id === 'computer' ? 'PowerShell livre para scripts e automação do Windows, teclado/mouse, volume, telemetria e captura. Sem confirmação por operação. Comandos e erros são apresentados sem presumir que o objetivo foi concluído.' : snapshot.id === 'reminders' ? 'Agenda e calendário manual .ics no painel abaixo. Avisos sem som; resumo de atrasados na retomada. Não depende de conexão com a IA.' : 'Configuração será disponibilizada na fase deste módulo.'
       const diagnostic = document.createElement('button')
+      if (snapshot.id === 'pc-health') detail.textContent = 'CPU, GPU, memória/swap, discos, processos, rede, uptime, bateria e sensores disponíveis no painel abaixo. Coleta local sem IA; alertas visuais configuráveis, sem reparos automáticos.'
       diagnostic.type = 'button'
       diagnostic.className = 'btn-toggle'
       diagnostic.textContent = 'Diagnosticar'

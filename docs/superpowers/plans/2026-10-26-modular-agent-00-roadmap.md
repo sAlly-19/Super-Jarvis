@@ -34,6 +34,8 @@ Cada documento tem o mesmo prefixo deste arquivo, seguido do número/nome. Não 
 
 ## Decisões e gates
 
+Atualização de continuidade em27/10/2026: usuário confirmou o reteste bem-sucedido do aviso visual de Lembretes e autorizou o próximo módulo. Saúde do PC implementado com validações locais e pacote atualizado; usuário escolheu painel30s e alertas configuráveis. [Evidências e aceite manual pendente](2026-10-27-pc-health-progress.md). Nenhum início automático de Documentos ou publicação.
+
 Decisão posterior vigente: usuário rejeitou A e ordenou B. Catálogo estruturado A e guard retirados; cinco ferramentas originais/PowerShell livre restaurados, com melhores diagnósticos. [Estado atual do plano B](2026-10-27-computer-control-plan-b.md). Referências à entrega A abaixo são históricas, não instrução para restaurá-la.
 
 Atualização de 27/10/2026: fase03 alternativa A autorizada e implementada, preservando PowerShell livre; [evidências e retomada](2026-10-27-computer-control-progress.md). Novas ferramentas estruturadas, protocolo de tarefas v2, plano aceito no Main e migração004 validados localmente. Provedor real permanece diferido; fases04–14 não iniciadas nesta entrega.

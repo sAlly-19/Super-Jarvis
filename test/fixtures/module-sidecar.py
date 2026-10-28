@@ -39,6 +39,9 @@ class DeterministicProvider:
                         ]
                     if self.reminder_plans >= 3:
                         steps = [{'id': 'a', 'capabilityId': 'reminder_list', 'args': {'limit': 100}, 'dependsOn': [], 'bindings': [], 'successCriterion': {'verifierId': 'reminder_read', 'expected': None}}]
+                if os.getenv('JASPER_TEST_HEALTH') == '1':
+                    steps = [{'id': name, 'capabilityId': 'pc_health_read', 'args': {}, 'dependsOn': [] if name == 'a' else ['a'],
+                              'bindings': [], 'successCriterion': {'verifierId': 'pc_health_read', 'expected': None}} for name in ('a', 'b')]
                 if os.getenv('JASPER_TEST_CANCEL_TASK') == '1':
                     marker = os.environ['JASPER_TEST_CANCEL_MARKER'].replace("'", "''")
                     command = f"[System.IO.File]::WriteAllText('{marker}', [string]$PID); Start-Sleep -Seconds 10"

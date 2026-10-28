@@ -13,7 +13,8 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
-          'reminders-ical-worker': resolve(__dirname, 'src/main/modules/reminders/ical-worker.ts')
+          'reminders-ical-worker': resolve(__dirname, 'src/main/modules/reminders/ical-worker.ts'),
+          'pc-health-worker': resolve(__dirname, 'src/main/modules/pc-health/worker.ts')
         },
         external: ['ws', 'dotenv']
       }

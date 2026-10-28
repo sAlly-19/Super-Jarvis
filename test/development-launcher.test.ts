@@ -12,6 +12,7 @@ interface PythonInspection {
 
 interface DevelopmentPythonModule {
   resolveDevelopmentPython(options: {
+    env?: NodeJS.ProcessEnv
     configuredPath?: string
     candidates?: string[]
     inspectPython?: (candidate: string) => PythonInspection | null
@@ -59,6 +60,7 @@ describe('secure development Python bootstrap', () => {
   test('selects a deterministic Python 3.11 candidate when no override is configured', async () => {
     const { resolveDevelopmentPython } = await loadDevelopmentPythonModule()
     const resolved = resolveDevelopmentPython({
+      env: {},
       candidates: ['C:\\missing\\python.exe', 'C:\\trusted\\python.exe'],
       inspectPython: (candidate) => candidate.includes('trusted')
         ? { canonicalPath: 'C:\\trusted\\python.exe', version: '3.11.9' }

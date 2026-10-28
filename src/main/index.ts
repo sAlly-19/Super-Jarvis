@@ -9,6 +9,7 @@ import { updateManager } from './services/update-manager'
 import { licenseGate } from './services/license-gate'
 import { pythonBackend } from './services/python-backend'
 import { initializeModuleApplication, closeModuleApplication } from './modules/application'
+import { reportStartupFailure } from './services/startup-failure'
 
 let licenseCheckTimer: NodeJS.Timeout | null = null
 let updateServiceStarted = false
@@ -54,6 +55,7 @@ function registerAppProtocol(): void {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') app.setAppUserModelId('com.jasper.avatar')
   registerAppProtocol()
   configStore.initialize()
   initializeModuleApplication()
@@ -95,7 +97,7 @@ app.whenReady().then(() => {
       createMainWindow()
     }
   })
-})
+}).catch(error => reportStartupFailure(error))
 
 app.on('before-quit', () => {
   void closeModuleApplication().catch(() => {})

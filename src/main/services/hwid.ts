@@ -18,8 +18,8 @@ let cachedHardwareInfo: HardwareInfo | null = null
  * 
  * Gera um identificador único estável no formato HWID-XXXX-XXXX-XXXX
  */
-export function getHardwareInfo(): HardwareInfo {
-  if (cachedHardwareInfo) {
+export function getHardwareInfo(options: { refresh?: boolean; timeoutMs?: number } = {}): HardwareInfo {
+  if (cachedHardwareInfo && !options.refresh) {
     return cachedHardwareInfo
   }
 
@@ -39,7 +39,7 @@ export function getHardwareInfo(): HardwareInfo {
 
       const encoded = Buffer.from(psScript, 'utf16le').toString('base64')
       const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded], {
-        timeout: 4000,
+        timeout: options.timeoutMs ?? 12000,
         encoding: 'utf-8',
         windowsHide: true,
         stdio: ['pipe', 'pipe', 'ignore']

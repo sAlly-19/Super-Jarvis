@@ -33,7 +33,7 @@ test('ical rejects unsupported semantics and conflicting UIDs without silent con
   assert.throws(() => parseCalendar(bytes(Array(1001).fill(event('DTSTART:20271101T100000Z')).join('\r\n')), prefs), /limit/)
 })
 
-test('ical round-trip preserves imported rules and native monthly clamp has equivalent RFC dates', () => {
+test('ical round-trip preserves imported rules and native monthly clamp has equivalent RFC dates', async () => {
   const original = parseCalendar(bytes(event('DTSTART:20270131T090000Z\r\nRRULE:FREQ=MONTHLY;COUNT=4')), prefs).candidates[0]
   const item: any = { id: 'fixture', uid: original.uid, title: original.title, description: original.description, schedule: original.schedule,
     source: 'ical', icalSource: original.icalSource, state: 'active' }
@@ -42,9 +42,18 @@ test('ical round-trip preserves imported rules and native monthly clamp has equi
   const native: any = { ...item, uid: 'native', source: 'jasper', icalSource: null, schedule: { policy: 'jasper', localDateTime: '2027-01-31T09:00:00', timeZone: 'UTC', recurrence: 'monthly', anchorDay: 31 } }
   const imported = parseCalendar(serializeCalendar([native]), prefs).candidates[0]
   const calendar = new ReminderCalendar()
-  assert.equal(calendar.nextAfter(imported.schedule, '2027-02-01T00:00:00.000Z')!.utc, '2027-02-28T09:00:00.000Z')
-  assert.equal(calendar.nextAfter(imported.schedule, '2027-03-01T00:00:00.000Z')!.utc, '2027-03-31T09:00:00.000Z')
-  assert.equal(calendar.nextAfter(imported.schedule, '2028-02-01T00:00:00.000Z')!.utc, '2028-02-29T09:00:00.000Z')
+  const next = async (after: string) => {
+    for (;;) {
+      try { return calendar.nextAfter(imported.schedule, after) }
+      catch (error) {
+        assert.equal((error as Error).message, 'recurrence_checkpoint_pending')
+        await new Promise<void>(resolve => setImmediate(resolve))
+      }
+    }
+  }
+  assert.equal((await next('2027-02-01T00:00:00.000Z'))!.utc, '2027-02-28T09:00:00.000Z')
+  assert.equal((await next('2027-03-01T00:00:00.000Z'))!.utc, '2027-03-31T09:00:00.000Z')
+  assert.equal((await next('2028-02-01T00:00:00.000Z'))!.utc, '2028-02-29T09:00:00.000Z')
   assert.throws(() => serializeCalendar([{ ...native, schedule: { ...native.schedule, timeZone: 'America/New_York' } }]), /export/)
   assert.throws(() => serializeCalendar([{ ...native, state: 'completed' }]), /export/)
 })

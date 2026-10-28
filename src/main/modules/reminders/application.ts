@@ -2,13 +2,14 @@ import { powerMonitor } from 'electron'
 import type { RemindersStore } from './store'
 import { ReminderScheduler } from './scheduler'
 import { electronReminderNotifier } from './notifier'
+import { createVisualReminderNotifier } from './visual-notifier'
 import type { SchedulerDependencies } from './scheduler'
 
 /** Owns process-local timers/listeners only. No tray, service, autostart or provider dependency. */
 export function startRemindersApplication(store: RemindersStore, allowed: () => boolean, presenter?: SchedulerDependencies['presenter']) {
   let suspended = false, closed = false
   const scheduler = new ReminderScheduler(store, {
-    allowed: () => !closed && !suspended && allowed(), nowUtc: () => new Date().toISOString(), notifier: electronReminderNotifier(), presenter
+    allowed: () => !closed && !suspended && allowed(), nowUtc: () => new Date().toISOString(), notifier: electronReminderNotifier(createVisualReminderNotifier()), presenter
   })
   const reconcile = () => {
     if (closed || suspended || !allowed()) { if (scheduler.isRunning()) scheduler.stop(); return }

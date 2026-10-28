@@ -6,7 +6,7 @@
 **Architecture:** Capacidade registrada no núcleo; executor e persistência a confirmar após D1/D2.
 **Tech Stack:** Reutilizar stack atual; nenhuma dependência nova aprovada.
 **Spec:** [Desenho preliminar](../specs/2026-10-26-modular-agent-design-draft.md).
-**Status:** BLOQUEADO PARA IMPLEMENTAÇÃO — escopo preliminar.
+**Status27/10/2026:** EXECUÇÃO AUTORIZADA pelo pedido de avançar após o reteste aprovado de Lembretes. Usuário escolheu painel a cada30s com alertas configuráveis. Coleta Main/systeminformation já instalado, processo descartável, sem novas dependências. [Progresso atual](2026-10-27-pc-health-progress.md). As propostas preliminares abaixo são históricas e foram detalhadas nesta continuidade.
 **Depends on:** 01 + 02.
 
 ## Global Constraints
