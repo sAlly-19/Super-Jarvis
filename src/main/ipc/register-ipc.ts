@@ -40,6 +40,8 @@ import { assertModuleId, assertModuleUpdate } from '../modules/ipc-validation'
 import { getTaskService } from '../tasks/application'
 import { registerRemindersIpc } from './reminders-ipc'
 import { registerPcHealthIpc } from './pc-health-ipc'
+import { registerEmailIpc } from './email-ipc'
+import { getEmailApplication } from '../modules/application'
 
 export type TrustedEvent = IpcMainEvent | IpcMainInvokeEvent
 
@@ -253,6 +255,7 @@ function wireBackendForwarding(): void {
 export function registerIpcHandlers(moduleRuntime = { refresh: refreshModuleRuntime, assertReady: assertModuleRuntimeReady }): void {
   registerRemindersIpc((event, channel) => { assertTrustedSender(event); requireIpcAccess(channel) })
   registerPcHealthIpc((event, channel) => { assertTrustedSender(event); requireIpcAccess(channel) })
+  registerEmailIpc((event, channel) => { assertTrustedSender(event); requireIpcAccess(channel) }, { handle: (channel, handler) => ipcMain.handle(channel, handler), window: getMainWindow, application: getEmailApplication })
   wireBackendForwarding()
     const taskId = (value: unknown): string => {
       if (typeof value !== 'string' || !/^[a-f0-9-]{36}$/.test(value)) throw new Error('invalid_task_id')

@@ -34,6 +34,14 @@ Cada documento tem o mesmo prefixo deste arquivo, seguido do número/nome. Não 
 
 ## Decisões e gates
 
+Gate atual E-mails28/10: usuário aprovou a especificação escrita com “SIM”. [Mapa executivo e cinco planos](2026-10-28-email-00-execution-map.md) criados e autorrevisados; aguardam revisão/aprovação dos planos antes de implementação pelo método nativo/main. [Progresso](2026-10-28-email-progress.md). Sem dependência instalada, código iniciado ou executável gerado nesta rodada.
+
+Desenho E-mails28/10: arquitetura local no Main aprovada em conversa. [Especificação escrita](../specs/2026-10-28-email-design.md) criada para revisão; somente após aprovação desse documento detalhar os planos executivos. Nenhuma implementação iniciada.
+
+Continuidade E-mails28/10: Gmail e Outlook, SDKs oficiais, múltiplas contas, conta padrão para novos envios, respostas pela conta original e buscas entre contas aprovados. Anexos: listar/baixar/enviar, sem interpretação. Cadastros OAuth administrados pelo Jasper aprovados; desenho e plano executivo ainda em revisão. [Decisões consolidadas](2026-10-26-modular-agent-07-email.md). Não iniciar código nem criar cadastros externos antes das respectivas autorizações.
+
+Atualização vigente28/10/2026: usuário pediu adiar o módulo06 Documentos por enquanto; não implementar nem remover funcionalidades existentes. Próximo módulo na sequência:07 E-mails, ainda sujeito ao detalhamento e aprovação do desenho/plano. Executáveis somente ao finalizar o projeto ou quando realmente necessários para testes, substituindo a exigência genérica de empacotar cada fase. Correção mais recente de Saúde do PC: [registro](2026-10-28-pc-health-unavailable-fix.md); usuário respondeu “pronto”, sem detalhar novos resultados de aceite.
+
 Atualização de continuidade em27/10/2026: usuário confirmou o reteste bem-sucedido do aviso visual de Lembretes e autorizou o próximo módulo. Saúde do PC implementado com validações locais e pacote atualizado; usuário escolheu painel30s e alertas configuráveis. [Evidências e aceite manual pendente](2026-10-27-pc-health-progress.md). Nenhum início automático de Documentos ou publicação.
 
 Decisão posterior vigente: usuário rejeitou A e ordenou B. Catálogo estruturado A e guard retirados; cinco ferramentas originais/PowerShell livre restaurados, com melhores diagnósticos. [Estado atual do plano B](2026-10-27-computer-control-plan-b.md). Referências à entrega A abaixo são históricas, não instrução para restaurá-la.

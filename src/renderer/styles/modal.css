@@ -2094,3 +2094,14 @@ select:focus,
 #pc-health-metrics p { margin: 0; padding: 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; background: rgba(255,255,255,.025); color: #bfc3cc; font-size: 12px; font-weight: 400; line-height: 1.6; overflow-wrap: anywhere; }
 #pc-health-metrics strong { display: block; margin-bottom: 4px; color: #f5f5f5; font-size: 12px; font-weight: 600; }
 #pc-health-metrics p:nth-child(n+9) { grid-column: 1 / -1; }
+
+#email-controls { margin: 12px 0 0; padding: 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; min-width: 0; }
+#email-controls legend { padding: 0 8px; color: #aaa; font-size: 12px; }
+.email-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.email-account-row { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+.email-account-row p, #email-feedback, #email-controls details p { font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; color: #bfc3cc; }
+.email-account-row button { margin: 0 8px 5px 0; }
+#email-controls details { margin-top: 16px; font-size: 12px; }
+#email-controls summary { cursor: pointer; }
+#email-controls select { display: block; width: 100%; margin: 8px 0; }
+#email-tickets { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; font-size: 11px; user-select: text; }

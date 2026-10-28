@@ -38,7 +38,17 @@ export class PcHealthService {
         this.snapshot = structuredClone(snapshot); this.errorCode = null
         this.evaluate(snapshot); this.deps.changed()
         return structuredClone(snapshot)
-      } catch (error) { if (epoch === this.epoch && this.deps.allowed() && !controller.signal.aborted) { this.errorCode = 'health_collection_failed'; this.deps.changed() }; throw error }
+      } catch (error) {
+        // Cleanup uncertainty survives cancellation and epoch changes: another
+        // worker must not start until the application is restarted.
+        if (error instanceof Error && error.message === 'health_worker_cleanup_failed') {
+          this.unsafe = true; this.errorCode = 'health_worker_cleanup_failed'
+          if (this.deps.allowed()) this.deps.changed()
+        } else if (epoch === this.epoch && this.deps.allowed() && !controller.signal.aborted) {
+          this.errorCode = 'health_collection_failed'; this.deps.changed()
+        }
+        throw error
+      }
       finally { signal.removeEventListener('abort', abort); this.active.delete(entry); if (epoch === this.epoch && this.deps.allowed()) this.deps.changed() }
     })()
     return entry.work

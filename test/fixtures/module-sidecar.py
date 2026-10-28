@@ -42,6 +42,14 @@ class DeterministicProvider:
                 if os.getenv('JASPER_TEST_HEALTH') == '1':
                     steps = [{'id': name, 'capabilityId': 'pc_health_read', 'args': {}, 'dependsOn': [] if name == 'a' else ['a'],
                               'bindings': [], 'successCriterion': {'verifierId': 'pc_health_read', 'expected': None}} for name in ('a', 'b')]
+                if os.getenv('JASPER_TEST_EMAIL') == '1':
+                    steps = [
+                        {'id': 'search', 'capabilityId': 'email_search', 'args': {'limit': 1}, 'dependsOn': [], 'bindings': [], 'successCriterion': {'verifierId': 'email_read', 'expected': None}},
+                        {'id': 'read', 'capabilityId': 'email_read', 'args': {}, 'dependsOn': ['search'], 'bindings': [{'inputField': 'ref', 'fromStepId': 'search', 'outputField': 'firstRef'}], 'successCriterion': {'verifierId': 'email_read', 'expected': None}},
+                        {'id': 'reply', 'capabilityId': 'email_reply', 'args': {'text': 'Synthetic reply authorized by the user.', 'attachmentHandles': []}, 'dependsOn': ['read'], 'bindings': [{'inputField': 'ref', 'fromStepId': 'read', 'outputField': 'ref'}, {'inputField': 'expectedVersion', 'fromStepId': 'read', 'outputField': 'version'}], 'successCriterion': {'verifierId': 'email_write', 'expected': None}}
+                    ]
+                    if os.getenv('JASPER_TEST_EMAIL_REMINDERS') == '1':
+                        steps.append({'id': 'reminder', 'capabilityId': 'reminder_create', 'args': {'title': 'Synthetic email follow-up', 'description': 'Explicitly requested by the user, not the email.', 'schedule': {'policy': 'jasper', 'localDateTime': '2026-10-29T09:00:00', 'timeZone': 'UTC', 'recurrence': 'none', 'anchorDay': 29}}, 'dependsOn': ['read'], 'bindings': [], 'successCriterion': {'verifierId': 'reminder_write', 'expected': None}})
                 if os.getenv('JASPER_TEST_CANCEL_TASK') == '1':
                     marker = os.environ['JASPER_TEST_CANCEL_MARKER'].replace("'", "''")
                     command = f"[System.IO.File]::WriteAllText('{marker}', [string]$PID); Start-Sleep -Seconds 10"

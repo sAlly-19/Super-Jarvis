@@ -1,4 +1,12 @@
 export const IPC_CHANNELS = {
+  EMAIL_ACCOUNTS: 'email:accounts',
+  EMAIL_CONNECT: 'email:connect',
+  EMAIL_DISCONNECT: 'email:disconnect',
+  EMAIL_DEFAULT: 'email:default',
+  EMAIL_PREFERENCES: 'email:preferences',
+  EMAIL_UPLOADS: 'email:uploads',
+  EMAIL_DOWNLOAD_DIRECTORY: 'email:download-directory',
+  EMAIL_CHANGED: 'email:changed',
   PC_HEALTH_GET: 'pc-health:get',
   PC_HEALTH_REFRESH: 'pc-health:refresh',
   PC_HEALTH_PREFERENCES: 'pc-health:preferences',

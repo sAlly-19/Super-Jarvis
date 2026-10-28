@@ -2,6 +2,7 @@
 import json
 import math
 from .contracts import CAPABILITY_VERIFIERS
+from .email_diagnostics import email_diagnostic
 
 ERRORS = {
     'execution_timeout': 'Tempo de execução excedido; resultado do objetivo não comprovado.',
@@ -21,6 +22,8 @@ def bounded(value, limit):
 
 
 def diagnostic(observation):
+    if observation.get('capabilityId') in CAPABILITY_VERIFIERS and str(observation.get('capabilityId')).startswith('email_'):
+        return email_diagnostic(observation)
     if observation.get('capabilityId') == 'pc_health_read' or any(item.get('kind') == 'pc_health_read' for item in observation.get('evidence', [])):
         raw = observation.get('data')
         data = raw.get('snapshot') if isinstance(raw, dict) else None

@@ -101,6 +101,21 @@ test('host health proof binds context and output; forged readings and revoked au
   } finally { await service.stop(); db.close() }
 })
 
+test('spontaneous worker cleanup failure blocks manual and automatic collection until restart', async () => {
+  const { db, store } = open(); let reads = 0
+  const service = new PcHealthService(store, { collect: async () => { reads++; throw new Error('health_worker_cleanup_failed') } }, {
+    allowed: () => true, authorize: () => {}, now: () => 1000000, changed() {}, notify() {}, closeNotices() {}
+  })
+  try {
+    await assert.rejects(service.read(), /health_worker_cleanup_failed/)
+    await service.stop()
+    await service.poll()
+    assert.equal(reads, 1, 'automatic polling must not start another worker')
+    assert.throws(() => service.read(), /health_worker_cleanup_failed/)
+    assert.equal(service.state().errorCode, 'health_worker_cleanup_failed')
+  } finally { await service.stop(); db.close() }
+})
+
 test('uncertain worker cleanup blocks further collection until restart', async () => {
   const { db, store } = open(); let reads = 0
   const service = new PcHealthService(store, { collect: signal => { reads++; return new Promise((_, reject) => signal.addEventListener('abort', () => reject(new Error('health_worker_cleanup_failed')), { once: true })) } }, {

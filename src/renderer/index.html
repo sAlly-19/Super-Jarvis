@@ -644,6 +644,20 @@
                   </fieldset>
                   <div id="pc-health-metrics" aria-live="polite"></div>
                 </section>
+                <section id="email-panel" class="settings-card email-settings" aria-labelledby="email-heading">
+                  <div class="settings-card-header"><div class="card-text-col"><h4 id="email-heading">E-mails · Gmail &amp; Outlook</h4><p>Conecte suas contas no navegador. Tokens ficam protegidos neste computador.</p></div></div>
+                  <p id="email-feedback" role="status">Carregando disponibilidade...</p>
+                  <fieldset id="email-controls" disabled>
+                    <legend>Contas e anexos</legend>
+                    <div class="email-actions"><button id="email-connect-gmail" type="button" class="btn-toggle">Conectar Gmail</button><button id="email-connect-outlook" type="button" class="btn-toggle">Conectar Outlook</button></div>
+                    <div id="email-accounts" aria-live="polite"></div>
+                    <details><summary>Selecionar anexos ou pasta de download</summary><p>Selecione arquivos e copie as referências para o chat. O Jasper transfere anexos sem interpretar o conteúdo.</p>
+                      <label>Conta para os arquivos<select id="email-file-account"></select></label>
+                      <div class="email-actions"><button id="email-upload" type="button" class="btn-toggle">Selecionar anexos</button><button id="email-directory" type="button" class="btn-toggle" disabled title="Aguardando proteção nativa de publicação no Windows">Download em revisão</button></div>
+                      <pre id="email-tickets" aria-live="polite"></pre>
+                    </details>
+                  </fieldset>
+                </section>
                 <section class="settings-card reminders-settings" aria-labelledby="reminders-heading">
                   <div class="settings-card-header"><div class="card-text-col"><h4 id="reminders-heading">Lembretes &amp; calendário</h4><p>Avisos enquanto o Jasper estiver aberto. Ative Lembretes nos módulos acima.</p></div></div>
                   <p id="reminders-feedback" role="status">Carregando disponibilidade...</p>

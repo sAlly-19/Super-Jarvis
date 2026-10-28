@@ -6,6 +6,17 @@ export interface AgentStatusPayload {
   agent_name?: string
 }
 
+export interface EmailAPI {
+  listEmailAccounts(): Promise<import('./email').EmailPanelState>
+  connectEmailAccount(provider: import('./email').EmailProviderId): Promise<import('./email').EmailAccount>
+  disconnectEmailAccount(id: string, expectedRevision: number): Promise<void>
+  setDefaultEmailAccount(id: string | null, expectedRevision: number): Promise<import('./email').EmailPreferences>
+  emailPreferences(): Promise<import('./email').EmailPreferences>
+  selectEmailUploads(accountId: string): Promise<import('./email').EmailUploadTicket[]>
+  selectEmailDownloadDirectory(accountId: string): Promise<string | null>
+  onEmailChanged(callback: () => void): () => void
+}
+
 export interface RemindersAPI {
   listReminders(query: import('./reminders').ReminderListQuery): Promise<import('./reminders').ReminderPage>
   getReminder(id: string): Promise<import('./reminders').ReminderView | null>

@@ -26,6 +26,18 @@ import {
 } from '@shared'
 
 const electronAPI = {
+  listEmailAccounts: () => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_ACCOUNTS),
+  connectEmailAccount: (provider: import('@shared').EmailProviderId) => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_CONNECT, { provider }),
+  disconnectEmailAccount: (id: string, expectedRevision: number) => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_DISCONNECT, { id, expectedRevision }),
+  setDefaultEmailAccount: (id: string | null, expectedRevision: number) => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_DEFAULT, { id, expectedRevision }),
+  emailPreferences: () => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_PREFERENCES),
+  selectEmailUploads: (accountId: string) => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_UPLOADS, { accountId }),
+  selectEmailDownloadDirectory: (accountId: string) => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_DOWNLOAD_DIRECTORY, { accountId }),
+  onEmailChanged: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on(IPC_CHANNELS.EMAIL_CHANGED, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.EMAIL_CHANGED, handler)
+  },
   getPcHealth: () => ipcRenderer.invoke(IPC_CHANNELS.PC_HEALTH_GET),
   refreshPcHealth: () => ipcRenderer.invoke(IPC_CHANNELS.PC_HEALTH_REFRESH),
   pcHealthPreferences: (request: import('../shared/types/pc-health').PcHealthPreferencesRequest) => ipcRenderer.invoke(IPC_CHANNELS.PC_HEALTH_PREFERENCES, request),

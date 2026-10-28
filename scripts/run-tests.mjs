@@ -197,6 +197,12 @@ for (const tf of testFiles) {
       '@shared': path.join(rootDir, 'src', 'shared', 'index.ts')
     },
     external: [
+      '@googleapis/gmail',
+      'google-auth-library',
+      '@azure/msal-node',
+      '@microsoft/microsoft-graph-client',
+      'nodemailer',
+      'nodemailer/*',
       'three',
       '@tensorflow/tfjs',
       '@tensorflow-models/speech-commands',

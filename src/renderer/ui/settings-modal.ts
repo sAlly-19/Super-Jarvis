@@ -2,6 +2,7 @@ import { DOM } from './dom'
 import { initializeModuleSettings } from './module-settings'
 import { initializeRemindersSettings } from './reminders-settings'
 import { initializePcHealthSettings } from './pc-health-settings'
+import { initializeEmailSettings } from './email-settings'
 import { AvatarController, MoodType } from '../scene/avatar'
 import { showHudToast } from './toast'
 import { updateStatusBadge } from './status-badge'
@@ -67,6 +68,7 @@ export class SettingsModal {
     initializeModuleSettings()
     initializeRemindersSettings()
     initializePcHealthSettings()
+    initializeEmailSettings()
     this.setupListeners()
   }
 

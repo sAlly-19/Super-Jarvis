@@ -31,9 +31,17 @@ export function initializePcHealthSettings(): void {
   initialized = true
   let generation = 0, revision = 0, editing = false, available = false
   const input = (name: string) => document.getElementById(`pc-health-${name}`) as HTMLInputElement
+  const unavailable = () => {
+    available = false; editing = false; controls.disabled = true; output.replaceChildren()
+    feedback.textContent = 'Ative Saúde do PC nos módulos acima, com licença e consentimento válidos.'
+  }
   const refresh = async () => {
     const current = ++generation
     try {
+      const modules = await window.electronAPI.listModules()
+      if (current !== generation) return
+      const module = modules.find(item => item.id === 'pc-health')
+      if (!module?.enabled || !module.authorized || module.lifecycle !== 'running') { unavailable(); return }
       const state = await window.electronAPI.getPcHealth()
       if (current !== generation) return
       available = true; controls.disabled = false; renderPcHealth(output, state)
@@ -46,8 +54,7 @@ export function initializePcHealthSettings(): void {
       }
     } catch {
       if (current !== generation) return
-      available = false; editing = false; controls.disabled = true; output.replaceChildren()
-      feedback.textContent = 'Ative Saúde do PC nos módulos acima, com licença e consentimento válidos.'
+      unavailable()
     }
   }
   controls.addEventListener('input', () => { editing = true })
@@ -69,5 +76,8 @@ export function initializePcHealthSettings(): void {
   document.getElementById('btn-settings')?.addEventListener('click', () => { void refresh() })
   window.addEventListener('jasper-modules-changed', () => { void refresh() })
   window.electronAPI.onPcHealthChanged(() => { void refresh() })
-  window.electronAPI.onLicenseState(snapshot => { if (snapshot.state !== 'unlocked') { generation++; available = false; controls.disabled = true; output.replaceChildren() }; void refresh() })
+  window.electronAPI.onLicenseState(snapshot => {
+    if (snapshot.state !== 'unlocked') { generation++; unavailable(); return }
+    void refresh()
+  })
 }

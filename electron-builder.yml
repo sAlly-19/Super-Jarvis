@@ -9,6 +9,7 @@ files:
   - out/**/*
   - package.json
   - resources/modules/native-capabilities.json
+  - resources/email-oauth.json
   - resources/licenses/**/*
   - src/main/storage/migrations/*.sql
   - "!**/node_modules/**/*.map"

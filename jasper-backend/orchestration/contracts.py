@@ -5,6 +5,9 @@ import re
 LIMITS = {'max_steps': 8, 'timeout_seconds': 120, 'max_revisions': 2}
 CAPABILITY_VERIFIERS = {'get_system_telemetry': 'telemetry_read', 'pc_health_read': 'pc_health_read', 'reminder_get': 'reminder_read', 'reminder_list': 'reminder_read',
                         **{f'reminder_{name}': 'reminder_write' for name in ('create', 'update', 'delete', 'complete', 'snooze')}}
+CAPABILITY_VERIFIERS.update({f'email_{name}': 'email_read' for name in ('search', 'read', 'conversation', 'locations', 'attachments')})
+CAPABILITY_VERIFIERS.update({f'email_{name}': 'email_write' for name in ('draft', 'send', 'reply', 'forward', 'organize', 'reconcile')})
+CAPABILITY_VERIFIERS['email_download_attachment'] = 'email_file'
 
 
 def verifier_for(capability_id): return CAPABILITY_VERIFIERS.get(capability_id, 'none')

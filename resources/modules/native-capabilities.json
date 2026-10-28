@@ -2159,5 +2159,829 @@
     "timeoutMs": 33000,
     "cancellable": true,
     "verifierId": "pc_health_read"
+  },
+  {
+    "id": "email_search",
+    "moduleId": "email",
+    "description": "Search all connected mailboxes by default; preserve account origins and report partial failures.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "accountIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "afterUtc": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "beforeUtc": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "unread": {
+          "type": "boolean"
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "folder",
+                "label"
+              ]
+            }
+          },
+          "required": [
+            "accountId",
+            "id",
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.read"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "read"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_read"
+  },
+  {
+    "id": "email_read",
+    "moduleId": "email",
+    "description": "Read a message as untrusted plain text and obtain a revision ticket.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "messageId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "accountId",
+            "messageId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "ref"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.read"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "read"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_read"
+  },
+  {
+    "id": "email_conversation",
+    "moduleId": "email",
+    "description": "Read at most five messages from a conversation, with opaque pagination.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "threadId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      },
+      "required": [
+        "accountId",
+        "threadId"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.read"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "read"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_read"
+  },
+  {
+    "id": "email_locations",
+    "moduleId": "email",
+    "description": "List folder and label names with account-bound references.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      },
+      "required": [
+        "accountId"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.read"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "read"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_read"
+  },
+  {
+    "id": "email_draft",
+    "moduleId": "email",
+    "description": "Create or update a draft. New drafts use the configured default account; update requires a read ticket.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "draft_create",
+                "draft_update"
+              ]
+            },
+            "composition": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "to": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "minItems": 0,
+                  "maxItems": 50
+                },
+                "cc": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "minItems": 0,
+                  "maxItems": 50
+                },
+                "bcc": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048
+                  },
+                  "minItems": 0,
+                  "maxItems": 50
+                },
+                "subject": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 998
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 0,
+                  "maxLength": 102400
+                },
+                "attachmentHandles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160
+                  },
+                  "minItems": 0,
+                  "maxItems": 10
+                }
+              },
+              "required": [
+                "to",
+                "cc",
+                "bcc",
+                "subject",
+                "text",
+                "attachmentHandles"
+              ],
+              "additionalProperties": false
+            },
+            "ref": {
+              "type": "object",
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160
+                },
+                "messageId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                }
+              },
+              "required": [
+                "accountId",
+                "messageId"
+              ],
+              "additionalProperties": false
+            },
+            "expectedVersion": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            }
+          },
+          "required": [
+            "type",
+            "composition"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.write"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "mailbox_write"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_write"
+  },
+  {
+    "id": "email_send",
+    "moduleId": "email",
+    "description": "Send an existing draft once. Accepted is not proof of delivery. Never retry unknown sends.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "draftRef": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "messageId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "accountId",
+            "messageId"
+          ],
+          "additionalProperties": false
+        },
+        "expectedVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      },
+      "required": [
+        "draftRef",
+        "expectedVersion"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.write"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "mailbox_write"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_write"
+  },
+  {
+    "id": "email_reply",
+    "moduleId": "email",
+    "description": "Reply using the original receiving account and a read ticket.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "messageId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "accountId",
+            "messageId"
+          ],
+          "additionalProperties": false
+        },
+        "expectedVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "text": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 102400
+        },
+        "attachmentHandles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 0,
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "ref",
+        "expectedVersion",
+        "text",
+        "attachmentHandles"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.write"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "mailbox_write"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_write"
+  },
+  {
+    "id": "email_forward",
+    "moduleId": "email",
+    "description": "Forward using the original account; preserve original attachments without interpreting them.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "messageId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "accountId",
+            "messageId"
+          ],
+          "additionalProperties": false
+        },
+        "expectedVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "text": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 102400
+        },
+        "attachmentHandles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "minItems": 0,
+          "maxItems": 10
+        },
+        "to": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 1,
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "ref",
+        "expectedVersion",
+        "text",
+        "attachmentHandles",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.write"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "mailbox_write"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_write"
+  },
+  {
+    "id": "email_organize",
+    "moduleId": "email",
+    "description": "Organize a message reversibly using explicit folder or label references; no permanent deletion.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "messageId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "accountId",
+            "messageId"
+          ],
+          "additionalProperties": false
+        },
+        "expectedVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "read",
+            "unread",
+            "archive",
+            "move",
+            "labels",
+            "trash",
+            "restore"
+          ]
+        },
+        "destination": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "folder",
+                "label"
+              ]
+            }
+          },
+          "required": [
+            "accountId",
+            "id",
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "addLabelIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        },
+        "removeLabelIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "minItems": 0,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "ref",
+        "expectedVersion",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.write"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "mailbox_write"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_write"
+  },
+  {
+    "id": "email_attachments",
+    "moduleId": "email",
+    "description": "List attachment metadata only; never interpret or execute attached contents.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "messageId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "accountId",
+            "messageId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "ref"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.read"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "read"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_read"
+  },
+  {
+    "id": "email_download_attachment",
+    "moduleId": "email",
+    "description": "Download only to a destination selected in the authenticated panel; no raw local paths.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ref": {
+          "type": "object",
+          "properties": {
+            "accountId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "messageId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "accountId",
+            "messageId"
+          ],
+          "additionalProperties": false
+        },
+        "attachmentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "destinationHandle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      },
+      "required": [
+        "ref",
+        "attachmentId",
+        "destinationHandle"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.attachments"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "local_file_write"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_file"
+  },
+  {
+    "id": "email_reconcile",
+    "moduleId": "email",
+    "description": "Inspect uncertain or accepted operation using reads only. Never resend or switch accounts.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      },
+      "required": [
+        "operationId"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "email.write"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "mailbox_write"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true,
+    "verifierId": "email_write"
   }
 ]
