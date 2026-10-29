@@ -72,3 +72,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-authenticode.
     -ExpectedPublisher "CN=Jasper Team, O=Jasper Team, L=Sao Paulo, C=BR"
 ```
 Consulte `docs/release/windows-signing.md` para detalhes sobre configuração de certificados na CI/CD do GitHub Actions.
+
+### E-mails — configuração e estado
+
+O módulo integra contas Gmail e Outlook pelo navegador do sistema, com credenciais protegidas localmente e conta padrão independente da conta usada em respostas. A configuração OAuth pertence ao publicador; sem ela, a conexão permanece indisponível. Downloads de anexos estão adiados. O aceite sintético não substitui testes com contas reais nem aprovação dos provedores para distribuição.
+
+Veja [conexão, limites e checklist do publicador](docs/email-provider-setup.md) e [progresso do aceite](docs/superpowers/plans/2026-10-28-email-progress.md). Executáveis serão gerados somente na etapa final ou por necessidade concreta de teste.

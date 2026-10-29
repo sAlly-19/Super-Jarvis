@@ -9,58 +9,72 @@ from provider_adapters import ProviderResponse, ProviderToolCall
 
 
 class DeterministicProvider:
-    def __init__(self): self.calls = 0
+    """Scripted tool choices, not a fake planner; arguments depend on real preceding tool outputs."""
+    def __init__(self):
+        self.turn = 0
+
     async def complete(self, model, messages, tools, temperature):
-        self.calls += 1
-        if messages[0]['content'].startswith('Você redige a resposta final'):
+        from orchestration.responder import fallback_response
+        user_index = max(i for i, message in enumerate(messages) if message['role'] == 'user')
+        results = [message for message in messages[user_index + 1:] if message['role'] == 'tool']
+        if not results:
+            self.turn += 1
+        count = len(results)
+        catalog = {item['function']['name'] for item in tools}
+        def call(name, args):
+            call_id = 'direct-' + str(count)
+            return ProviderResponse('', [ProviderToolCall(call_id, name, args)], {
+                'role': 'assistant', 'content': '', 'tool_calls': [{'id': call_id, 'type': 'function',
+                    'function': {'name': name, 'arguments': json.dumps(args)}}]})
+        def finish():
+            observed = {str(i): {**json.loads(item['content']), 'capabilityId': item['name']} for i, item in enumerate(results)}
+            text = fallback_response({'status': 'unknown', 'results': observed})
             if os.getenv('JASPER_TEST_REMINDERS') == '1':
-                observed = json.dumps(messages, ensure_ascii=False)
-                text = 'Lembrete FIXTURE_REMINDER agendado para 2027-01-31 09:00 UTC.' if 'FIXTURE_REMINDER' in observed and '2027-01-31' in observed else 'Sem observacao de lembrete.'
-                return ProviderResponse(text, [], {'role': 'assistant', 'content': text})
-            text = 'O comando retornou erro (código 7). PLAN_B_NATIVE_OUTPUT; PLAN_B_NATIVE_STDERR' if os.getenv('JASPER_TEST_DIAGNOSTICS') == '1' else 'Consulta concluída com os dados observados.'
+                encoded = json.dumps(observed)
+                if 'FIXTURE_REMINDER' in encoded and '2027-01-31' in encoded:
+                    text = 'Lembrete FIXTURE_REMINDER agendado para 2027-01-31 09:00 UTC.'
             return ProviderResponse(text, [], {'role': 'assistant', 'content': text})
-        if os.getenv('JASPER_TEST_ORCHESTRATOR') == '1':
-            if messages[0]['content'].startswith('Produce somente JSON'):
-                steps = [
-                    {'id': name, 'capabilityId': 'get_system_telemetry', 'args': {}, 'dependsOn': [] if name == 'a' else ['a'],
-                     'bindings': [], 'successCriterion': {'verifierId': 'telemetry_read', 'expected': None}}
-                    for name in ('a', 'b')]
-                if os.getenv('JASPER_TEST_REMINDERS') == '1':
-                    self.reminder_plans = getattr(self, 'reminder_plans', 0) + 1
-                    steps = [
-                        {'id': 'a', 'capabilityId': 'reminder_create', 'args': {'title': 'FIXTURE_REMINDER', 'description': 'Synthetic', 'schedule': {'policy': 'jasper', 'localDateTime': '2027-01-31T09:00:00', 'timeZone': 'UTC', 'recurrence': 'monthly', 'anchorDay': 31}}, 'dependsOn': [], 'bindings': [], 'successCriterion': {'verifierId': 'reminder_write', 'expected': None}},
-                        {'id': 'b', 'capabilityId': 'reminder_get', 'args': {}, 'dependsOn': ['a'], 'bindings': [{'inputField': 'id', 'fromStepId': 'a', 'outputField': 'id'}], 'successCriterion': {'verifierId': 'reminder_read', 'expected': None}}
-                    ]
-                    if self.reminder_plans == 2:
-                        steps = [
-                            {'id': 'a', 'capabilityId': 'reminder_list', 'args': {'limit': 1}, 'dependsOn': [], 'bindings': [], 'successCriterion': {'verifierId': 'reminder_read', 'expected': None}},
-                            {'id': 'b', 'capabilityId': 'reminder_update', 'args': {'patch': {'title': 'FIXTURE_REMINDER_UPDATED'}}, 'dependsOn': ['a'], 'bindings': [{'inputField': 'id', 'fromStepId': 'a', 'outputField': 'id'}, {'inputField': 'expectedRevision', 'fromStepId': 'a', 'outputField': 'revision'}], 'successCriterion': {'verifierId': 'reminder_write', 'expected': None}},
-                            {'id': 'c', 'capabilityId': 'reminder_get', 'args': {}, 'dependsOn': ['b'], 'bindings': [{'inputField': 'id', 'fromStepId': 'b', 'outputField': 'id'}], 'successCriterion': {'verifierId': 'reminder_read', 'expected': None}}
-                        ]
-                    if self.reminder_plans >= 3:
-                        steps = [{'id': 'a', 'capabilityId': 'reminder_list', 'args': {'limit': 100}, 'dependsOn': [], 'bindings': [], 'successCriterion': {'verifierId': 'reminder_read', 'expected': None}}]
-                if os.getenv('JASPER_TEST_HEALTH') == '1':
-                    steps = [{'id': name, 'capabilityId': 'pc_health_read', 'args': {}, 'dependsOn': [] if name == 'a' else ['a'],
-                              'bindings': [], 'successCriterion': {'verifierId': 'pc_health_read', 'expected': None}} for name in ('a', 'b')]
-                if os.getenv('JASPER_TEST_EMAIL') == '1':
-                    steps = [
-                        {'id': 'search', 'capabilityId': 'email_search', 'args': {'limit': 1}, 'dependsOn': [], 'bindings': [], 'successCriterion': {'verifierId': 'email_read', 'expected': None}},
-                        {'id': 'read', 'capabilityId': 'email_read', 'args': {}, 'dependsOn': ['search'], 'bindings': [{'inputField': 'ref', 'fromStepId': 'search', 'outputField': 'firstRef'}], 'successCriterion': {'verifierId': 'email_read', 'expected': None}},
-                        {'id': 'reply', 'capabilityId': 'email_reply', 'args': {'text': 'Synthetic reply authorized by the user.', 'attachmentHandles': []}, 'dependsOn': ['read'], 'bindings': [{'inputField': 'ref', 'fromStepId': 'read', 'outputField': 'ref'}, {'inputField': 'expectedVersion', 'fromStepId': 'read', 'outputField': 'version'}], 'successCriterion': {'verifierId': 'email_write', 'expected': None}}
-                    ]
-                    if os.getenv('JASPER_TEST_EMAIL_REMINDERS') == '1':
-                        steps.append({'id': 'reminder', 'capabilityId': 'reminder_create', 'args': {'title': 'Synthetic email follow-up', 'description': 'Explicitly requested by the user, not the email.', 'schedule': {'policy': 'jasper', 'localDateTime': '2026-10-29T09:00:00', 'timeZone': 'UTC', 'recurrence': 'none', 'anchorDay': 29}}, 'dependsOn': ['read'], 'bindings': [], 'successCriterion': {'verifierId': 'reminder_write', 'expected': None}})
-                if os.getenv('JASPER_TEST_CANCEL_TASK') == '1':
-                    marker = os.environ['JASPER_TEST_CANCEL_MARKER'].replace("'", "''")
-                    command = f"[System.IO.File]::WriteAllText('{marker}', [string]$PID); Start-Sleep -Seconds 10"
-                    steps[0].update({'capabilityId': 'run_powershell', 'args': {'command': command}, 'successCriterion': {'verifierId': 'none', 'expected': None}})
-                if os.getenv('JASPER_TEST_DIAGNOSTICS') == '1':
-                    steps = [{'id': 'a', 'capabilityId': 'run_powershell', 'args': {'command': "Write-Output 'PLAN_B_NATIVE_OUTPUT'; [Console]::Error.WriteLine('PLAN_B_NATIVE_STDERR'); exit 7"}, 'dependsOn': [], 'bindings': [], 'successCriterion': {'verifierId': 'none', 'expected': None}}]
-                return ProviderResponse(json.dumps({'steps': steps}), [], {'role': 'assistant', 'content': ''})
-            return ProviderResponse('', [ProviderToolCall('read-only', 'get_system_telemetry', {})], {'role': 'assistant', 'content': ''})
-        if self.calls % 2:
-            return ProviderResponse('', [ProviderToolCall('read-only', 'get_system_telemetry', {})], {'role': 'assistant', 'content': ''})
-        return ProviderResponse('Fim do teste.', [], {'role': 'assistant', 'content': 'Fim do teste.'})
+        if not tools:
+            return finish()
+        if os.getenv('JASPER_TEST_EMAIL_REMINDERS') == '1' and 'reminder_create' not in catalog:
+            return ProviderResponse('Modulo reminders indisponivel.', [], {'role': 'assistant', 'content': 'Modulo reminders indisponivel.'})
+        previous = json.loads(results[-1]['content']) if results else {}
+        data = previous.get('data', {})
+        if os.getenv('JASPER_TEST_EMAIL') == '1':
+            if count == 0:
+                args = {'limit': 1}
+                if os.getenv('JASPER_TEST_EMAIL_OUTLOOK') == '1': args['subject'] = 'OUTLOOK_FIXTURE'
+                return call('email_search', args)
+            if count == 1: return call('email_read', {'ref': data['firstRef']})
+            if count == 2: return call('email_reply', {'ref': data['ref'], 'expectedVersion': data['version'],
+                'text': 'Synthetic reply authorized by the user.', 'attachmentHandles': []})
+            if count == 3 and os.getenv('JASPER_TEST_EMAIL_REMINDERS') == '1':
+                return call('reminder_create', {'title': 'Synthetic email follow-up', 'description': 'Explicitly requested by the user.',
+                    'schedule': {'policy': 'jasper', 'localDateTime': '2026-10-29T09:00:00', 'timeZone': 'UTC', 'recurrence': 'none', 'anchorDay': 29}})
+            return finish()
+        if os.getenv('JASPER_TEST_REMINDERS') == '1':
+            if self.turn == 1:
+                if count == 0: return call('reminder_create', {'title': 'FIXTURE_REMINDER', 'description': 'Synthetic',
+                    'schedule': {'policy': 'jasper', 'localDateTime': '2027-01-31T09:00:00', 'timeZone': 'UTC', 'recurrence': 'monthly', 'anchorDay': 31}})
+                if count == 1: return call('reminder_get', {'id': data['id']})
+            elif self.turn == 2:
+                if count == 0: return call('reminder_list', {'limit': 1})
+                if count == 1: return call('reminder_update', {'id': data['id'], 'expectedRevision': data['revision'], 'patch': {'title': 'FIXTURE_REMINDER_UPDATED'}})
+                if count == 2: return call('reminder_get', {'id': data['id']})
+            elif count == 0: return call('reminder_list', {'limit': 100})
+            return finish()
+        if os.getenv('JASPER_TEST_CANCEL_TASK') == '1':
+            if count: return finish()
+            marker = os.environ['JASPER_TEST_CANCEL_MARKER'].replace("'", "''")
+            return call('run_powershell', {'command': f"[System.IO.File]::WriteAllText('{marker}', [string]$PID); Start-Sleep -Seconds 10"})
+        if os.getenv('JASPER_TEST_DIAGNOSTICS') == '1':
+            if count: return finish()
+            return call('run_powershell', {'command': "Write-Output 'PLAN_B_NATIVE_OUTPUT'; [Console]::Error.WriteLine('PLAN_B_NATIVE_STDERR'); exit 7"})
+        limit = 2 if os.getenv('JASPER_TEST_ORCHESTRATOR') == '1' else 1
+        if count < limit:
+            return call('pc_health_read' if os.getenv('JASPER_TEST_HEALTH') == '1' else 'get_system_telemetry', {})
+        return finish()
+
     async def aclose(self): pass
 
 

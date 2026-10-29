@@ -4,6 +4,13 @@ import { createGmailSdkTransport, createOutlookSdkTransport } from '../src/main/
 import type { EmailScope } from '../src/main/modules/email/contracts'
 const scope: EmailScope = { context: { taskId: 't', stepId: 's', sessionId: 1, moduleRevision: 0, invocationId: 'i' }, signal: new AbortController().signal, check() {} }
 const auth = { accessToken: async () => 'synthetic-access' }
+test('Graph SDK empty HTTP202 send is a successful empty receipt, including JSON content-type without a body', async () => {
+  for (const contentType of [null, 'application/json']) {
+    const headers = contentType ? { 'Content-Type': contentType } : undefined
+    const transport = createOutlookSdkTransport('account', auth, async (_input, init) => { assert.ok(init?.body === undefined || init.body === null || init.body === ''); return new Response(null, { status: 202, headers }) })
+    assert.deepEqual(await transport.request('POST', '/me/messages/draft/send', {}, scope), {})
+  }
+})
 
 test('attachment SDK responses have a bounded binary budget above the mailbox response limit', async () => {
   const bytes = Buffer.alloc(2097153, 7)

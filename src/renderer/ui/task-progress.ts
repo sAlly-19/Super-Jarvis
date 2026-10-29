@@ -11,7 +11,7 @@ export function initializeTaskProgress(): void {
       const row = document.createElement('div')
       const label = document.createElement('span')
       const states = Object.values(task.stepStates)
-      label.textContent = `${task.origin === 'live' ? 'Chamada' : 'Chat'}: ${LABELS[task.status]} · ${states.filter(s => !['pending', 'running'].includes(s)).length}/${states.length} etapas`
+      label.textContent = `Histórico de tarefas · ${task.origin === 'live' ? 'Chamada' : 'Chat'}: ${LABELS[task.status]} · ${states.filter(s => !['pending', 'running'].includes(s)).length}/${states.length} etapas`
       row.append(label)
       if (['queued', 'planning', 'running', 'cancelling'].includes(task.status)) {
         const cancel = document.createElement('button')

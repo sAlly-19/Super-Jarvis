@@ -21,12 +21,13 @@ import { TaskStore } from '../src/main/tasks/task-store'
 import { TaskEventRouter } from '../src/main/tasks/task-event-router'
 import type { BackendEnvelope, HostToSidecarMessageType } from '../src/shared/types/backend-protocol'
 
-for (const combined of [false, true]) test(`real email stdio composes search/read/reply${combined ? ' and an explicitly requested reminder' : ''} with Main proof and no file authority`, { timeout: 45000 }, async () => {
+for (const scenario of ['email', 'combined', 'disabled', 'outlook']) test(`real email stdio acceptance: ${scenario}`, { timeout: 45000 }, async () => {
+  const combined = scenario === 'combined' || scenario === 'disabled'
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'jasper-email-stdio-'))
   const scripts = ['001-module-state.sql', '002-capability-invocations.sql', '003-tasks.sql', '004-task-evidence.sql', '005-reminders.sql', '006-reminder-imports.sql', '007-pc-health.sql', '008-email.sql'].map(name => fs.readFileSync(`src/main/storage/migrations/${name}`, 'utf8'))
   const db = new StateDatabase(path.join(root, 'state.db'), scripts[0], scripts.slice(1))
   const python = createRequire(path.resolve('package.json'))('./scripts/development-python.mjs').resolveDevelopmentPython({ projectRoot: process.cwd() })
-  const child = spawn(python, [path.resolve('test/fixtures/module-sidecar.py')], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, JASPER_TEST_ORCHESTRATOR: '1', JASPER_TEST_EMAIL: '1', JASPER_TEST_EMAIL_REMINDERS: combined ? '1' : '0' } })
+  const child = spawn(python, [path.resolve('test/fixtures/module-sidecar.py')], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, JASPER_TEST_ORCHESTRATOR: '1', JASPER_TEST_EMAIL: '1', JASPER_TEST_EMAIL_REMINDERS: combined ? '1' : '0', JASPER_TEST_EMAIL_OUTLOOK: scenario === 'outlook' ? '1' : '0' } })
   const frames: BackendEnvelope[] = [], outgoing: string[] = []
   const hostResults: any[] = []
   const pending = new Map<string, { type: string; resolve(value: any): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }>()
@@ -46,7 +47,7 @@ for (const combined of [false, true]) test(`real email stdio composes search/rea
   }
   const registry = new ModuleRegistry(JSON.parse(fs.readFileSync('resources/modules/native-capabilities.json', 'utf8')))
   const policy = new ModulePolicy(registry, { requireAgentAccess() {}, getSessionId: () => 1,
-    getSnapshot: id => ({ id, enabled: true, configured: true, authorized: true, health: 'healthy', lifecycle: 'running', revision: 0 }),
+    getSnapshot: id => ({ id, enabled: scenario !== 'disabled' || id !== 'reminders', configured: true, authorized: true, health: 'healthy', lifecycle: 'running', revision: 0 }),
     getPermissions: id => registry.list().filter(capability => capability.moduleId === id).flatMap(capability => capability.permissions) })
   const email = emailAcceptanceHost(db, root, policy)
   const reminderStore = new RemindersStore(db, new ReminderCalendar(), 'UTC')
@@ -75,19 +76,32 @@ for (const combined of [false, true]) test(`real email stdio composes search/rea
     await bridge.negotiate(hello, 1)
     await transport.request('task_runtime', { taskRuntimeVersion: 1, sessionId: 1 })
     await transport.request('chat', { text: 'Find my latest synthetic email, read it and reply using its original account.' + (combined ? ' Also create a reminder for tomorrow at nine UTC.' : '') })
-    assert.equal(tasks.list()[0].status, 'succeeded', JSON.stringify({ task: tasks.list()[0], results: hostResults }).slice(0, 5000))
-    assert.equal(tasks.list()[0].evidence.length, combined ? 4 : 3)
+    if (scenario === 'disabled') {
+      assert.deepEqual(tasks.list(), []); assert.equal(reminderStore.list({ limit: 100 }).items.length, 0)
+      assert.equal(email.counters.sends, 0); assert.equal(hostResults.length, 0); assert.equal(outgoing.includes('capability_execute'), false)
+      await bridge.close(); await transport.request('shutdown', { reason: 'test' }); return
+    }
+    assert.deepEqual(tasks.list(), [])
+    assert.equal(frames.some(frame => frame.type === 'task_event'), false)
+    assert.equal(hostResults.length, combined ? 4 : 3)
+    assert.ok(hostResults.every(item => item.result.status === 'succeeded' && item.result.evidence.length > 0))
     assert.equal(outgoing.includes('capability_execute'), false)
     assert.equal(email.counters.sends, 1)
     assert.ok(email.counters.requests.some(request => request.startsWith('outlook:GET:')))
-    assert.ok(email.counters.requests.some(request => request.startsWith('gmail:POST:')))
-    assert.equal(email.counters.requests.some(request => request.startsWith('outlook:POST:')), false)
+    assert.ok(email.counters.requests.some(request => request.startsWith(`${scenario === 'outlook' ? 'outlook' : 'gmail'}:POST:`)))
+    assert.equal(email.counters.requests.some(request => request.startsWith(`${scenario === 'outlook' ? 'gmail' : 'outlook'}:POST:`)), false)
     const requests = frames.filter(frame => frame.type === 'capability_request').map(frame => frame.payload as any)
+    assert.ok(requests.every(request => !('task' in request)))
     assert.deepEqual(requests.map(request => request.capabilityId), ['email_search', 'email_read', 'email_reply', ...(combined ? ['reminder_create'] : [])])
     assert.equal(reminderStore.list({ limit: 100 }).items.length, combined ? 1 : 0)
-    assert.equal(requests[2].args.ref.accountId, email.gmail.id)
+    assert.equal(requests[2].args.ref.accountId, scenario === 'outlook' ? email.outlook.id : email.gmail.id)
     assert.equal(requests[2].args.attachmentHandles.length, 0)
     assert.equal(typeof requests[2].args.expectedVersion, 'string')
+    if (scenario === 'outlook') {
+      const response = frames.filter(frame => frame.type === 'response').at(-1)!.payload as any
+      assert.match(response.text, /aceita pelo provedor/); assert.ok(response.text.includes(email.outlook.id))
+      assert.doesNotMatch(response.text, /entregue com sucesso|entrega confirmada/i)
+    }
     const history = db.transaction(tx => [tx.prepare('SELECT * FROM task_events').all(), tx.prepare('SELECT * FROM task_evidence').all()])
     assert.doesNotMatch(JSON.stringify(history), /FIXTURE_EMAIL|synthetic-access-token|private local file/)
     await bridge.close(); await transport.request('shutdown', { reason: 'test' })

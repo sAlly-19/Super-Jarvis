@@ -60,6 +60,8 @@ test-userdata/
 .env
 .env.*
 !.env.example
+client_secret_*.json
+/resources/email-oauth.json
 
 # Editor & AI Assistant Caches
 .vscode/

@@ -21,6 +21,15 @@ class FakeSession:
 
 
 class LiveTests(unittest.IsolatedAsyncioTestCase):
+    async def test_private_tool_result_only_reaches_live_model_not_visual_events(self):
+        self.call.tool_catalog = lambda: [{'type': 'function', 'function': {'name': 'email_read', 'description': 'Read', 'parameters': {'type': 'object'}}}]
+        self.call.tool_executor = AsyncMock(return_value={'status': 'succeeded', 'data': {'body': 'private-body'}, 'evidence': []})
+        await self.call.start('test', 'Charon', 'System')
+        await self.call._tool(NS(id='private', name='email_read', args={'private': 'private-argument'}))
+        self.assertNotIn('private-body', str(self.events))
+        self.assertNotIn('private-argument', str(self.events))
+        self.assertIn('private-body', str(self.session.send_tool_response.call_args))
+
     async def test_declared_orchestration_tool_delegates_to_runtime_executor(self):
         self.call.tool_catalog = lambda: [{'type': 'function', 'function': {'name': 'execute_task', 'description': 'Task', 'parameters': {'type': 'object'}}}]
         await self.call.start('test', 'Charon', 'System')

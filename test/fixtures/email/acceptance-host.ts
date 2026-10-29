@@ -20,8 +20,8 @@ export function emailAcceptanceHost(database: StateDatabase, root: string, polic
   const providers = { gmail: new GmailEmailProvider(account => createGmailSdkTransport(account.id, token, emailFixtureFetch('gmail', counters))), outlook: new OutlookEmailProvider(account => createOutlookSdkTransport(account.id, token, emailFixtureFetch('outlook', counters))) }
   const codec = new EmailOperationCodec(path.join(root, 'fixture-key.json'), { available: () => true, encrypt: text => Buffer.from(text).reverse(), decrypt: bytes => Buffer.from(bytes).reverse().toString() })
   const reads = new EmailReadService(accounts, providers, { authorize: scope => scope.check() })
-  const writes = new EmailWriteService(accounts, new EmailOperationStore(database), codec, reads, providers, { authorize: scope => scope.check() })
   const files = new EmailAttachments({ selectFiles: async () => { throw new Error('synthetic_dialog_forbidden') }, selectDirectory: async () => { throw new Error('synthetic_dialog_forbidden') }, download: async function* () { throw new Error('synthetic_download_forbidden') } })
+  const writes = new EmailWriteService(accounts, new EmailOperationStore(database), codec, reads, providers, { authorize: scope => scope.check(), attachments: (handles, accountId, scope) => files.resolveUploads(handles, accountId, scope) })
   const service = new EmailService(accounts, reads, writes, files, codec, { authorize: (context, id) => { const decision = policy.authorize(id, context); if (!decision.allowed) throw new Error(decision.code) } })
   return { service, accounts, gmail, outlook, counters }
 }

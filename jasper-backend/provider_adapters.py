@@ -227,6 +227,11 @@ def _gemini_contents(messages: List[Dict[str, Any]]) -> tuple[str, List[Dict[str
                 contents.append({"role": "user", "parts": parts})
             continue
         if role == "assistant":
+            # SDK Parts carry opaque thought signatures. Keep exact order/objects only in
+            # this volatile turn; reconstructing calls discards required Gemini state.
+            if message.get('_gemini_parts'):
+                contents.append({'role': 'model', 'parts': message['_gemini_parts']})
+                continue
             parts = _gemini_parts(message.get("content"))
             for tool_call in message.get("tool_calls") or []:
                 function = tool_call.get("function") or {}
@@ -250,6 +255,12 @@ def _gemini_contents(messages: List[Dict[str, Any]]) -> tuple[str, List[Dict[str
                 parsed_result = {"result": str(raw_result or "")}
             if not isinstance(parsed_result, dict):
                 parsed_result = {"result": parsed_result}
+            if (contents and contents[-1]['role'] == 'user' and contents[-1]['parts']
+                    and all(isinstance(part, dict) and 'function_response' in part for part in contents[-1]['parts'])):
+                contents[-1]['parts'].append({'function_response': {
+                    'id': str(message.get('tool_call_id') or ''), 'name': str(message.get('name') or ''),
+                    'response': parsed_result}})
+                continue
             contents.append(
                 {
                     "role": "user",
@@ -323,7 +334,7 @@ class GeminiAdapter:
             calls: List[Dict[str, Any]] = []
             for part in parts or []:
                 text = _value(part, "text", None)
-                if text:
+                if text and not _value(part, 'thought', False):
                     text_parts.append(str(text))
                 function_call = _value(part, "function_call", None)
                 if function_call and _value(function_call, "name", ""):
@@ -336,7 +347,10 @@ class GeminiAdapter:
                             },
                         }
                     )
-            return _canonical_response("".join(text_parts), calls)
+            normalized = _canonical_response("".join(text_parts), calls)
+            if parts:
+                normalized.assistant_message['_gemini_parts'] = parts
+            return normalized
         except ProviderAdapterError:
             raise
         except Exception as exc:

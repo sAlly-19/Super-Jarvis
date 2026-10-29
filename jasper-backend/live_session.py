@@ -9,6 +9,7 @@ from provider_adapters import _safe_provider_error
 from gemini_tools import gemini_function_declarations
 from tools_os import AVAILABLE_FUNCTIONS, TOOLS_SCHEMA
 from live_tools import execute_live_tool
+from direct_agent import visual_tool_result
 
 LIVE_MODEL = 'gemini-3.8-live'
 LIVE_VOICES = frozenset(('Charon', 'Puck', 'Fenrir', 'Aoede', 'Kore', 'Orus', 'Leda', 'Zephyr'))
@@ -155,7 +156,7 @@ class LiveCall:
         try:
             fn = AVAILABLE_FUNCTIONS.get(call.name)
             args = dict(call.args or {})
-            await self.emit('tool_execution', {'tool': call.name, 'args': args})
+            await self.emit('tool_execution', {'tool': call.name, 'args': {}})
             declared = any(tool.get('function', {}).get('name') == call.name for tool in (self.tool_catalog() if self.tool_catalog else TOOLS_SCHEMA))
             if fn or declared:
                 result = await self.tool_executor(call.name, args)
@@ -180,7 +181,7 @@ class LiveCall:
             result = {'error': 'Não foi possível executar a ferramenta.'}
         if self.active:
             try:
-                await self.emit('tool_result', {'tool': call.name, 'result': result})
+                await self.emit('tool_result', {'tool': call.name, 'result': visual_tool_result(result)})
                 await self.session.send_tool_response(function_responses=[{
                     'id': call.id, 'name': call.name, 'response': result,
                 }])

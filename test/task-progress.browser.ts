@@ -16,6 +16,7 @@ async function run() {
   await tick()
   receive(task)
   assert(!document.querySelector<HTMLElement>('#task-progress')!.hidden, 'Missing task panel')
+  assert(document.querySelector('#task-progress')!.textContent!.includes('Histórico de tarefas'), 'Old tasks must be identified as history')
   document.querySelector<HTMLButtonElement>('#task-progress button')!.click()
   await tick()
   assert(calls[0] === 'id', 'Cancel did not target task ID')

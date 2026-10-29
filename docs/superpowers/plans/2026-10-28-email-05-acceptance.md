@@ -1,5 +1,7 @@
 # E-mails05 — aceite integrado e preparação comercial
 
+**Estado29/10/2026:** tarefas locais1–2 concluídas no escopo ajustado pelo usuário (downloads adiados), com revisão independente/fixpass e375 testes TS+89 Python aprovados. Task3 continua externa/pendente. Consulte `2026-10-28-email-progress.md` para evidências, limite de crash simulado e ambiente Node26 fora da engine24. Nenhum pacote comercial, login ou envio real foi validado.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans e verification-before-completion. Aprovação dos planos não autoriza envio a contas reais ou publicação externa.
 
 **Goal:** comprovar integração determinística e registrar separadamente aceite real/gates de distribuição.

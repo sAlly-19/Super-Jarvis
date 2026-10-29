@@ -1,5 +1,5 @@
 import { gmail, type gmail_v1 } from '@googleapis/gmail'
-import { Client } from '@microsoft/microsoft-graph-client'
+import { Client, ResponseType } from '@microsoft/microsoft-graph-client'
 import type { Context } from '@microsoft/microsoft-graph-client'
 import type { EmailScope } from '../contracts'
 import type { EmailAuth } from '../auth'
@@ -102,6 +102,13 @@ export function createOutlookSdkTransport(accountId: string, auth: TokenSource, 
       context.response = await safeFetch(context.request, context.options as RequestInit)
     } }] })
     const request = sdk.api(parsed.toString()).headers({ Authorization: `Bearer ${token}`, Prefer: 'IdType="ImmutableId"' }).option('signal', scope.signal)
+    if (method === 'POST' && /\/messages\/[^/]+\/send$/.test(parsed.pathname)) {
+      const response: Response = await request.responseType(ResponseType.RAW).post(undefined)
+      scope.check(); scope.signal.throwIfAborted()
+      await response.body?.cancel().catch(() => {})
+      if (![202, 204].includes(response.status)) throw new EmailRequestError('invalid_email_payload')
+      return {}
+    }
     const data = method === 'GET' ? await request.get() : method === 'POST' ? await request.post(body ?? {}) : await request.patch(body ?? {})
     scope.check(); scope.signal.throwIfAborted()
     return data

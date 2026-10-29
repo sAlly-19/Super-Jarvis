@@ -1,8 +1,8 @@
 # Conexão de e-mail no Jasper
 
-Estado desta entrega: implementação e verificação local em andamento. Nenhuma conta real foi conectada, nenhuma mensagem real foi enviada e nenhum cadastro OAuth foi criado por esta atividade. Os testes usam contas sintéticas; isso não comprova aceite comercial dos provedores. Executáveis e testes de pacote ficam adiados conforme orientação do projeto.
+Estado em29/10/2026: aceite local sintético concluído no escopo com downloads adiados. Nenhuma conta real foi conectada, nenhuma mensagem real foi enviada e nenhum cadastro OAuth foi criado por esta atividade. Isso não comprova aceite comercial dos provedores. Executáveis e testes de pacote ficam adiados conforme orientação do projeto. Evidências e limites estão no [progresso da entrega](superpowers/plans/2026-10-28-email-progress.md).
 
-Downloads foram adiados por decisão do usuário. Estão bloqueados na fachada e omitidos do catálogo negociado, até implementar proteção nativa contra troca concorrente do diretório no Windows. O helper de transferência existente e seus testes de nomes/limites não comprovam essa proteção. As demais funções continuam em validação; esta versão não deve ser anunciada como módulo concluído.
+Downloads foram adiados por decisão do usuário. Estão bloqueados na fachada e omitidos do catálogo negociado, até implementar proteção nativa contra troca concorrente do diretório no Windows. O helper de transferência existente e seus testes de nomes/limites não comprovam essa proteção. As demais funções passaram no aceite sintético; o módulo não deve ser anunciado como aprovado para venda antes dos gates externos abaixo.
 
 ## Uso pelo cliente
 
@@ -32,7 +32,7 @@ Para Microsoft, registre aplicativo público com audiência para contas organiza
 - [ ] Consentimento, verificação e requisitos de distribuição dos provedores avaliados para o fluxo de dados efetivo, inclusive processamento pelo serviço de IA escolhido pelo cliente.
 - [ ] Autorizar contas/destinatários de teste e escopo antes de qualquer login ou envio real.
 - [ ] Validar Gmail e Outlook: conexão, conta padrão, busca parcial, resposta na origem, anexos, desconexão/reconexão, revogação durante tarefa e reinício sem replay.
-- [ ] Aceite local integrado05 e revisão independente fechados com evidência separada do teste real.
+- [x] Aceite local integrado05 e revisão independente fechados com evidência separada do teste real, no escopo com downloads adiados e nos limites de ambiente documentados.
 - [ ] Teste de pacote/ASAR, assinatura e Windows limpo apenas na etapa de release ou se surgir necessidade concreta.
 
 Não é necessário gerar instalador para testar o fluxo em desenvolvimento. Falta de cadastro, bloqueio administrativo, quota ou aprovação do provedor deve permanecer registrada como pendência, nunca como sucesso simulado.

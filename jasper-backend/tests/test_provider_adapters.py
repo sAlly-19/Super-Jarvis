@@ -60,6 +60,28 @@ TOOLS = [
 
 
 class ProviderAdaptersTests(unittest.IsolatedAsyncioTestCase):
+    async def test_gemini_keeps_signed_parts_in_volatile_round_trip_and_hides_thought_text(self):
+        from google.genai import types
+        thought = types.Part(text='private-reasoning', thought=True, thought_signature=b'thought-signed')
+        first = types.Part(function_call=types.FunctionCall(id='signed-1', name='get_system_telemetry', args={}), thought_signature=b'opaque-signature')
+        second = types.Part(function_call=types.FunctionCall(id='signed-2', name='get_system_telemetry', args={}))
+        generate = AsyncRecorder(SimpleNamespace(candidates=[SimpleNamespace(content=SimpleNamespace(parts=[thought, first, second]))]))
+        adapter = GeminiAdapter('test', client=SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate))))
+        messages = [{'role': 'user', 'content': 'Read twice'}]
+        result = await adapter.complete('gemini/gemini-3.8-flash', messages, TOOLS, 0.4)
+        self.assertNotIn('private-reasoning', result.content)
+        messages.extend([result.assistant_message,
+            {'role': 'tool', 'tool_call_id': 'signed-1', 'name': 'get_system_telemetry', 'content': '{}'},
+            {'role': 'tool', 'tool_call_id': 'signed-2', 'name': 'get_system_telemetry', 'content': '{}'}])
+        await adapter.complete('gemini/gemini-3.8-flash', messages, TOOLS, 0.4)
+        sent = generate.calls[1][1]['contents']
+        self.assertIs(sent[1]['parts'][0], thought)
+        self.assertIs(sent[1]['parts'][1], first)
+        self.assertEqual(len(sent[2]['parts']), 2)
+        self.assertEqual(len(sent), 3)
+        typed = types.Content.model_validate(sent[1])
+        self.assertEqual(typed.parts[1].thought_signature, b'opaque-signature')
+
     async def test_gemini_projects_nested_tool_schemas_without_mutating_canonical_catalog(self):
         import copy
         schema = {'type': 'object', 'additionalProperties': False, 'properties': {
