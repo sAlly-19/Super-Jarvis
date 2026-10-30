@@ -34,6 +34,10 @@ Cada documento tem o mesmo prefixo deste arquivo, seguido do número/nome. Não 
 
 ## Decisões e gates
 
+Atualização posterior30/10/2026: usuário não possui integração-alvo para Webhooks e aprovou avançar à Memória semântica. Quer evolução com o uso e perguntou sobre habilidades/skills; desenho em discussão no [registro de aprendizagem](2026-10-30-agent-learning-progress.md). Sem autorização automática de código, alteração de retenção ou escolha de embeddings.
+
+Atualização vigente30/10/2026: pesquisa web HTTP concluída e usuário confirmou funcionamento no aplicativo ([progresso](2026-10-29-web-research-progress.md)). Casa inteligente adiada a pedido do usuário por não possuir dispositivos/Home Assistant. Documentos e Outlook continuam adiados. Próximo candidato:10 Webhooks; finalidade/desenho/plano ainda precisam de definição e aprovação, sem autorização automática para código. Execução direta pelo Main/ModuleBridge substitui o Planner obrigatório descrito no inventário histórico deste documento.
+
 Gate atual E-mails28/10: usuário aprovou a especificação escrita com “SIM”. [Mapa executivo e cinco planos](2026-10-28-email-00-execution-map.md) criados e autorrevisados; aguardam revisão/aprovação dos planos antes de implementação pelo método nativo/main. [Progresso](2026-10-28-email-progress.md). Sem dependência instalada, código iniciado ou executável gerado nesta rodada.
 
 Desenho E-mails28/10: arquitetura local no Main aprovada em conversa. [Especificação escrita](../specs/2026-10-28-email-design.md) criada para revisão; somente após aprovação desse documento detalhar os planos executivos. Nenhuma implementação iniciada.

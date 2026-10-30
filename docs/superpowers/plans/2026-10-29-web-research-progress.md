@@ -178,3 +178,7 @@ Entrega local concluída. Para testar no produto, reinicie o aplicativo/backend,
 [Guia de uso](../../web-research-setup.md). Logs locais em `.superpowers/sdd/2026-10-29-web-research-04-integration/`: verify-initial/final, python-tests, web-tests, audit, public-probe e review-red/green-service; screenshot web-panel.png. Esses arquivos são ignorados pelo Git; conclusões acima e testes de fonte são o registro portátil.
 
 Sem novo instalador/commit/push. Gmail, licença72h, Total Control e demais módulos preservados. Documentos, Outlook e JavaScript continuam adiados. Confirmar direção com o usuário antes de iniciar outro módulo.
+
+### Retorno do usuário —30/10/2026
+
+Usuário confirmou: “deu certo, funcionou” após a integração04. Aceite funcional manual reportado para pesquisa web no aplicativo; não inferir que executou todos os cenários de cancelamento, DPAPI, licença ou Live. Próxima fase ainda depende da direção do usuário; nenhuma nova implementação autorizada por esse retorno.

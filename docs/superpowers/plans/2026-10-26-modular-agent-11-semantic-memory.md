@@ -1,5 +1,9 @@
 # Memória semântica — roteiro de implementação
 
+**Retomada vigente30/10:** este roteiro preliminar foi substituído pelos planos executivos30/10. Componentes01 e preparo02 foram implementados; ver progresso `2026-10-30-semantic-memory-progress.md` para gates/testes atuais. A candidata autorizada vigente é Transformers4.3.2 + ONNX Community. Próxima etapa técnica:03, índice derivado e recuperação. Itens abaixo preservam o escopo preliminar, não instruem reiniciar decisões já tomadas.
+
+**Atualização30/10/2026:** este roteiro preliminar foi detalhado no [desenho aprovado](../specs/2026-10-30-semantic-memory-design-draft.md) e no [mapa executivo00](2026-10-30-semantic-memory-00-execution-map.md). Decisões vigentes: fatos/preferências permanentes até exclusão manual, recuperação local, modelo baixado ao ativar/primeiro uso, sem Planner obrigatório. Planos01–04 aguardam revisão; método nativo/main já escolhido. Habilidades aprendidas automaticamente são uma segunda entrega a especificar.
+
 > **For agentic workers:** REQUIRED SUB-SKILL após aprovação: superpowers:executing-plans ou superpowers:subagent-driven-development. Não iniciar código a partir deste rascunho.
 
 **Goal:** Entregar o módulo 09 da proposta: Memória semântica.

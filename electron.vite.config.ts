@@ -14,7 +14,8 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
           'reminders-ical-worker': resolve(__dirname, 'src/main/modules/reminders/ical-worker.ts'),
-          'pc-health-worker': resolve(__dirname, 'src/main/modules/pc-health/worker.ts')
+          'pc-health-worker': resolve(__dirname, 'src/main/modules/pc-health/worker.ts'),
+          'semantic-model-worker': resolve(__dirname, 'src/main/memory/semantic/model-worker.ts')
         },
         external: ['ws', 'dotenv']
       }

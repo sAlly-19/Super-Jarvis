@@ -1,0 +1,17 @@
+{
+  "sources": [
+    { "sourceId": "fact:studio", "kind": "fact", "text": "No meu ambiente de trabalho utilizo o Visual Studio Code e o terminal PowerShell." },
+    { "sourceId": "profile:preference:0", "kind": "preference", "text": "Prefiro tomar café sem açúcar e evito adoçantes." },
+    { "sourceId": "fact:atlas", "kind": "fact", "text": "Estou desenvolvendo o projeto Atlas, um aplicativo de finanças pessoais." },
+    { "sourceId": "profile:name", "kind": "name", "text": "Ana" }
+  ],
+  "queries": [
+    { "query": "Que ferramentas utilizo no meu ambiente de trabalho?", "expected": "fact:studio" },
+    { "query": "Como prefiro tomar meu café?", "expected": "profile:preference:0" },
+    { "query": "Qual projeto de aplicativo de finanças estou desenvolvendo?", "expected": "fact:atlas" },
+    { "query": "Atlas", "expected": "fact:atlas" },
+    { "query": "Ana", "expected": "profile:name" },
+    { "query": "Como trocar o pneu de uma bicicleta?", "expected": null },
+    { "query": "Qual é a distância entre Marte e Júpiter?", "expected": null }
+  ]
+}

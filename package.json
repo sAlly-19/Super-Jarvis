@@ -42,6 +42,7 @@
   "dependencies": {
     "@azure/msal-node": "7.1.2",
     "@googleapis/gmail": "22.0.2",
+    "@huggingface/transformers": "4.3.2",
     "@microsoft/microsoft-graph-client": "3.0.7",
     "docx": "^9.7.1",
     "domutils": "3.2.2",

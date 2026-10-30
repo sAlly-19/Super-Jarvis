@@ -1,5 +1,7 @@
 # Casa inteligente — roteiro de implementação
 
+**Decisão vigente —30/10/2026:** usuário informou que não possui Home Assistant/dispositivos para integrar e pediu adiar este módulo. Não iniciar implementação nem remover o roteiro. Próximo candidato na sequência é Webhooks, sujeito à definição de finalidade, desenho e plano aprovados.
+
 > **For agentic workers:** REQUIRED SUB-SKILL após aprovação: superpowers:executing-plans ou superpowers:subagent-driven-development. Não iniciar código a partir deste rascunho.
 
 **Goal:** Entregar o módulo 08 da proposta: Casa inteligente.
