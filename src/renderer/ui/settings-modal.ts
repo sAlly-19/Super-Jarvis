@@ -3,6 +3,7 @@ import { initializeModuleSettings } from './module-settings'
 import { initializeRemindersSettings } from './reminders-settings'
 import { initializePcHealthSettings } from './pc-health-settings'
 import { initializeEmailSettings } from './email-settings'
+import { initializeWebResearchSettings } from './web-research-settings'
 import { AvatarController, MoodType } from '../scene/avatar'
 import { showHudToast } from './toast'
 import { updateStatusBadge } from './status-badge'
@@ -69,6 +70,7 @@ export class SettingsModal {
     initializeRemindersSettings()
     initializePcHealthSettings()
     initializeEmailSettings()
+    initializeWebResearchSettings()
     this.setupListeners()
   }
 

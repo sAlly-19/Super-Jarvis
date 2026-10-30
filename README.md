@@ -78,3 +78,9 @@ Consulte `docs/release/windows-signing.md` para detalhes sobre configuração de
 O módulo integra contas Gmail e Outlook pelo navegador do sistema, com credenciais protegidas localmente e conta padrão independente da conta usada em respostas. A configuração OAuth pertence ao publicador; sem ela, a conexão permanece indisponível. Downloads de anexos estão adiados. O aceite sintético não substitui testes com contas reais nem aprovação dos provedores para distribuição.
 
 Veja [conexão, limites e checklist do publicador](docs/email-provider-setup.md) e [progresso do aceite](docs/superpowers/plans/2026-10-28-email-progress.md). Executáveis serão gerados somente na etapa final ou por necessidade concreta de teste.
+
+### Pesquisa web
+
+Busca sem chave adicional, leitura HTTP de páginas públicas, links no HUD e histórico protegido das dez últimas pesquisas. Chat e Live usam chamadas diretas ao Main; não há Planner obrigatório. Sites que exigem JavaScript permanecem adiados. Ative em Sistema & Automação e reinicie chamadas abertas para disponibilizar as ferramentas novas.
+
+Veja [uso, limites e proteção do histórico](docs/web-research-setup.md) e [progresso da entrega](docs/superpowers/plans/2026-10-29-web-research-progress.md).

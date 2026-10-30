@@ -12,6 +12,7 @@
   </head>
   <body>
     <div id="app">
+      <section id="web-research-sources" class="web-research-sources no-drag" aria-label="Links da pesquisa web" aria-live="polite" hidden></section>
       <section id="task-progress" class="task-progress no-drag" aria-label="Histórico de tarefas anteriores" aria-live="polite" hidden></section>
       <!-- Frameless Window Titlebar -->
       <header id="titlebar">
@@ -643,6 +644,12 @@
                     </details>
                   </fieldset>
                   <div id="pc-health-metrics" aria-live="polite"></div>
+                </section>
+                <section id="web-panel" class="settings-card web-settings" aria-labelledby="web-heading">
+                  <div class="settings-card-header"><div class="card-text-col"><h4 id="web-heading">Pesquisa web</h4><p>Sem chave adicional · leitura HTTP de páginas públicas. Histórico das dez últimas pesquisas protegido neste computador.</p></div></div>
+                  <p id="web-feedback" role="status">Carregando disponibilidade...</p>
+                  <div class="web-actions"><button id="web-test" class="btn-toggle" type="button" disabled>Testar busca</button><button id="web-clear" class="btn-toggle" type="button" disabled>Limpar histórico</button></div>
+                  <details><summary>Últimas pesquisas</summary><div id="web-history-list"></div><div id="web-history-detail" aria-live="polite"></div></details>
                 </section>
                 <section id="email-panel" class="settings-card email-settings" aria-labelledby="email-heading">
                   <div class="settings-card-header"><div class="card-text-col"><h4 id="email-heading">E-mails · Gmail &amp; Outlook</h4><p>Conecte suas contas no navegador. Tokens ficam protegidos neste computador.</p></div></div>

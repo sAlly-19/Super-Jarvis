@@ -1,5 +1,8 @@
 import { app, powerMonitor, safeStorage, shell, dialog } from 'electron'
 import { startEmailApplication, type EmailApplication } from './email/application'
+import { startWebResearchApplication, type WebResearchApplication } from './web-research/application'
+import { SafeWebHttpClient } from './web-research/http-client'
+import { validateWebNote } from './web-research/note-protocol'
 import { getMainWindow } from '../windows/main-window'
 import { PcHealthStore } from './pc-health/store'
 import { PcHealthService } from './pc-health/service'
@@ -35,12 +38,14 @@ import { ICalendarCodec } from './reminders/ical-client'
 import { chooseCalendar, saveCalendar, createReminderPresentation } from './reminders/desktop'
 
 let application: { service: ModuleService; bridge: ModuleRuntimeBridge; database: StateDatabase; reminderRuntime: ReturnType<typeof startRemindersApplication>; dashboard: RemindersDashboard; reminderStore: RemindersStore; presentation: ReturnType<typeof createReminderPresentation> } | undefined
-let features: { moduleRuntimeVersion?: number } = {}
+let features: { moduleRuntimeVersion?: number; webResearchRuntimeVersion?: number } = {}
 let featureSession: number | undefined
 const refreshQueue = new ModuleRefreshQueue()
 let pcHealth: PcHealthService | undefined
 let closeHealth: (() => Promise<void>) | undefined
 let email: EmailApplication | undefined
+let web: WebResearchApplication | undefined
+export function getWebResearchApplication(): WebResearchApplication { if (!web) throw new Error('web_unavailable'); return web }
 export function getEmailApplication(): EmailApplication { if (!email) throw new Error('email_unavailable'); return email }
 export function getPcHealthApplication(): PcHealthService { if (!pcHealth) throw new Error('pc_health_unavailable'); return pcHealth }
 
@@ -52,14 +57,21 @@ export function initializeModuleApplication(): void {
   fs.mkdirSync(dataPath, { recursive: true })
   const sql = (name: string) => fs.readFileSync(path.join(root, 'src/main/storage/migrations', name), 'utf8')
   const store = openModuleStore(path.join(dataPath, 'modules.json'))
-  const database = new StateDatabase(path.join(dataPath, 'jasper-state.sqlite'), sql('001-module-state.sql'), [sql('002-capability-invocations.sql'), sql('003-tasks.sql'), sql('004-task-evidence.sql'), sql('005-reminders.sql'), sql('006-reminder-imports.sql'), sql('007-pc-health.sql'), sql('008-email.sql')])
+  const database = new StateDatabase(path.join(dataPath, 'jasper-state.sqlite'), sql('001-module-state.sql'), [sql('002-capability-invocations.sql'), sql('003-tasks.sql'), sql('004-task-evidence.sql'), sql('005-reminders.sql'), sql('006-reminder-imports.sql'), sql('007-pc-health.sql'), sql('008-email.sql'), sql('009-web-research.sql')])
   const lifecycle = new ModuleLifecycle()
-  const service = new ModuleService(store, lifecycle, () => operationalAccess.requireAgentAccess(), new Set(['computer', 'reminders', 'pc-health', 'email']))
+  const service = new ModuleService(store, lifecycle, () => operationalAccess.requireAgentAccess(), new Set(['computer', 'reminders', 'pc-health', 'email', 'web-research']))
   const policy = new ModulePolicy(registry, {
     requireAgentAccess: () => operationalAccess.requireAgentAccess(),
     getSnapshot: id => { const snapshot = service.getSnapshot(id); return id === 'email' && snapshot.enabled && snapshot.authorized && email ? { ...snapshot, ...email.status() } : snapshot }, getSessionId: () => pythonBackend.getSessionId(),
     // Download publication is deferred by the user; omit its permission from negotiated catalogs as well as failing closed in EmailService.
     getPermissions: id => registry.list().filter(capability => capability.moduleId === id).flatMap(capability => capability.permissions).filter(permission => id !== 'email' || permission !== 'email.attachments')
+  })
+  web = startWebResearchApplication({ database, registry, transport: new SafeWebHttpClient(),
+    crypto: { available: () => safeStorage.isEncryptionAvailable(), encrypt: text => safeStorage.encryptString(text), decrypt: bytes => safeStorage.decryptString(Buffer.from(bytes)) },
+    authorizeAgent: (context, id) => { const decision = policy.authorize(id, context); if (!decision.allowed) throw new Error(decision.code) },
+    authorizeManagement: () => operationalAccess.requireAgentAccess(),
+    moduleRevision: () => store.get('web-research').revision, sessionId: () => pythonBackend.getSessionId(),
+    changed: () => safeSend(IPC_CHANNELS.WEB_RESEARCH_CHANGED, null), sources: value => safeSend(IPC_CHANNELS.WEB_RESEARCH_SOURCES, value)
   })
   email = startEmailApplication({ database, profileRoot: dataPath, publisherRoot: root,
     crypto: { available: () => safeStorage.isEncryptionAvailable(), encrypt: text => safeStorage.encryptString(text), decrypt: bytes => safeStorage.decryptString(Buffer.from(bytes)) },
@@ -95,11 +107,11 @@ export function initializeModuleApplication(): void {
   powerMonitor.on('suspend', suspendHealth); powerMonitor.on('resume', resumeHealth)
   closeHealth = async () => { clearInterval(healthTimer); powerMonitor.removeListener('suspend', suspendHealth); powerMonitor.removeListener('resume', resumeHealth); await health.stop() }
   const tasks = initializeTaskApplication(database, {
-    verifyCapability: (context, id, result) => id.startsWith('email_') ? email!.service.verify(context, id, result) : id === 'pc_health_read' ? health.verify(context, id, result) : isReminderCapability(id) ? reminders.verify(context, id, result) : result,
-    releaseObservation: id => { reminders.releaseObservation(id); health.releaseObservation(id); email!.service.releaseObservation(id) }, clearObservations: () => { reminders.clearObservations(); health.clearObservations(); email!.service.clearObservations() }
+    verifyCapability: (context, id, result) => id.startsWith('web_') ? web!.service.verify(context, id, result) : id.startsWith('email_') ? email!.service.verify(context, id, result) : id === 'pc_health_read' ? health.verify(context, id, result) : isReminderCapability(id) ? reminders.verify(context, id, result) : result,
+    releaseObservation: id => { reminders.releaseObservation(id); health.releaseObservation(id); email!.service.releaseObservation(id); web!.service.releaseObservation(id) }, clearObservations: () => { reminders.clearObservations(); health.clearObservations(); email!.service.clearObservations(); web!.service.clearObservations() }
   })
   const bridge = new ModuleRuntimeBridge(registry, policy, new InvocationStore(database), pythonBackend, id => store.get(id).revision, tasks,
-    { email: (id, args, context, signal) => email!.service.execute(id, args, context, signal), reminders: (id, args, context, signal) => reminders.execute(id, args, context, signal), 'pc-health': (id, args, context, signal) => health.execute(id, args, context, signal) })
+    { 'web-research': (id, args, context, signal) => web!.service.execute(id, args, context, signal), email: (id, args, context, signal) => email!.service.execute(id, args, context, signal), reminders: (id, args, context, signal) => reminders.execute(id, args, context, signal), 'pc-health': (id, args, context, signal) => health.execute(id, args, context, signal) })
   const reminderAllowed = () => {
     const snapshot = service.getSnapshot('reminders')
     return snapshot.enabled && snapshot.authorized && snapshot.lifecycle === 'running'
@@ -118,17 +130,23 @@ export function initializeModuleApplication(): void {
   lifecycle.register('reminders', async () => { reminderRuntime.stop(); await dashboard.abortAll(); reminders.clearObservations(); return bridge.stopModule('reminders') })
   lifecycle.register('pc-health', async () => { await health.stop(); return bridge.stopModule('pc-health') })
   lifecycle.register('email', async () => { await email!.stop(); return bridge.stopModule('email') })
+  lifecycle.register('web-research', async () => { await web!.stop(); safeSend(IPC_CHANNELS.WEB_RESEARCH_CHANGED, null); return bridge.stopModule('web-research') })
   application = { service, bridge, database, reminderRuntime, dashboard, reminderStore, presentation }
   pythonBackend.onMessage((frame, sessionId) => {
     if (frame.type === 'hello_ack') {
-      features = frame.payload as { moduleRuntimeVersion?: number }
+      features = frame.payload as { moduleRuntimeVersion?: number; webResearchRuntimeVersion?: number }
       featureSession = sessionId
+    }
+    if (frame.type === 'web_research_note' && sessionId === pythonBackend.getSessionId() && featureSession === sessionId && features.webResearchRuntimeVersion === 1) {
+      try { validateWebNote(frame.payload); web!.acceptNote(frame.payload, sessionId) } catch { /* Never forward private notes. */ }
     }
     if (frame.type === 'capability_request' || frame.type === 'capability_cancel_request') {
       void bridge.handle(frame, sessionId).catch(() => { console.warn('[Modules] Invalid modular request.') })
     }
   })
+  pythonBackend.onSessionEnded(() => { features = {}; featureSession = undefined; void web!.stop() })
   licenseGate.onStateChanged(snapshot => {
+    if (snapshot.state !== 'unlocked') { void web!.stop(); safeSend(IPC_CHANNELS.WEB_RESEARCH_CHANGED, null) }
     if (snapshot.state !== 'unlocked') void email!.stop().catch(() => console.warn('[Email] Cleanup unavailable.'))
     else if (service.getSnapshot('email').enabled) void email!.restore().catch(() => console.warn('[Email] Credential restore unavailable.'))
     if (snapshot.state !== 'unlocked') { reminderRuntime.stop(); void health.stop().catch(() => console.warn('[PcHealth] Collector termination uncertain.')); void dashboard.abortAll(); void bridge.close() }
@@ -149,13 +167,17 @@ export function assertModuleRuntimeReady(): void {
 }
 
 export function listModuleSnapshots() {
-  return getModuleService().list().map(snapshot => snapshot.id === 'email' && snapshot.enabled && snapshot.authorized && email ? { ...snapshot, ...email.status() } : snapshot.id === 'computer' && snapshot.enabled && snapshot.authorized
+  return getModuleService().list().map(snapshot => snapshot.id === 'web-research' && snapshot.enabled && snapshot.authorized && web
+    ? (!application!.bridge.isReady() || featureSession !== pythonBackend.getSessionId() || features.webResearchRuntimeVersion !== 1
+      ? { ...snapshot, health: 'unavailable' as const, lifecycle: 'stopped' as const, errorCode: 'web_runtime_not_ready' }
+      : { ...snapshot, ...web.status() }) : snapshot.id === 'email' && snapshot.enabled && snapshot.authorized && email ? { ...snapshot, ...email.status() } : snapshot.id === 'computer' && snapshot.enabled && snapshot.authorized
     && !application!.bridge.isReady() ? { ...snapshot, health: 'unavailable' as const, lifecycle: 'stopped' as const, errorCode: 'module_runtime_not_ready' } : snapshot)
 }
 
 export async function refreshModuleRuntime(): Promise<void> {
   await refreshQueue.run(async () => {
     if (!application) throw new Error('module_application_unavailable')
+    if (application.service.getSnapshot('web-research').enabled) await web!.restore()
     if (application.service.getSnapshot('email').enabled) await email!.restore().catch(() => console.warn('[Email] Credential restore unavailable.'))
     if (featureSession !== pythonBackend.getSessionId()) throw new Error('module_runtime_not_negotiated')
     await application.bridge.negotiate(features, pythonBackend.getSessionId())
@@ -167,6 +189,7 @@ export async function refreshModuleRuntime(): Promise<void> {
 export async function closeModuleApplication(): Promise<void> {
   if (!application) return
   await email?.stop()
+  await web?.stop()
   await closeHealth?.()
   application.reminderRuntime.close()
   application.presentation.close()

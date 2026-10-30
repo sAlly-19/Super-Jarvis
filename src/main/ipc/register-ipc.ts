@@ -41,6 +41,8 @@ import { getTaskService } from '../tasks/application'
 import { registerRemindersIpc } from './reminders-ipc'
 import { registerPcHealthIpc } from './pc-health-ipc'
 import { registerEmailIpc } from './email-ipc'
+import { registerWebResearchIpc } from './web-research-ipc'
+import { getWebResearchApplication } from '../modules/application'
 import { getEmailApplication } from '../modules/application'
 
 export type TrustedEvent = IpcMainEvent | IpcMainInvokeEvent
@@ -256,6 +258,7 @@ export function registerIpcHandlers(moduleRuntime = { refresh: refreshModuleRunt
   registerRemindersIpc((event, channel) => { assertTrustedSender(event); requireIpcAccess(channel) })
   registerPcHealthIpc((event, channel) => { assertTrustedSender(event); requireIpcAccess(channel) })
   registerEmailIpc((event, channel) => { assertTrustedSender(event); requireIpcAccess(channel) }, { handle: (channel, handler) => ipcMain.handle(channel, handler), window: getMainWindow, application: getEmailApplication })
+  registerWebResearchIpc((event, channel) => { assertTrustedSender(event); requireIpcAccess(channel) }, { handle: (channel, handler) => ipcMain.handle(channel, handler), window: getMainWindow, application: getWebResearchApplication, openExternal: url => shell.openExternal(url) })
   wireBackendForwarding()
     const taskId = (value: unknown): string => {
       if (typeof value !== 'string' || !/^[a-f0-9-]{36}$/.test(value)) throw new Error('invalid_task_id')
@@ -608,3 +611,4 @@ export function registerIpcHandlers(moduleRuntime = { refresh: refreshModuleRunt
     return updateManager.install()
   })
 }
+import { shell } from 'electron'

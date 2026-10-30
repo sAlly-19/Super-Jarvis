@@ -39,3 +39,7 @@ SSRF/redirect/DNS rebinding; URL privada/metadata; conteúdo enorme/malformado; 
 ## Critério de conclusão
 Não basta ferramenta funcionar isoladamente: switch persistente, configuração segura, estado operacional verdadeiro, descoberta pelo orquestrador, validação de permissão, cancelamento e artefato empacotado devem ser comprovados. Conta/serviço ainda não configurado é pendência, nunca sucesso simulado.
 
+# Atualização de execução —30/10/2026
+
+O roteiro preliminar abaixo foi detalhado na [especificação29/10](../specs/2026-10-29-web-research-design.md) e nos planos executivos01–04. Decisões vigentes: DuckDuckGo HTML sem chave adicional, execução direta pelo ModuleBridge/Main, HTTP primeiro, histórico protegido10. Navegador/JavaScript adiado após gate reprovado; não restaurar Planner nem anunciar headless nesta entrega. Progresso e pendências oficiais: [registro](2026-10-29-web-research-progress.md).
+

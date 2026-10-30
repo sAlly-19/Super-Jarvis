@@ -1,6 +1,6 @@
 # Pesquisa web — mapa de execução e contratos
 
-**Estado:** planos aprovados com “sim”; etapa01 concluída, extração02 pronta e gate de navegador02 não aprovado. [Decisão pendente](2026-10-29-web-browser-gate.md) antes de03/04. Método nativo/main preservado; sem commit/push/deploy ou instalador.
+**Estado em30/10:** entrega local HTTP01–04 concluída e verificada (431 testes TS/integração e104 Python; tipos/build dev aprovados). Escopo HTTP primeiro aprovado, conforme emenda ao fim deste documento. Gate do navegador permanece reprovado e JavaScript adiado. CI/Node24 e aceite manual do produto licenciado continuam separados. Método nativo/main preservado; sem commit/push/deploy ou instalador nesta retomada.
 
 **Spec:** [desenho aprovado](../specs/2026-10-29-web-research-design.md).
 

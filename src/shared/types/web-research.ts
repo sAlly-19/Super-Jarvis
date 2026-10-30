@@ -26,3 +26,35 @@ export interface ReadOutcome {
   page: WebPage | null
   code?: WebCode
 }
+
+export type ResearchState = 'running' | 'complete' | 'partial' | 'blocked' | 'unavailable' | 'cancelled'
+export interface WebResearchRecord {
+  id: string
+  sequence: number
+  createdAt: string
+  updatedAt: string
+  state: ResearchState
+  query: string
+  results: SearchHit[]
+  pages: WebPage[]
+  summary: string | null
+  summaryState: 'pending' | 'available' | 'unavailable'
+}
+export interface ResearchHandle { id: string; generation: number; storage: 'saved' | 'volatile' }
+export type WebHistoryItem = Omit<WebResearchRecord, 'pages'> & { pageCount: number }
+export interface HistorySnapshot { generation: number; storage: 'saved' | 'volatile' | 'unavailable'; items: WebHistoryItem[] }
+export interface SummaryReceipt { researchId: string; ticket: string; sessionId: number; expiresAt: number }
+export interface WebResearchNote { researchId: string; ticket: string; sessionId: number; summary: string }
+export type WebCapabilityData =
+  | { kind: 'search'; researchId: string; historyStorage: 'saved' | 'volatile'; outcome: SearchOutcome; _historyReceipt?: SummaryReceipt }
+  | { kind: 'read'; researchId: string; historyStorage: 'saved' | 'volatile'; outcome: ReadOutcome; _historyReceipt?: SummaryReceipt }
+  | { kind: 'history_list'; snapshot: HistorySnapshot }
+  | { kind: 'history_get'; record: WebResearchRecord | null }
+export interface WebSources { researchId: string; query: string; consultedAt: string; sources: Array<{ title: string; url: string }> }
+export interface WebModuleStatus {
+  health: 'healthy' | 'unavailable' | 'error'
+  lifecycle: 'running' | 'stopped'
+  storage: 'saved' | 'volatile' | 'unavailable'
+  errorCode?: string
+  lastNetworkCode?: WebCode
+}

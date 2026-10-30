@@ -2983,5 +2983,134 @@
     "timeoutMs": 30000,
     "cancellable": true,
     "verifierId": "email_write"
+  },
+  {
+    "id": "web_search",
+    "moduleId": "web-research",
+    "description": "Search public web sources; returns snippets, not read articles.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "web.search"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "web_observation"
+    ],
+    "timeoutMs": 15000,
+    "cancellable": true
+  },
+  {
+    "id": "web_read",
+    "moduleId": "web-research",
+    "description": "Read a public page over HTTP. JavaScript rendering is unavailable.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "http",
+            "browser"
+          ]
+        },
+        "researchId": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "web.read"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "web_observation"
+    ],
+    "timeoutMs": 30000,
+    "cancellable": true
+  },
+  {
+    "id": "web_history_list",
+    "moduleId": "web-research",
+    "description": "List last ten research records with consultation dates.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "web.history"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "web_observation"
+    ],
+    "timeoutMs": 5000,
+    "cancellable": true
+  },
+  {
+    "id": "web_history_get",
+    "moduleId": "web-research",
+    "description": "Read one stored research record; it is historical data.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 36,
+          "maxLength": 36
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object"
+    },
+    "permissions": [
+      "web.history"
+    ],
+    "configurationKeys": [],
+    "effects": [
+      "web_observation"
+    ],
+    "timeoutMs": 5000,
+    "cancellable": true
   }
 ]

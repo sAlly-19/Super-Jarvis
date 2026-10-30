@@ -1,4 +1,11 @@
 export const IPC_CHANNELS = {
+  WEB_RESEARCH_HISTORY_LIST: 'web-research:history-list',
+  WEB_RESEARCH_HISTORY_GET: 'web-research:history-get',
+  WEB_RESEARCH_HISTORY_CLEAR: 'web-research:history-clear',
+  WEB_RESEARCH_TEST: 'web-research:test',
+  WEB_RESEARCH_OPEN_SOURCE: 'web-research:open-source',
+  WEB_RESEARCH_CHANGED: 'web-research:changed',
+  WEB_RESEARCH_SOURCES: 'web-research:sources',
   EMAIL_ACCOUNTS: 'email:accounts',
   EMAIL_CONNECT: 'email:connect',
   EMAIL_DISCONNECT: 'email:disconnect',

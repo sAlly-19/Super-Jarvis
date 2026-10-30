@@ -28,7 +28,7 @@ export const SIDECAR_TO_HOST_MESSAGE_TYPES = [
   'interrupted',
   'error',
   'module_snapshot_ack', 'capability_request', 'capability_result', 'capability_cancel_request',
-  'task_runtime_ack', 'task_event'
+  'task_runtime_ack', 'task_event', 'web_research_note'
 ] as const
 
 export const BACKEND_MESSAGE_TYPES = [

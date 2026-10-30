@@ -41,6 +41,10 @@ export function initializeModuleSettings(): void {
       detail.textContent = snapshot.id === 'computer' ? 'PowerShell livre para scripts e automação do Windows, teclado/mouse, volume, telemetria e captura. Sem confirmação por operação. Comandos e erros são apresentados sem presumir que o objetivo foi concluído.' : snapshot.id === 'reminders' ? 'Agenda e calendário manual .ics no painel abaixo. Avisos sem som; resumo de atrasados na retomada. Não depende de conexão com a IA.' : 'Configuração será disponibilizada na fase deste módulo.'
       const diagnostic = document.createElement('button')
       if (snapshot.id === 'pc-health') detail.textContent = 'CPU, GPU, memória/swap, discos, processos, rede, uptime, bateria e sensores disponíveis no painel abaixo. Coleta local sem IA; alertas visuais configuráveis, sem reparos automáticos.'
+      if (snapshot.id === 'web-research') {
+        detail.textContent = 'Busca sem chave adicional, leitura HTTP de páginas públicas, fontes e histórico local das dez últimas pesquisas. Sites que exigem JavaScript ainda não são suportados.'
+        if (snapshot.enabled && snapshot.authorized && snapshot.health === 'healthy') status.textContent = 'Ativo — pesquisa web e leitura HTTP'
+      }
       diagnostic.type = 'button'
       diagnostic.className = 'btn-toggle'
       diagnostic.textContent = 'Diagnosticar'

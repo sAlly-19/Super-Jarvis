@@ -15,6 +15,7 @@ from provider_adapters import (
     create_provider_adapter,
 )
 from live_session import LiveCall
+from web_research_notes import ResearchNotes
 from module_bridge import ModuleBridge
 from direct_agent import DIRECT_AGENT_POLICY, DirectToolGuard, visual_tool_result, text_tool_result
 from tools_os import (
@@ -216,6 +217,7 @@ class JasperRuntime:
     def __init__(self, event_sink=None) -> None:
         self.event_sink = event_sink
         self.module_bridge = ModuleBridge(event_sink)
+        self.research_notes = ResearchNotes(event_sink, lambda: self.module_bridge.session_id)
         self.live_call = None
         initial_provider = infer_provider_from_model(os.getenv("JASPER_MODEL", "gemini/gemini-3.8-flash"))
         initial_model = SUPPORTED_PROVIDER_MODELS[initial_provider][0]
@@ -342,6 +344,18 @@ class JasperRuntime:
         return None
 
     async def _run_agent_turn(
+        self, req_id: str, user_text: str, force_vision: bool = False,
+    ) -> AsyncIterator[Dict[str, Any]]:
+        self.research_notes.begin(req_id)
+        try:
+            async for item in self._run_agent_turn_inner(req_id, user_text, force_vision):
+                if item.get('type') == 'response':
+                    await self.research_notes.finish(req_id, item.get('payload', {}).get('text', ''))
+                yield item
+        finally:
+            self.research_notes.discard(req_id)
+
+    async def _run_agent_turn_inner(
         self,
         req_id: str,
         user_text: str,
@@ -465,6 +479,7 @@ class JasperRuntime:
                     if result is None:
                         result = await self.module_bridge.invoke(fn_name, fn_args)
                         guard.observe(fn_name, result)
+                    result = self.research_notes.consume(req_id, result)
                     result = text_tool_result(fn_name, result)
                     tool_result = json.dumps(result, ensure_ascii=False)
 
@@ -498,6 +513,7 @@ class JasperRuntime:
                     final_text = 'Não consegui concluir a resposta nesta rodada. Não vou presumir que as ações foram concluídas.'
 
         except ProviderAdapterError as exc:
+            self.research_notes.discard(req_id)
             cause = exc.__cause__
             from provider_adapters import _status_code
             status = _status_code(cause) if isinstance(cause, Exception) else None
@@ -505,6 +521,7 @@ class JasperRuntime:
             print(f"[AgentLoop] Provider error ({provider}/{exc.category}) HTTP={status or 'unknown'} exception={cause_type}", file=sys.stderr)
             final_text = exc.user_message
         except Exception as exc:
+            self.research_notes.discard(req_id)
             print(f"[AgentLoop] LLM error ({provider}): {type(exc).__name__}", file=sys.stderr)
             final_text = format_provider_error(provider)
 
@@ -606,7 +623,7 @@ class JasperRuntime:
             async def live_emit(kind, data):
                 await self.event_sink({'version': 1, 'id': str(uuid.uuid4()), 'type': kind, 'payload': data})
             self._live_tool_guard = DirectToolGuard()
-            self.live_call = LiveCall(live_emit, tool_executor=self.invoke_live_task, tool_catalog=self.live_task_tools)
+            self.live_call = LiveCall(live_emit, tool_executor=self.invoke_live_task, tool_catalog=self.live_task_tools, research_notes=self.research_notes)
             try:
                 await self.live_call.start(str(payload.get('apiKey') or ''), str(payload.get('voice') or 'Charon'), self.build_system_prompt(), bool(payload.get('greeting')))
                 yield {'version': 1, 'id': str(uuid.uuid4()), 'replyTo': msg_id, 'type': 'status', 'payload': {'status': 'live_connected'}}
@@ -641,6 +658,7 @@ class JasperRuntime:
                     "service": "jasper-backend",
                     "protocolVersion": 1,
                     "moduleRuntimeVersion": 1,
+                      "webResearchRuntimeVersion": 1,
                     "tools": [t["function"]["name"] for t in TOOLS_SCHEMA],
                     "status": "ready",
                 },
@@ -648,6 +666,7 @@ class JasperRuntime:
             return
 
         if msg_type == "shutdown":
+            self.research_notes.close()
             await self.tasks.close_origin()
             await self.module_bridge.close()
             if self.provider_adapter is not None:

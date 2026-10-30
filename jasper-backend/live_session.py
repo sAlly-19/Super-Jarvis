@@ -3,6 +3,7 @@ import asyncio
 import base64
 import contextlib
 import json
+import uuid
 from typing import Any
 
 from provider_adapters import _safe_provider_error
@@ -10,6 +11,7 @@ from gemini_tools import gemini_function_declarations
 from tools_os import AVAILABLE_FUNCTIONS, TOOLS_SCHEMA
 from live_tools import execute_live_tool
 from direct_agent import visual_tool_result
+from web_research_notes import strip_receipts
 
 LIVE_MODEL = 'gemini-3.8-live'
 LIVE_VOICES = frozenset(('Charon', 'Puck', 'Fenrir', 'Aoede', 'Kore', 'Orus', 'Leda', 'Zephyr'))
@@ -21,11 +23,13 @@ def _client(key):
 
 
 class LiveCall:
-    def __init__(self, emit, client_factory=_client, tool_executor=execute_live_tool, tool_catalog=None):
+    def __init__(self, emit, client_factory=_client, tool_executor=execute_live_tool, tool_catalog=None, research_notes=None):
         self.emit = emit
         self.client_factory = client_factory
         self.tool_executor = tool_executor
         self.tool_catalog = tool_catalog
+        self.research_notes = research_notes
+        self.turn_id = ''
         self.client = None
         self.session = None
         self.context = None
@@ -58,6 +62,7 @@ class LiveCall:
             self.context = self.client.aio.live.connect(model=LIVE_MODEL, config=config)
             self.session = await asyncio.wait_for(self.context.__aenter__(), timeout=20)
             self.active = True
+            self._rotate_turn()
             self.output_text = ''
             self.input_text = ''
             self.tasks = [asyncio.create_task(self._send()), asyncio.create_task(self._receive())]
@@ -112,10 +117,13 @@ class LiveCall:
                         task = self.tool_tasks.get(call_id)
                         if task:
                             task.cancel()
+                            if self.research_notes: self.research_notes.discard(self.turn_id)
                     content = getattr(message, 'server_content', None)
                     if content:
                         if getattr(content, 'interrupted', False):
                             self.output_text = ''
+                            for task in self.tool_tasks.values(): task.cancel()
+                            self._rotate_turn()
                             await self.emit('interrupted', {})
                         turn = getattr(content, 'model_turn', None)
                         for part in getattr(turn, 'parts', None) or []:
@@ -135,6 +143,8 @@ class LiveCall:
                         if getattr(content, 'turn_complete', False):
                             if self.output_text:
                                 await self.emit('response', {'text': self.output_text})
+                                if self.research_notes: await self.research_notes.finish(self.turn_id, self.output_text)
+                            self._rotate_turn()
                             self.output_text = ''
                             self.input_text = ''
                             await self.emit('turn_complete', {})
@@ -142,7 +152,7 @@ class LiveCall:
                     for call in getattr(tool_call, 'function_calls', None) or []:
                         if call.id in self.tool_tasks or len(self.tool_tasks) >= 8:
                             continue
-                        task = asyncio.create_task(self._tool(call))
+                        task = asyncio.create_task(self._tool(call, self.turn_id))
                         self.tool_tasks[call.id] = task
                         task.add_done_callback(lambda _, call_id=call.id: self.tool_tasks.pop(call_id, None))
                 if not received:
@@ -152,7 +162,13 @@ class LiveCall:
         except Exception as exc:
             await self._failed(exc)
 
-    async def _tool(self, call):
+    def _rotate_turn(self):
+        if self.research_notes: self.research_notes.discard(self.turn_id)
+        self.turn_id = 'live:' + str(uuid.uuid4())
+        if self.research_notes: self.research_notes.begin(self.turn_id)
+
+    async def _tool(self, call, turn_id=None):
+        turn_id = self.turn_id if turn_id is None else turn_id
         try:
             fn = AVAILABLE_FUNCTIONS.get(call.name)
             args = dict(call.args or {})
@@ -176,10 +192,12 @@ class LiveCall:
             if not isinstance(result, dict):
                 result = {'result': result}
         except asyncio.CancelledError:
+            if self.research_notes: self.research_notes.discard(turn_id)
             return
         except Exception:
             result = {'error': 'Não foi possível executar a ferramenta.'}
-        if self.active:
+        result = self.research_notes.consume(turn_id, result) if self.research_notes else strip_receipts(result)
+        if self.active and turn_id == self.turn_id:
             try:
                 await self.emit('tool_result', {'tool': call.name, 'result': visual_tool_result(result)})
                 await self.session.send_tool_response(function_responses=[{
@@ -197,6 +215,7 @@ class LiveCall:
 
     async def stop(self):
         self.active = False
+        if self.research_notes: self.research_notes.discard(self.turn_id)
         current = asyncio.current_task()
         tasks = [t for t in self.tasks + list(self.tool_tasks.values()) if t is not current]
         for task in tasks:

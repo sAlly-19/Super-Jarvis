@@ -1,6 +1,7 @@
 import struct
 import json
 from module_protocol import validate_module_payload
+from web_research_notes import validate_note
 from orchestration.protocol import validate_task_payload
 from typing import Any, Dict, List
 
@@ -15,7 +16,7 @@ HOST_TO_SIDECAR_MESSAGE_TYPES = (
 )
 SIDECAR_TO_HOST_MESSAGE_TYPES = (
     "hello_ack", "status", "user_transcript", "response", "audio_output", "tool_execution", "tool_result",
-    "memory_upsert", "memory_clear", "turn_complete", "interrupted", "error", "module_snapshot_ack", "capability_request", "capability_result", "capability_cancel_request", "task_runtime_ack", "task_event",
+    "memory_upsert", "memory_clear", "turn_complete", "interrupted", "error", "module_snapshot_ack", "capability_request", "capability_result", "capability_cancel_request", "task_runtime_ack", "task_event", "web_research_note",
 )
 ALL_MESSAGE_TYPES = HOST_TO_SIDECAR_MESSAGE_TYPES + tuple(
     message_type for message_type in SIDECAR_TO_HOST_MESSAGE_TYPES if message_type != "memory_clear"
@@ -34,6 +35,10 @@ def _require_string(payload: Dict[str, Any], field: str, allow_empty: bool = Fal
 
 
 def _validate_payload(msg_type: str, payload: Any) -> None:
+    if msg_type == 'web_research_note':
+        try: validate_note(payload)
+        except ValueError as exc: raise FrameError('Invalid web note') from exc
+        return
     try:
         if validate_task_payload(msg_type, payload): return
     except ValueError as exc:

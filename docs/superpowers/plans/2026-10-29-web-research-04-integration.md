@@ -1,5 +1,7 @@
 # Pesquisa web04 — integração direta, painel e aceite
 
+**Execução em30/10:** implementação local concluída; verify431/431, Python104/104, UI Electron sintética e consulta pública aprovados. Uma revisão independente,2Minors corrigidos RED→GREEN. Navegador adiado pela emenda HTTP; CI/Node24 e aceite manual em produto licenciado permanecem pendentes. Detalhes/evidências no [progresso](2026-10-29-web-research-progress.md). Checklist abaixo preserva o roteiro original; não confundir metas de teste agrupadas com execução individual de cada cenário/fake timer descrito.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans, método nativo; implementar task-by-task com TDD. Uma revisão independente final do conjunto após checks, sem agentes por tarefa.
 
 **Goal:** Disponibilizar pesquisa/leitura/histórico no chat e Live com estado operacional verdadeiro e fontes visíveis.
@@ -9,7 +11,7 @@
 
 ## Global Constraints
 
-Todas as restrições00 e gate real aprovado de02. Preservar licença72h, Total Control, cancelamento, limites do ciclo direto e proteção de e-mails. Não expor recibo, HTML ou texto completo a eventos visuais/logs. Histórico contém conteúdo autorizado, sem confundir resumo do modelo com fonte verificada. Sem pacote/release, contas ou testes pessoais.
+Todas as restrições00, com a emenda HTTP aprovada ao fim deste plano: gate do navegador não aprovado, renderer remoto não habilitado. Preservar licença72h, Total Control, cancelamento, limites do ciclo direto e proteção de e-mails. Não expor recibo, HTML ou texto completo a eventos visuais/logs. Histórico contém conteúdo autorizado, sem confundir resumo do modelo com fonte verificada. Sem pacote/release, contas ou testes pessoais.
 
 ## Review Focus
 

@@ -16,10 +16,12 @@ import { showHudToast } from './ui/toast'
 import { ControlConsentModal } from './ui/control-consent-modal'
 import { licenseModal } from './ui/license-modal'
 import { initializeTaskProgress } from './ui/task-progress'
+import { initializeWebResearchSources } from './ui/web-research-sources'
 import type { LicenseGateSnapshot, AgentStatusPayload } from '@shared'
 
 // Audio & 3D Core instances
 initializeTaskProgress()
+initializeWebResearchSources()
 const audioPlayer = new AudioPlayer()
 const lipSync = new LipSyncAnalyzer()
 const micRecorder = new MicRecorder()

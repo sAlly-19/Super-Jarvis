@@ -26,15 +26,16 @@ describe('Sidecar Versioned Framing Protocol (TypeScript)', () => {
       'module_snapshot', 'capability_execute', 'capability_response', 'invocation_cancel',
       'task_runtime', 'task_event_ack', 'task_cancel',
       'hello_ack', 'status', 'user_transcript', 'response', 'audio_output', 'tool_execution', 'tool_result',
-      'memory_upsert', 'turn_complete', 'interrupted', 'error', 'module_snapshot_ack', 'capability_request', 'capability_result', 'capability_cancel_request', 'task_runtime_ack', 'task_event'
+      'memory_upsert', 'turn_complete', 'interrupted', 'error', 'module_snapshot_ack', 'capability_request', 'capability_result', 'capability_cancel_request', 'task_runtime_ack', 'task_event', 'web_research_note'
     ])
     assert.equal(HOST_TO_SIDECAR_MESSAGE_TYPES.length, 18)
-    assert.equal(SIDECAR_TO_HOST_MESSAGE_TYPES.length, 18)
+    assert.equal(SIDECAR_TO_HOST_MESSAGE_TYPES.length, 19)
   })
 
   test('accepts a valid payload for every allowed message type', () => {
     const payloads: Record<BackendMessageType, Record<string, unknown>> = {
       hello: { client: 'test', protocolVersion: 1 },
+      web_research_note: { researchId: '11111111-1111-4111-8111-111111111111', ticket: 'a'.repeat(64), sessionId: 1, summary: 'Summary' },
       task_runtime: { taskRuntimeVersion: 1, sessionId: 1 },
       task_runtime_ack: { taskRuntimeVersion: 1, sessionId: 1 },
       task_event: { requestId: 'r', sessionId: 1, taskId: '', expectedRevision: 0, event: { type: 'open', origin: 'chat' } },

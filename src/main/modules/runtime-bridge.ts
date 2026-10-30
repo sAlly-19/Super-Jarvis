@@ -25,6 +25,7 @@ export class ModuleRuntimeBridge {
   private readonly requestIds = new Map<string, string>()
   private readonly catalog = new Map<ModuleId, string>()
   private advertised = new Set<string>()
+  private webCompatible = false
 
   public isReady(): boolean { return this.ready && this.negotiatedSession === this.transport.getSessionId() }
 
@@ -59,9 +60,10 @@ export class ModuleRuntimeBridge {
     }, invocations)
   }
 
-  public async negotiate(features: { moduleRuntimeVersion?: number }, sessionId: number): Promise<number> {
+  public async negotiate(features: { moduleRuntimeVersion?: number; webResearchRuntimeVersion?: number }, sessionId: number): Promise<number> {
     if (this.negotiatedSession !== null && this.negotiatedSession !== sessionId) await this.close()
     this.ready = false
+    this.webCompatible = features.webResearchRuntimeVersion === 1
     if (features.moduleRuntimeVersion !== 1 || sessionId !== this.transport.getSessionId()) {
       this.negotiatedSession = null
       throw new Error('incompatible_module_runtime')
@@ -75,7 +77,7 @@ export class ModuleRuntimeBridge {
     const sessionId = this.negotiatedSession
     if (sessionId === null || sessionId !== this.transport.getSessionId()) throw new Error('module_not_negotiated')
     const snapshotVersion = ++this.snapshotVersion
-    const capabilities = this.registry.list().filter(capability => (capability.moduleId === 'computer' || Boolean(this.hostExecutors[capability.moduleId])) && this.policy.authorize(capability.id, {
+    const capabilities = this.registry.list().filter(capability => (capability.moduleId !== 'web-research' || this.webCompatible) && (capability.moduleId === 'computer' || Boolean(this.hostExecutors[capability.moduleId])) && this.policy.authorize(capability.id, {
       taskId: 'catalog', stepId: 'catalog', invocationId: 'catalog', sessionId, moduleRevision: this.getRevision(capability.moduleId)
     }).allowed)
     const next = new Map<ModuleId, string>()
@@ -147,6 +149,7 @@ export class ModuleRuntimeBridge {
   public async close(): Promise<StopReport> {
     this.ready = false
     this.negotiatedSession = null
+    this.webCompatible = false
     this.catalog.clear(); this.advertised.clear()
     const reports = await Promise.all([...new Set(this.registry.list().map(capability => capability.moduleId))].map(id => this.broker.stopModule(id)))
     return { stopped: reports.every(report => report.stopped), unknownInvocationIds: reports.flatMap(report => report.unknownInvocationIds) }

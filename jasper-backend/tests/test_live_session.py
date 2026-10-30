@@ -21,6 +21,27 @@ class FakeSession:
 
 
 class LiveTests(unittest.IsolatedAsyncioTestCase):
+    async def test_live_web_receipts_are_private_and_interrupted_turns_do_not_revive(self):
+        from web_research_notes import ResearchNotes
+        from test_web_research_notes import result
+        frames = []
+        async def emit(frame): frames.append(frame)
+        self.call.research_notes = ResearchNotes(emit, lambda: 2)
+        self.call.tool_catalog = lambda: [{'type': 'function', 'function': {'name': 'web_search', 'description': 'Search', 'parameters': {'type': 'object'}}}]
+        self.call.tool_executor = AsyncMock(return_value=result())
+        await self.call.start('test', 'Charon', 'System')
+        await self.call._tool(NS(id='web', name='web_search', args={}))
+        self.assertNotIn('a' * 64, str(self.session.send_tool_response.call_args))
+        await self.session.messages.put(NS(server_content=NS(turn_complete=True, output_transcription=NS(text='Answer')), tool_call=None))
+        await asyncio.sleep(0.03)
+        self.assertEqual([f['payload']['summary'] for f in frames], ['Answer'])
+        old = self.call.turn_id
+        await self.session.messages.put(NS(server_content=NS(interrupted=True), tool_call=None))
+        await asyncio.sleep(0.03)
+        await self.call._tool(NS(id='late', name='web_search', args={}), old)
+        self.assertEqual(len(frames), 1)
+        self.assertNotIn('a' * 64, str(self.events))
+
     async def test_private_tool_result_only_reaches_live_model_not_visual_events(self):
         self.call.tool_catalog = lambda: [{'type': 'function', 'function': {'name': 'email_read', 'description': 'Read', 'parameters': {'type': 'object'}}}]
         self.call.tool_executor = AsyncMock(return_value={'status': 'succeeded', 'data': {'body': 'private-body'}, 'evidence': []})

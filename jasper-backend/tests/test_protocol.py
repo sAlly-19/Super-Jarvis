@@ -57,14 +57,15 @@ class TestBackendProtocol(unittest.TestCase):
                 "hello_ack", "status", "user_transcript", "response", "audio_output", "tool_execution", "tool_result",
                 "memory_upsert", "turn_complete", "interrupted", "error",
                 "module_snapshot_ack", "capability_request", "capability_result", "capability_cancel_request",
-                "task_runtime_ack", "task_event",
+                "task_runtime_ack", "task_event", "web_research_note",
             ),
         )
         self.assertEqual(len(HOST_TO_SIDECAR_MESSAGE_TYPES), 18)
-        self.assertEqual(len(SIDECAR_TO_HOST_MESSAGE_TYPES), 18)
+        self.assertEqual(len(SIDECAR_TO_HOST_MESSAGE_TYPES), 19)
 
     def test_accepts_valid_payload_for_every_allowed_message_type(self):
         payloads = {
+            'web_research_note': {'researchId': '11111111-1111-4111-8111-111111111111', 'ticket': 'a' * 64, 'sessionId': 1, 'summary': 'Summary'},
             "hello": {"client": "test", "protocolVersion": 1},
             'task_runtime': {'taskRuntimeVersion': 1, 'sessionId': 1},
             'task_runtime_ack': {'taskRuntimeVersion': 1, 'sessionId': 1},

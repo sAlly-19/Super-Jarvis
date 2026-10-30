@@ -26,6 +26,20 @@ import {
 } from '@shared'
 
 const electronAPI = {
+  listWebResearch: () => ipcRenderer.invoke(IPC_CHANNELS.WEB_RESEARCH_HISTORY_LIST),
+  getWebResearch: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.WEB_RESEARCH_HISTORY_GET, { id }),
+  clearWebResearch: (expectedGeneration: number) => ipcRenderer.invoke(IPC_CHANNELS.WEB_RESEARCH_HISTORY_CLEAR, { expectedGeneration }),
+  testWebResearch: () => ipcRenderer.invoke(IPC_CHANNELS.WEB_RESEARCH_TEST),
+  openWebResearchSource: (id: string, url: string) => ipcRenderer.invoke(IPC_CHANNELS.WEB_RESEARCH_OPEN_SOURCE, { id, url }),
+  onWebResearchChanged: (callback: () => void) => {
+    const handler = () => callback(); ipcRenderer.on(IPC_CHANNELS.WEB_RESEARCH_CHANGED, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.WEB_RESEARCH_CHANGED, handler)
+  },
+  onWebResearchSources: (callback: (sources: import('@shared').WebSources) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, sources: import('@shared').WebSources) => callback(sources)
+    ipcRenderer.on(IPC_CHANNELS.WEB_RESEARCH_SOURCES, handler)
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.WEB_RESEARCH_SOURCES, handler)
+  },
   listEmailAccounts: () => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_ACCOUNTS),
   connectEmailAccount: (provider: import('@shared').EmailProviderId) => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_CONNECT, { provider }),
   disconnectEmailAccount: (id: string, expectedRevision: number) => ipcRenderer.invoke(IPC_CHANNELS.EMAIL_DISCONNECT, { id, expectedRevision }),

@@ -17,6 +17,16 @@ export interface EmailAPI {
   onEmailChanged(callback: () => void): () => void
 }
 
+export interface WebResearchAPI {
+  listWebResearch(): Promise<import('./web-research').HistorySnapshot>
+  getWebResearch(id: string): Promise<import('./web-research').WebResearchRecord | null>
+  clearWebResearch(expectedGeneration: number): Promise<import('./web-research').HistorySnapshot>
+  testWebResearch(): Promise<import('./web-research').SearchOutcome>
+  openWebResearchSource(id: string, url: string): Promise<void>
+  onWebResearchChanged(callback: () => void): () => void
+  onWebResearchSources(callback: (sources: import('./web-research').WebSources) => void): () => void
+}
+
 export interface RemindersAPI {
   listReminders(query: import('./reminders').ReminderListQuery): Promise<import('./reminders').ReminderPage>
   getReminder(id: string): Promise<import('./reminders').ReminderView | null>

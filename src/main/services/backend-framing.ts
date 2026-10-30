@@ -8,6 +8,7 @@ import {
 } from '@shared'
 import { validateModulePayload } from '../modules/wire-protocol'
 import { validateTaskPayload } from '../tasks/task-protocol'
+import { validateWebNote } from '../modules/web-research/note-protocol'
 
 export class FrameError extends Error {
   constructor(message: string) {
@@ -32,6 +33,7 @@ function validatePayload(type: string, value: unknown): void {
     throw new FrameError(`Payload inválido para '${type}': esperado objeto.`)
   }
   const payload = value
+  if (type === 'web_research_note') { try { validateWebNote(payload); return } catch { throw new FrameError('Invalid web note') } }
   try { if (validateTaskPayload(type, payload)) return } catch { throw new FrameError('Invalid task payload') }
   try { if (validateModulePayload(type, payload)) return } catch { throw new FrameError('Invalid modular payload') }
   switch (type) {
