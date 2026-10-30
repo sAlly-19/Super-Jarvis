@@ -68,3 +68,7 @@ Todas as restrições00 e gate real aprovado de02. Preservar licença72h, Total 
 - [ ] Uma revisão independente do conjunto; corrigir Critical/Important com RED→GREEN e repetir checks afetados. Registrar Minors/limitações em progresso, sem anunciar segunda revisão que não ocorreu. Node26 local não comprova engine24; CI/Node24 permanece gate se não disponível. Sem instalador ou novo pacote.
 - [ ] Aceite público separado, somente após testes locais e escopo autorizado: uma consulta pública sem dados pessoais e leitura de documentação; registrar hora/URLs/resultado real sem promessa de disponibilidade. CAPTCHA/layout bloqueado permanece pendência de integração real, não sucesso simulado. Não testar serviços de login, compras ou dados privados.
 - [ ] Fechar progresso com fontes, dependências/licenças, evidências e pendências. Solicitar direção antes de outro módulo; Documentos e Outlook continuam adiados. Manter main e alterações sem commit/push.
+
+## Emenda HTTP —29/10/2026
+
+Conforme escolha explícita registrada no progresso, esta integração deve compor somente `DefaultWebReader` HTTP. Navegador e gate de JavaScript ficam adiados; `browser`/shell JS retornam `render_unavailable`. Não anunciar renderização nem instalar navegador. Histórico, recibos, licença, consentimento, fontes e demais verificações continuam exigidos.

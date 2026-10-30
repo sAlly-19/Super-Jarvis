@@ -92,3 +92,7 @@ O serviço03 de disco não contém fallback plaintext. O serviço04 mantém cont
 ## Gate e retomada
 
 Etapa01 executada com19 testes de domínio e verify394/394; dependências diretas HTML promovidas. Testes e comandos02–04 continuam futuros, migração009 não aplicada. Aprovação dos planos e método nativo preservados. Mudança estrutural necessária para isolamento do navegador ou busca pública bloqueada volta ao usuário, sem reduzir silenciosamente o escopo aprovado. Evidências no progresso oficial.
+
+## Emenda de escopo aprovada —29/10/2026
+
+Usuário escolheu entrega HTTP primeiro. Navegador/JavaScript adiados; gate02 permanece FAILED e não habilita renderização. Auto/http usam apenas transporte01; browser e shell JS retornam render_unavailable.03/04 podem seguir depois da validação do leitor HTTP, sem prometer suporte a sites JavaScript. Demais contratos e limites permanecem aplicáveis.

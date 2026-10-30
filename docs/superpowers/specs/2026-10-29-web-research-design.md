@@ -121,3 +121,7 @@ O buscador pode alterar HTML ou bloquear automação. Alguns sites não funciona
 - HTTP Node e custom lookup: https://nodejs.org/docs/latest-v24.x/api/http.html
 
 Essas referências sustentam as APIs candidatas; não substituem testes da versão instalada nem constituem aprovação de distribuição/uso automatizado por buscadores.
+
+## Decisão posterior de escopo —29/10/2026
+
+Após falha documentada do gate real de contenção, usuário escolheu explicitamente **busca e leitura HTTP primeiro**, adiando sites que exigem JavaScript. Nesta entrega não há renderer remoto: modo browser e shells JS retornam render_unavailable, sem tentativas de contorno. O gate do navegador continua reprovado; não é condição para histórico/integração da entrega exclusivamente HTTP. Demais requisitos de proteção, fontes, retenção e execução direta permanecem.

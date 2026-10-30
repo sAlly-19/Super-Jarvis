@@ -57,3 +57,7 @@ Só declarar02 pronto com gate real aprovado. Próximo03: histórico. Não publi
 ## Execution checkpoint
 
 Task1 complete5/5. Web domain24/24 and typecheck pass. Task2 containment gate FAILED in real Electron; browser production and Task3 not implemented. See [gate report](2026-10-29-web-browser-gate.md) before continuing. User decision required by the approved gate; do not silently reduce scope or publish unproven rendering.
+
+## Emenda aprovada — entrega HTTP em29/10/2026
+
+A escolha explícita do usuário adia JavaScript remoto. Para esta entrega, Task2 permanece reprovada e fora do escopo de execução; não é requisito para03/04 HTTP. Task3 é substituída pelo leitor HTTP `reader.ts`: auto/http fazem uma leitura segura, browser falha explicitamente sem rede, shell JS retorna render_unavailable, sem renderizador ou fallback. Mantêm-se limites, cancelamento, autoridade e classificação de bloqueios. Nenhum resultado de teste antigo é promovido a PASS.

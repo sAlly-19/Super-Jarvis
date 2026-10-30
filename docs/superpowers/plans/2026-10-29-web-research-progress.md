@@ -100,3 +100,21 @@ Task2 executou prova real no Electron44.4/Chromium152. Barreiras de protocolo/CS
 
 Task3/leitor composto e etapas03/04 não iniciados, conforme gate aprovado. Sem renderer remoto habilitado, alteração de flags do produto, novo instalador, commit/push ou API real. Ledger02 e relatórios mantidos para continuidade. Escolha necessária: HTTP inicialmente com JS explicitamente adiado, ou redesenhar contenção do navegador antes da integração.
 `nRevisao independente da etapa02: corrigido fallback de data de publicacao (time exige datePublished/pubdate), com regressao RED/GREEN. Resultado atualizado:25/25 testes web e typecheck0. Gate de navegador segue nao aprovado; aguarda decisao documentada em 2026-10-29-web-browser-gate.md.
+
+## Retomada nesta máquina — 29/10/2026
+
+Usuário escolheu explicitamente: **entregar busca e leitura HTTP primeiro e adiar sites que exigem JavaScript**. Essa decisão substitui a exigência de concluir o navegador antes de03/04 para a entrega HTTP. O gate antigo continua reprovado; não foi convertido em aprovação nem removido. Nenhum renderer remoto será habilitado nesta entrega.
+
+`DefaultWebReader` implementado com transporte seguro01, extração02, teto HTTP8s dentro do prazo externo, texto48KiB UTF-8, URL final observada e revalidação de autoridade. `auto` usa somente HTTP; `browser` retorna `render_unavailable` sem rede; shell JavaScript retorna a mesma limitação explícita. Texto simples permanece literal, sem interpretar marcação. Sem retry/fallback em CAPTCHA,403,429 ou binário.
+
+Verificação inicial encontrou dependências do lockfile ausentes nesta máquina; sincronização com `npm ci --ignore-scripts` em andamento. Testes do leitor e repetição dos testes web pendentes, sem anunciar integração ou histórico concluídos.
+
+### Resultado da retomada HTTP
+
+- Leitor HTTP validado: **31/31 testes web**, incluindo seis testes novos do leitor (artigo curto/texto literal, modo browser sem rede/shell JS,403/429/paywall/binário, URL privada/revogação, Unicode/deadline e cancelamento).
+- Verificação geral em **Node24.22.1**: typecheck passou, **406/406 testes**, nenhum skipped/falha, build Main/preload/renderer concluído. O aviso preexistente de chunk renderer>500KiB permanece. PowerShell apresentou NativeCommandError ao redirecionar esse warning; o log registra todos os testes aprovados e os três builds concluídos, sem alegar exit0 do invólucro PowerShell.
+- Dependências sincronizadas:555 pacotes. Corrigidas188 URLs huaweicloud no lockfile para tarballs oficiais npm; comparação estrutural com HEAD confirmou **somente URLs**, versões/integridades preservadas (`LOCKFILE_URL_ONLY_PASS`). Primeiras tentativas tiveram ECONNRESET/timeouts e remapeamento de host insuficiente; a instalação normalizada terminou com npm exit0.
+- Audit de produção: **zero vulnerabilidades**. Audit total da instalação: cinco de desenvolvimento (uma moderate/quatro high), sem npm audit fix automático. Scanner517 arquivos sem achados e diff check sem erros.
+- Electron local preparado explicitamente após instalação sem scripts. Sem release/instalador/commit/push, nenhuma consulta operacional a buscador ou página real nesta etapa; respostas dos testes são sintéticas.
+
+**Estado atual:** extração e leitor HTTP concluídos no escopo aprovado; navegador adiado e gate antigo permanece FAILED. Histórico03 e integração04 ainda pendentes; módulo não publicado. Próximo passo: codec/histórico cifrado03, seguindo contratos e requisitos de retenção/concorrência já aprovados. Logs desta retomada: `.cache/web-research-{tests,typecheck,verify}.log`, `.cache/web-research-audit.json` e `.cache/web-research-install-normalized.log`.

@@ -46,3 +46,7 @@ Sem adotar silenciosamente nenhuma alternativa. Código, dependências e configu
 - Diretiva WebRTC descrita na especificação CSP: https://www.w3.org/TR/CSP3/
 
 Documentação não substitui os resultados do binário instalado; por isso o gate exige comportamento real e não apenas presença de opção no código.
+
+## Decisão de continuidade — 29/10/2026
+
+Usuário aprovou explicitamente a alternativa1: HTTP primeiro, JavaScript adiado. O gate permanece reprovado para navegador; essa entrega não usa renderização remota. Etapa02 passa a concluir o leitor HTTP com `render_unavailable` explícito para modo browser/shell JS; depois podem seguir03/04 no escopo HTTP. Não habilitar navegador em produto com base nesta mudança de escopo.
